@@ -1,0 +1,21 @@
+# VS Code
+.vscode/
+
+# PlatformIO
+.pio/
+.pdmps/
+
+# C/C++ Build-Artefakte
+*.o
+*.a
+*.so
+*.lib
+*.dll
+*.exe
+*.bin
+*.elf
+*.hex
+
+# OS-spezifisch
+.DS_Store
+Thumbs.db
