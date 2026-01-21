@@ -69,15 +69,20 @@ void setup() {
 
   // MH-Z19C
   SerialCO2.begin(9600, SERIAL_8N1, PIN_CO2_RX, PIN_CO2_TX);
-  delay(1000); // Längere Pause, da der CO2-Sensor viel Strom beim Start zieht (Heizung)
+  delay(1000); 
   myMHZ19.begin(SerialCO2);
   myMHZ19.autoCalibration(false); // Autokalibrierung aus (besser manuell steuern)
-  Serial.println("  -> MH-Z19C initialisiert.");
+  
+  // Diagnose: Versuche Version zu lesen
+  char myVersion[4];
+  myMHZ19.getVersion(myVersion);
+  Serial.print("  -> MH-Z19C initialisiert. Version: ");
+  Serial.print(myVersion[0]); Serial.print(myVersion[1]); Serial.println(" (Wenn leer -> RX/TX prüfen!)");
 
   // LD2410 Radar
   SerialRadar.setRxBufferSize(16384); // Puffer noch weiter erhöht (16KB)
   SerialRadar.begin(256000, SERIAL_8N1, PIN_RADAR_RX, PIN_RADAR_TX);
-  delay(1000); // Warten, bis Radar bereit ist und Spannung stabil
+  delay(800); // Etwas länger warten
   radar.begin(SerialRadar);
   Serial.println("  -> LD2410 Radar initialisiert.");
 
@@ -116,18 +121,29 @@ void loop() {
 
     // 4. MH-Z19C (CO2)
     int co2 = myMHZ19.getCO2();
-    if (co2 >= 5000 || co2 <= 0) {
-        Serial.printf("CO2:     %d ppm (ACHTUNG: Prüfe 5V Spannung!)\n", co2);
+    int tempCO2 = myMHZ19.getTemperature();
+    
+    if (myMHZ19.errorCode != RESULT_OK) {
+        Serial.println("CO2:     FEHLER - Keine Verbindung! (Kabel an Pin 4/5 tauschen)");
     } else {
-        Serial.printf("CO2:     %d ppm (Temp: %d C)\n", co2, myMHZ19.getTemperature());
+        Serial.printf("CO2:     %d ppm (Temp: %d C)\n", co2, tempCO2);
     }
+
+    // WICHTIG: Radar nochmal lesen, da der CO2-Abruf oben den Loop blockiert hat
+    // und sich in der Zwischenzeit Daten im Puffer angesammelt haben.
+    radar.read();
 
     // 5. LD2410 (Radar)
     if(radar.isConnected()) {
       Serial.printf("RADAR:   Präsenz: %s | Bewegt: %d cm | Statisch: %d cm\n", 
                     radar.presenceDetected() ? "JA" : "NEIN", radar.movingTargetDistance(), radar.stationaryTargetDistance());
     } else {
-      Serial.println("RADAR:   Nicht verbunden");
+      Serial.print("RADAR:   Nicht verbunden");
+      if (SerialRadar.available() > 0) {
+        Serial.printf(" [DEBUG: %d Bytes empfangen - Parsing Fehler]\n", SerialRadar.available());
+      } else {
+        Serial.println(" [DEBUG: 0 Bytes empfangen - Kabel/Strom prüfen]");
+      }
     }
   }
 }
