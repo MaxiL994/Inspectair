@@ -1,0 +1,2390 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INSPECTAIR - Vollständige Bauanleitung</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg-light: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-light: #64748b;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: #fff;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem; }
+        h2 { font-size: 1.75rem; color: var(--secondary); margin: 2rem 0 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.25rem; color: var(--text); margin: 1.5rem 0 0.75rem; }
+        h4 { font-size: 1.1rem; color: var(--text-light); margin: 1rem 0 0.5rem; }
+        
+        .header-info { color: var(--text-light); margin-bottom: 2rem; }
+        
+        .toc {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .toc h3 { margin-top: 0; }
+        .toc ul { list-style: none; }
+        .toc li { padding: 0.25rem 0; }
+        .toc a { color: var(--primary); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background: var(--bg-light); }
+        
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .danger-box {
+            background: #fee2e2;
+            border-left: 4px solid var(--danger);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success-box {
+            background: #dcfce7;
+            border-left: 4px solid var(--success);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .step-container {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 0.75rem;
+        }
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: inline;
+        }
+        .step-content { margin-top: 1rem; padding-left: 2.5rem; }
+        
+        .checklist { list-style: none; }
+        .checklist li {
+            padding: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+        .checklist li::before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+        }
+        
+        .cable-color {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 4px;
+            border: 1px solid #333;
+        }
+        
+        .pin-highlight {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .svg-container {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+        .svg-container svg { max-width: 100%; height: auto; }
+        
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        pre code { background: transparent; color: inherit; }
+        
+        @media print {
+            body { padding: 1rem; }
+            .svg-container { page-break-inside: avoid; }
+            h2 { page-break-before: always; }
+            h2:first-of-type { page-break-before: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🌬️ INSPECTAIR</h1>
+<p class="header-info">Vollständige Bauanleitung für den Luftqualitätssensor | DHBW Ravensburg | Version 2.0</p>
+
+<div class="toc">
+    <h3>📋 Inhaltsverzeichnis</h3>
+    <ul>
+        <li><a href="#komponenten">1. Komponentenübersicht</a>
+            <ul style="margin-left: 1rem; font-size: 0.9em;">
+                <li><a href="#stromverbrauch">1.1 Stromverbrauchsberechnung</a></li>
+            </ul>
+        </li>
+        <li><a href="#werkzeug">2. Benötigtes Werkzeug &amp; Material</a></li>
+        <li><a href="#pinbelegung">3. Pin-Belegung ESP32-S3</a></li>
+        <li><a href="#schaltplan">4. Schaltplan (Übersicht)</a></li>
+        <li><a href="#breadboard">5. Breadboard-Layout</a></li>
+        <li><a href="#verkabelung-detail">6. Detaillierte Verkabelung</a></li>
+        <li><a href="#anleitung-step">7. Schritt-für-Schritt Bauanleitung</a></li>
+        <li><a href="#levelshifter">8. Level Shifter für LD2410C (obligatorisch)</a></li>
+        <li><a href="#gehaeuse">9. Gehäuse-Layout</a></li>
+        <li><a href="#fehlerbehebung">10. Fehlerbehebung</a></li>
+        <li><a href="#software">11. Software-Hinweise</a></li>
+    </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="komponenten">1. Komponentenübersicht</h2>
+<!-- ============================================ -->
+
+<table>
+    <thead>
+        <tr>
+            <th>Komponente</th>
+            <th>Modell</th>
+            <th>Spannung</th>
+            <th>Interface</th>
+            <th>Funktion</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Mikrocontroller</td>
+            <td>ESP32-S3-WROOM N8R8 (Waveshare)</td>
+            <td>3,3V Logik</td>
+            <td>USB-C</td>
+            <td>Zentrale Steuereinheit</td>
+        </tr>
+        <tr>
+            <td>Display</td>
+            <td>4" TFT ST7796S (480×320)</td>
+            <td>5V Logik / 3,3V BL</td>
+            <td>SPI</td>
+            <td>Anzeige der Messwerte</td>
+        </tr>
+        <tr>
+            <td>CO₂-Sensor</td>
+            <td>MH-Z19C</td>
+            <td>5V</td>
+            <td>UART (Serial2)</td>
+            <td>CO₂-Messung (0–5000 ppm)</td>
+        </tr>
+        <tr>
+            <td>Feinstaub-Sensor</td>
+            <td>PMS5003</td>
+            <td>5V</td>
+            <td>UART (Serial1)</td>
+            <td>PM1.0, PM2.5, PM10</td>
+        </tr>
+        <tr>
+            <td>Temp/Feuchte-Sensor</td>
+            <td>AHT20</td>
+            <td>3,3V</td>
+            <td>I²C</td>
+            <td>Temperatur &amp; Luftfeuchtigkeit</td>
+        </tr>
+        <tr>
+            <td>VOC-Sensor</td>
+            <td>SGP40</td>
+            <td>3,3V</td>
+            <td>I²C</td>
+            <td>Luftqualitätsindex</td>
+        </tr>
+        <tr>
+            <td>Radar-Sensor</td>
+            <td>LD2410C</td>
+            <td>5V</td>
+            <td>UART</td>
+            <td>Anwesenheitserkennung</td>
+        </tr>
+        <tr>
+            <td>Button</td>
+            <td>Taster (momentary)</td>
+            <td>3,3V</td>
+            <td>GPIO</td>
+            <td>UI-Umschaltung</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="danger-box">
+    <strong>🚨 WICHTIG – Level Shifter ist Pflicht!</strong><br>
+    Der LD2410C kann am TX-Pin 5V oder 3,3V ausgeben (je nach Charge). Da 5V-Signale den ESP32 <strong>dauerhaft beschädigen</strong> können und eine Messung im eingebauten Zustand unpraktisch ist, wird <strong>immer</strong> ein Level Shifter verwendet. Das schützt den ESP32 zuverlässig und funktioniert auch bei 3,3V-Modulen korrekt.
+</div>
+
+<h3 id="stromverbrauch">1.1 Stromverbrauchsberechnung</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Komponente</th>
+            <th>Typisch</th>
+            <th>Peak</th>
+            <th>Quelle</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>ESP32-S3-WROOM (WiFi aus)</td>
+            <td>80 mA</td>
+            <td>240 mA</td>
+            <td>Espressif Datenblatt</td>
+        </tr>
+        <tr>
+            <td>ST7796S Display (Controller)</td>
+            <td>25 mA</td>
+            <td>30 mA</td>
+            <td>Datenblatt</td>
+        </tr>
+        <tr>
+            <td>ST7796S Backlight (100%)</td>
+            <td>80 mA</td>
+            <td>120 mA</td>
+            <td>Gemessen (variiert!)</td>
+        </tr>
+        <tr>
+            <td>MH-Z19C (CO₂)</td>
+            <td>40 mA</td>
+            <td>150 mA</td>
+            <td>Winsen Datenblatt</td>
+        </tr>
+        <tr>
+            <td>PMS5003 (Feinstaub)</td>
+            <td>100 mA</td>
+            <td>120 mA</td>
+            <td>Plantower Datenblatt</td>
+        </tr>
+        <tr>
+            <td>LD2410C (Radar)</td>
+            <td>65 mA</td>
+            <td>70 mA</td>
+            <td>HiLink Datenblatt</td>
+        </tr>
+        <tr>
+            <td>AHT20 (Temp/Hum)</td>
+            <td>0,25 mA</td>
+            <td>0,3 mA</td>
+            <td>ASAIR Datenblatt</td>
+        </tr>
+        <tr>
+            <td>SGP40 (VOC)</td>
+            <td>2,6 mA</td>
+            <td>3,0 mA</td>
+            <td>Sensirion Datenblatt</td>
+        </tr>
+        <tr>
+            <td>Level Shifter</td>
+            <td>&lt;1 mA</td>
+            <td>&lt;1 mA</td>
+            <td>Vernachlässigbar</td>
+        </tr>
+        <tr style="background:#dbeafe; font-weight:bold;">
+            <td>SUMME (WiFi aus)</td>
+            <td>~395 mA</td>
+            <td>~735 mA</td>
+            <td></td>
+        </tr>
+        <tr style="background:#fef3c7; font-weight:bold;">
+            <td>SUMME (WiFi aktiv)</td>
+            <td>~555 mA</td>
+            <td>~895 mA</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="warning-box">
+    <strong>⚠️ USB-Stromversorgung beachten!</strong>
+    <table style="margin-top: 0.5rem; background: transparent; border: none;">
+        <tr style="background: transparent;">
+            <td style="border: none; padding: 0.25rem;"><strong>USB 2.0:</strong></td>
+            <td style="border: none; padding: 0.25rem;">max. 500 mA</td>
+            <td style="border: none; padding: 0.25rem; color: #dc2626;">❌ Nicht ausreichend!</td>
+        </tr>
+        <tr style="background: transparent;">
+            <td style="border: none; padding: 0.25rem;"><strong>USB 3.0:</strong></td>
+            <td style="border: none; padding: 0.25rem;">max. 900 mA</td>
+            <td style="border: none; padding: 0.25rem; color: #f97316;">⚠️ Knapp (ohne WiFi OK)</td>
+        </tr>
+        <tr style="background: transparent;">
+            <td style="border: none; padding: 0.25rem;"><strong>USB-C PD:</strong></td>
+            <td style="border: none; padding: 0.25rem;">bis 3000 mA</td>
+            <td style="border: none; padding: 0.25rem; color: #16a34a;">✅ Empfohlen</td>
+        </tr>
+        <tr style="background: transparent;">
+            <td style="border: none; padding: 0.25rem;"><strong>Externes Netzteil:</strong></td>
+            <td style="border: none; padding: 0.25rem;">5V / 2A</td>
+            <td style="border: none; padding: 0.25rem; color: #16a34a;">✅ Beste Wahl</td>
+        </tr>
+    </table>
+</div>
+
+<div class="danger-box">
+    <strong>🚨 Peak-Ströme beachten!</strong><br>
+    Der MH-Z19C hat alle 6 Sekunden einen Peak von ~150 mA (IR-Heizung). Wenn mehrere Sensoren gleichzeitig Peaks haben, kann der Gesamtstrom kurzzeitig 700–900 mA erreichen. Der <strong>Stützkondensator (100–470 µF)</strong> auf der 5V-Schiene puffert diese Spitzen ab und verhindert ESP32-Abstürze!
+</div>
+
+<!-- ============================================ -->
+<h2 id="werkzeug">2. Benötigtes Werkzeug &amp; Material</h2>
+<!-- ============================================ -->
+
+<h3>Werkzeug</h3>
+<ul class="checklist">
+    <li>Lötkolben (für spätere Festinstallation)</li>
+    <li>Abisolierzange</li>
+    <li>Seitenschneider</li>
+    <li>Multimeter (zum Prüfen der Verbindungen)</li>
+    <li>Schraubendreher-Set</li>
+    <li>Pinzette</li>
+</ul>
+
+<h3>Material</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Material</th>
+            <th>Menge</th>
+            <th>Zweck</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Breadboard (830 Punkte)</strong></td>
+            <td><strong>2×</strong></td>
+            <td><strong>Prototyp-Aufbau (alle Sensoren passen nicht auf eines!)</strong></td>
+        </tr>
+        <tr>
+            <td>Dupont-Kabel F-F</td>
+            <td>~30×</td>
+            <td>Sensorverbindungen</td>
+        </tr>
+        <tr>
+            <td>Dupont-Kabel M-F</td>
+            <td>~10×</td>
+            <td>ESP32 zu Breadboard</td>
+        </tr>
+        <tr>
+            <td>PMS5003 Adapterkabel</td>
+            <td>1×</td>
+            <td>Molex 1,25mm Adapter</td>
+        </tr>
+        <tr style="background:#fee2e2;">
+            <td><strong>Logic Level Shifter 3,3V↔5V (obligatorisch)</strong></td>
+            <td><strong>1×</strong></td>
+            <td><strong>Pegelanpassung für LD2410C TX-Signal – PFLICHT!</strong></td>
+        </tr>
+        <tr>
+            <td>Widerstand 4,7 kΩ</td>
+            <td>2×</td>
+            <td>I²C Pull-ups</td>
+        </tr>
+        <tr>
+            <td>Sicherung JK30 0,75A</td>
+            <td>1×</td>
+            <td>Überstromschutz</td>
+        </tr>
+        <tr>
+            <td style="background:#dbeafe;"><strong>Elko 100–470 µF (16V+)</strong></td>
+            <td style="background:#dbeafe;"><strong>1×</strong></td>
+            <td style="background:#dbeafe;"><strong>Stützkondensator 5V-Schiene (wichtig!)</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <strong>ℹ️ Warum ein Stützkondensator?</strong><br>
+    Die Sensoren (Radar, PMS5003, CO₂) ziehen pulsartig viel Strom. Ohne Puffer-Kondensator kann die Spannung kurzzeitig einbrechen und der ESP32 abstürzen oder neustarten. Ein Elko (100–470 µF) auf der 5V-Schiene glättet diese Spitzen.
+</div>
+
+<div class="danger-box">
+    <strong>🚨 Level Shifter ist Pflicht!</strong><br>
+    Der Level Shifter für den LD2410C ist <strong>keine Option, sondern Pflicht</strong>. Er schützt den ESP32 vor Überspannung, unabhängig davon, ob das konkrete Modul 3,3V oder 5V am TX-Pin ausgibt. Siehe Abschnitt 8 für die Verkabelung!
+</div>
+
+<!-- ============================================ -->
+<h2 id="pinbelegung">3. Pin-Belegung ESP32-S3</h2>
+<!-- ============================================ -->
+
+<p>Folgende GPIO-Pins werden verwendet:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Funktion</th>
+            <th>GPIO</th>
+            <th>Beschreibung</th>
+            <th>Kabelfarbe</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">SPI – Display ST7796S</td>
+        </tr>
+        <tr>
+            <td>TFT_MOSI</td>
+            <td><span class="pin-highlight">GPIO 11</span></td>
+            <td>SPI Data Out</td>
+            <td><span class="cable-color" style="background:#3b82f6;"></span>Blau</td>
+        </tr>
+        <tr>
+            <td>TFT_MISO</td>
+            <td><span class="pin-highlight">GPIO 13</span></td>
+            <td>SPI Data In</td>
+            <td><span class="cable-color" style="background:#6b7280;"></span>Grau</td>
+        </tr>
+        <tr>
+            <td>TFT_SCLK</td>
+            <td><span class="pin-highlight">GPIO 12</span></td>
+            <td>SPI Clock</td>
+            <td><span class="cable-color" style="background:#a855f7;"></span>Lila</td>
+        </tr>
+        <tr>
+            <td>TFT_CS</td>
+            <td><span class="pin-highlight">GPIO 14</span></td>
+            <td>Chip Select</td>
+            <td><span class="cable-color" style="background:#eab308;"></span>Gelb</td>
+        </tr>
+        <tr>
+            <td>TFT_DC</td>
+            <td><span class="pin-highlight">GPIO 9</span></td>
+            <td>Data/Command</td>
+            <td><span class="cable-color" style="background:#22c55e;"></span>Grün</td>
+        </tr>
+        <tr>
+            <td>TFT_RST</td>
+            <td><span class="pin-highlight">GPIO 46</span></td>
+            <td>Reset</td>
+            <td><span class="cable-color" style="background:#f97316;"></span>Orange</td>
+        </tr>
+        <tr>
+            <td>TFT_BL</td>
+            <td><span class="pin-highlight">GPIO 3</span></td>
+            <td>Backlight PWM</td>
+            <td><span class="cable-color" style="background:#f472b6;"></span>Rosa</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">I²C – AHT20 &amp; SGP40</td>
+        </tr>
+        <tr>
+            <td>I2C_SDA</td>
+            <td><span class="pin-highlight">GPIO 8</span></td>
+            <td>I²C Daten</td>
+            <td><span class="cable-color" style="background:#14b8a6;"></span>Cyan</td>
+        </tr>
+        <tr>
+            <td>I2C_SCL</td>
+            <td><span class="pin-highlight">GPIO 18</span></td>
+            <td>I²C Clock</td>
+            <td><span class="cable-color" style="background:#fff;border:1px solid #333;"></span>Weiß</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">UART1 – PMS5003</td>
+        </tr>
+        <tr>
+            <td>PMS_TX</td>
+            <td><span class="pin-highlight">GPIO 17</span></td>
+            <td>Serial1 RX (Sensor TX)</td>
+            <td><span class="cable-color" style="background:#84cc16;"></span>Hellgrün</td>
+        </tr>
+        <tr>
+            <td>PMS_RX</td>
+            <td><span class="pin-highlight">GPIO 16</span></td>
+            <td>Serial1 TX (Sensor RX)</td>
+            <td><span class="cable-color" style="background:#65a30d;"></span>Dunkelgrün</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">UART2 – MH-Z19C (CO₂)</td>
+        </tr>
+        <tr>
+            <td>CO2_TX</td>
+            <td><span class="pin-highlight">GPIO 4</span></td>
+            <td>Serial2 RX (Sensor TX)</td>
+            <td><span class="cable-color" style="background:#fb923c;"></span>Hellorange</td>
+        </tr>
+        <tr>
+            <td>CO2_RX</td>
+            <td><span class="pin-highlight">GPIO 5</span></td>
+            <td>Serial2 TX (Sensor RX)</td>
+            <td><span class="cable-color" style="background:#c2410c;"></span>Braun</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">Radar – LD2410C</td>
+        </tr>
+        <tr>
+            <td>RADAR_TX</td>
+            <td><span class="pin-highlight">GPIO 6</span></td>
+            <td><strong>Über Level Shifter!</strong></td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+        </tr>
+        <tr>
+            <td>RADAR_RX</td>
+            <td><span class="pin-highlight">GPIO 7</span></td>
+            <td>Direkt verbinden</td>
+            <td><span class="cable-color" style="background:#991b1b;"></span>Dunkelrot</td>
+        </tr>
+        <tr>
+            <td>RADAR_OUT</td>
+            <td><span class="pin-highlight">GPIO 15</span></td>
+            <td>Presence Detection</td>
+            <td><span class="cable-color" style="background:#d946ef;"></span>Magenta</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="background:#1e40af;color:white;font-weight:bold;">Button</td>
+        </tr>
+        <tr>
+            <td>BUTTON</td>
+            <td><span class="pin-highlight">GPIO 0</span></td>
+            <td>UI-Umschaltung (Pull-up)</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="schaltplan">4. Schaltplan (Übersicht)</h2>
+<!-- ============================================ -->
+
+<div class="svg-container">
+<svg viewBox="0 0 900 650" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+        </marker>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="900" height="650" fill="#f8fafc"/>
+    
+    <!-- Title -->
+    <text x="450" y="30" font-family="Segoe UI" font-size="20" font-weight="bold" fill="#1e40af" text-anchor="middle">INSPECTAIR – Schaltplan Übersicht</text>
+    
+    <!-- ESP32-S3 Box -->
+    <rect x="350" y="200" width="200" height="280" rx="8" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+    <text x="450" y="230" font-family="Segoe UI" font-size="14" fill="white" text-anchor="middle" font-weight="bold">ESP32-S3-WROOM</text>
+    <text x="450" y="250" font-family="Segoe UI" font-size="11" fill="#93c5fd" text-anchor="middle">N8R8 (Waveshare)</text>
+    
+    <!-- ESP32 Pins Left -->
+    <text x="360" y="280" font-family="Consolas" font-size="10" fill="white">GPIO 11 (MOSI)</text>
+    <text x="360" y="300" font-family="Consolas" font-size="10" fill="white">GPIO 12 (SCLK)</text>
+    <text x="360" y="320" font-family="Consolas" font-size="10" fill="white">GPIO 14 (CS)</text>
+    <text x="360" y="340" font-family="Consolas" font-size="10" fill="white">GPIO 9 (DC)</text>
+    <text x="360" y="360" font-family="Consolas" font-size="10" fill="white">GPIO 46 (RST)</text>
+    <text x="360" y="380" font-family="Consolas" font-size="10" fill="white">GPIO 3 (BL)</text>
+    <text x="360" y="410" font-family="Consolas" font-size="10" fill="white">GPIO 8 (SDA)</text>
+    <text x="360" y="430" font-family="Consolas" font-size="10" fill="white">GPIO 18 (SCL)</text>
+    <text x="360" y="460" font-family="Consolas" font-size="10" fill="white">GPIO 0 (BTN)</text>
+    
+    <!-- ESP32 Pins Right -->
+    <text x="540" y="280" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 17 (RX1)</text>
+    <text x="540" y="300" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 16 (TX1)</text>
+    <text x="540" y="330" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 4 (RX2)</text>
+    <text x="540" y="350" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 5 (TX2)</text>
+    <text x="540" y="380" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 6 (RADAR RX)</text>
+    <text x="540" y="400" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 7 (RADAR TX)</text>
+    <text x="540" y="420" font-family="Consolas" font-size="10" fill="white" text-anchor="end">GPIO 15 (RADAR OUT)</text>
+    <text x="540" y="450" font-family="Consolas" font-size="10" fill="#fbbf24" text-anchor="end">3.3V / 5V / GND</text>
+    
+    <!-- Display Box -->
+    <rect x="50" y="240" width="150" height="120" rx="6" fill="#3b82f6" stroke="#2563eb" stroke-width="2"/>
+    <text x="125" y="270" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">ST7796S Display</text>
+    <text x="125" y="290" font-family="Segoe UI" font-size="10" fill="#bfdbfe" text-anchor="middle">4" TFT 480×320</text>
+    <text x="125" y="310" font-family="Consolas" font-size="9" fill="white" text-anchor="middle">SPI + Backlight PWM</text>
+    <text x="125" y="330" font-family="Segoe UI" font-size="9" fill="#fbbf24" text-anchor="middle">VCC: 5V | BL: 3.3V</text>
+    
+    <!-- I2C Sensors Box -->
+    <rect x="50" y="400" width="150" height="100" rx="6" fill="#10b981" stroke="#059669" stroke-width="2"/>
+    <text x="125" y="430" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">I²C-Bus</text>
+    <text x="125" y="455" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">AHT20 (Temp/Hum)</text>
+    <text x="125" y="475" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">SGP40 (VOC)</text>
+    <text x="125" y="490" font-family="Segoe UI" font-size="9" fill="#fbbf24" text-anchor="middle">VCC: 3.3V</text>
+    
+    <!-- PMS5003 Box -->
+    <rect x="700" y="230" width="150" height="90" rx="6" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+    <text x="775" y="260" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">PMS5003</text>
+    <text x="775" y="280" font-family="Segoe UI" font-size="10" fill="#c4b5fd" text-anchor="middle">Feinstaub-Sensor</text>
+    <text x="775" y="300" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">UART1 (Serial1)</text>
+    <text x="775" y="315" font-family="Segoe UI" font-size="9" fill="#fbbf24" text-anchor="middle">VCC: 5V</text>
+    
+    <!-- MH-Z19C Box -->
+    <rect x="700" y="340" width="150" height="90" rx="6" fill="#f97316" stroke="#ea580c" stroke-width="2"/>
+    <text x="775" y="370" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">MH-Z19C</text>
+    <text x="775" y="390" font-family="Segoe UI" font-size="10" fill="#fed7aa" text-anchor="middle">CO₂-Sensor</text>
+    <text x="775" y="410" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">UART2 (Serial2)</text>
+    <text x="775" y="425" font-family="Segoe UI" font-size="9" fill="#fbbf24" text-anchor="middle">VCC: 5V</text>
+    
+    <!-- LD2410C Box -->
+    <rect x="700" y="450" width="150" height="100" rx="6" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+    <text x="775" y="480" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">LD2410C</text>
+    <text x="775" y="500" font-family="Segoe UI" font-size="10" fill="#fecaca" text-anchor="middle">Radar-Sensor</text>
+    <text x="775" y="520" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">UART + OUT</text>
+    <text x="775" y="535" font-family="Segoe UI" font-size="9" fill="#fbbf24" text-anchor="middle">VCC: 5V (TX→Level Shifter!)</text>
+    
+    <!-- Button Box -->
+    <rect x="50" y="530" width="100" height="60" rx="6" fill="#64748b" stroke="#475569" stroke-width="2"/>
+    <text x="100" y="555" font-family="Segoe UI" font-size="12" fill="white" text-anchor="middle" font-weight="bold">Button</text>
+    <text x="100" y="575" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">GPIO 0</text>
+    
+    <!-- Level Shifter Symbol -->
+    <rect x="600" y="470" width="70" height="50" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="635" y="490" font-family="Segoe UI" font-size="9" fill="#991b1b" text-anchor="middle" font-weight="bold">Level</text>
+    <text x="635" y="505" font-family="Segoe UI" font-size="9" fill="#991b1b" text-anchor="middle" font-weight="bold">Shifter</text>
+    
+    <!-- Connection Lines -->
+    <!-- Display to ESP32 -->
+    <line x1="200" y1="300" x2="350" y2="300" stroke="#3b82f6" stroke-width="2"/>
+    
+    <!-- I2C to ESP32 -->
+    <line x1="200" y1="450" x2="350" y2="420" stroke="#10b981" stroke-width="2"/>
+    
+    <!-- PMS5003 to ESP32 -->
+    <line x1="550" y1="290" x2="700" y2="275" stroke="#8b5cf6" stroke-width="2"/>
+    
+    <!-- MH-Z19C to ESP32 -->
+    <line x1="550" y1="340" x2="700" y2="380" stroke="#f97316" stroke-width="2"/>
+    
+    <!-- LD2410C via Divider -->
+    <line x1="550" y1="390" x2="600" y2="495" stroke="#ef4444" stroke-width="2"/>
+    <line x1="670" y1="495" x2="700" y2="495" stroke="#ef4444" stroke-width="2"/>
+    
+    <!-- Button to ESP32 -->
+    <line x1="150" y1="555" x2="350" y2="455" stroke="#64748b" stroke-width="2"/>
+    
+    <!-- Power Rails -->
+    <rect x="300" y="580" width="300" height="50" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="1"/>
+    <text x="450" y="600" font-family="Segoe UI" font-size="11" fill="#713f12" text-anchor="middle" font-weight="bold">Stromversorgung über USB-C</text>
+    <text x="450" y="618" font-family="Segoe UI" font-size="10" fill="#78716c" text-anchor="middle">5V → Sensoren | 3.3V → ESP32-Logik + I²C-Sensoren</text>
+    
+    <!-- Legend -->
+    <rect x="700" y="60" width="180" height="140" rx="4" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="790" y="85" font-family="Segoe UI" font-size="11" fill="#1e293b" text-anchor="middle" font-weight="bold">Legende</text>
+    <rect x="715" y="100" width="12" height="12" fill="#3b82f6"/>
+    <text x="735" y="110" font-family="Segoe UI" font-size="10" fill="#1e293b">SPI (Display)</text>
+    <rect x="715" y="120" width="12" height="12" fill="#10b981"/>
+    <text x="735" y="130" font-family="Segoe UI" font-size="10" fill="#1e293b">I²C (AHT20, SGP40)</text>
+    <rect x="715" y="140" width="12" height="12" fill="#8b5cf6"/>
+    <text x="735" y="150" font-family="Segoe UI" font-size="10" fill="#1e293b">UART1 (PMS5003)</text>
+    <rect x="715" y="160" width="12" height="12" fill="#f97316"/>
+    <text x="735" y="170" font-family="Segoe UI" font-size="10" fill="#1e293b">UART2 (MH-Z19C)</text>
+    <rect x="715" y="180" width="12" height="12" fill="#ef4444"/>
+    <text x="735" y="190" font-family="Segoe UI" font-size="10" fill="#1e293b">Radar (LD2410C)</text>
+</svg>
+</div>
+
+<!-- ============================================ -->
+<h2 id="breadboard">5. Breadboard-Layout</h2>
+<!-- ============================================ -->
+
+<div class="info-box">
+    <strong>ℹ️ Aufbau mit 2 Breadboards:</strong> Die Komponenten passen nicht auf ein einzelnes Board. Der ESP32 sitzt auf Board 1, die UART-Sensoren auf Board 2. Beide Boards werden mit <strong>Jumperkabeln</strong> verbunden (nicht überbrückt!).
+</div>
+
+<h3>5.1 Aufteilung der Komponenten</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Board 1 (mit ESP32)</th>
+            <th>Board 2 (UART-Sensoren)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                <ul style="margin:0; padding-left:1.2rem;">
+                    <li>ESP32-S3 DevKit</li>
+                    <li>AHT20 (I²C)</li>
+                    <li>SGP40 (I²C)</li>
+                    <li>I²C Pull-up Widerstände</li>
+                    <li>Button</li>
+                    <li>Stützkondensator (Elko)</li>
+                </ul>
+            </td>
+            <td>
+                <ul style="margin:0; padding-left:1.2rem;">
+                    <li>PMS5003 (Feinstaub)</li>
+                    <li>MH-Z19C (CO₂)</li>
+                    <li>LD2410C (Radar)</li>
+                    <li><strong>Level Shifter (Pflicht!)</strong></li>
+                </ul>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>5.2 Board 1 – ESP32 und I²C-Sensoren</h3>
+
+<div class="svg-container">
+<svg viewBox="0 0 750 380" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="750" height="380" fill="#f8fafc"/>
+    
+    <!-- Title -->
+    <text x="375" y="20" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1e40af" text-anchor="middle">Board 1 – ESP32, I²C-Sensoren, Button</text>
+    
+    <!-- Breadboard Base -->
+    <rect x="20" y="35" width="710" height="320" rx="5" fill="#f5f5dc" stroke="#d4d4aa" stroke-width="2"/>
+    
+    <!-- Column numbers -->
+    <g font-family="Consolas" font-size="7" fill="#888">
+        <text x="50" y="48">1</text><text x="70" y="48">3</text><text x="90" y="48">5</text>
+        <text x="130" y="48">8</text><text x="190" y="48">12</text><text x="250" y="48">16</text>
+        <text x="310" y="48">20</text><text x="370" y="48">24</text><text x="430" y="48">28</text>
+        <text x="490" y="48">32</text><text x="550" y="48">36</text><text x="610" y="48">40</text>
+        <text x="670" y="48">44</text>
+    </g>
+    
+    <!-- Power Rail Top 5V -->
+    <rect x="35" y="55" width="680" height="18" rx="2" fill="#ffe5e5" stroke="#dc2626"/>
+    <text x="28" y="67" font-family="Consolas" font-size="9" fill="#dc2626">+</text>
+    <text x="720" y="67" font-family="Segoe UI" font-size="8" fill="#dc2626">5V</text>
+    
+    <!-- Power Rail Top GND -->
+    <rect x="35" y="75" width="680" height="18" rx="2" fill="#e5e5ff" stroke="#1e40af"/>
+    <text x="28" y="87" font-family="Consolas" font-size="9" fill="#1e40af">−</text>
+    <text x="720" y="87" font-family="Segoe UI" font-size="8" fill="#1e40af">GND</text>
+    
+    <!-- Row labels a-e (top) -->
+    <g font-family="Consolas" font-size="8" fill="#666">
+        <text x="28" y="108">a</text><text x="28" y="122">b</text><text x="28" y="136">c</text>
+        <text x="28" y="150">d</text><text x="28" y="164">e</text>
+    </g>
+    
+    <!-- Top hole area -->
+    <rect x="35" y="98" width="680" height="75" rx="2" fill="#fefefe" stroke="#ddd"/>
+    
+    <!-- Center gap -->
+    <rect x="35" y="175" width="680" height="14" rx="1" fill="#e0e0e0"/>
+    <text x="375" y="185" font-family="Segoe UI" font-size="7" fill="#888" text-anchor="middle">Mitteltrennung</text>
+    
+    <!-- Row labels f-j (bottom) -->
+    <g font-family="Consolas" font-size="8" fill="#666">
+        <text x="28" y="203">f</text><text x="28" y="217">g</text><text x="28" y="231">h</text>
+        <text x="28" y="245">i</text><text x="28" y="259">j</text>
+    </g>
+    
+    <!-- Bottom hole area -->
+    <rect x="35" y="191" width="680" height="75" rx="2" fill="#fefefe" stroke="#ddd"/>
+    
+    <!-- Power Rail Bottom 3.3V -->
+    <rect x="35" y="275" width="680" height="18" rx="2" fill="#fff5e5" stroke="#f97316"/>
+    <text x="28" y="287" font-family="Consolas" font-size="9" fill="#f97316">+</text>
+    <text x="720" y="287" font-family="Segoe UI" font-size="8" fill="#f97316">3.3V</text>
+    
+    <!-- Power Rail Bottom GND -->
+    <rect x="35" y="295" width="680" height="18" rx="2" fill="#e5e5ff" stroke="#1e40af"/>
+    <text x="28" y="307" font-family="Consolas" font-size="9" fill="#1e40af">−</text>
+    <text x="720" y="307" font-family="Segoe UI" font-size="8" fill="#1e40af">GND</text>
+    
+    <!-- ========== COMPONENTS ========== -->
+    
+    <!-- Elko on 5V rail (Column 2-3) -->
+    <ellipse cx="62" cy="64" rx="10" ry="7" fill="#222" stroke="#555"/>
+    <text x="62" y="67" font-family="Consolas" font-size="5" fill="#fbbf24" text-anchor="middle">+</text>
+    <line x1="62" y1="71" x2="62" y2="84" stroke="#222" stroke-width="2"/>
+    <text x="62" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Elko Sp.2-3</text>
+    
+    <!-- ESP32-S3 DevKit (Columns 5-24, spans center) -->
+    <rect x="88" y="115" width="285" height="75" rx="4" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+    <text x="230" y="138" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">ESP32-S3 DevKit N8R8</text>
+    <text x="230" y="155" font-family="Segoe UI" font-size="8" fill="#93c5fd" text-anchor="middle">Spalten 5–24 | Reihen e+f</text>
+    
+    <!-- USB-C symbol -->
+    <rect x="83" y="140" width="18" height="10" rx="2" fill="#333"/>
+    <text x="92" y="148" font-family="Segoe UI" font-size="5" fill="white" text-anchor="middle">USB</text>
+    
+    <!-- ESP32 relevant pin labels -->
+    <g font-family="Consolas" font-size="6" fill="#fbbf24">
+        <text x="108" y="180">3V3</text><text x="128" y="180">GND</text>
+        <text x="152" y="180">G8</text><text x="172" y="180">G18</text><text x="192" y="180">G0</text>
+        <text x="320" y="180">5V</text><text x="340" y="180">GND</text>
+        <text x="280" y="180">G16</text><text x="300" y="180">G17</text>
+    </g>
+    
+    <!-- Sicherung JK30 (Columns 26-27) -->
+    <rect x="393" y="108" width="22" height="12" rx="2" fill="#fbbf24" stroke="#d97706" stroke-width="1"/>
+    <text x="404" y="117" font-family="Consolas" font-size="5" fill="#78350f" text-anchor="middle">0.75A</text>
+    <text x="404" y="340" font-family="Segoe UI" font-size="7" fill="#d97706" text-anchor="middle">Sicherung</text>
+    <text x="404" y="350" font-family="Segoe UI" font-size="6" fill="#d97706" text-anchor="middle">Sp.26-27</text>
+    <!-- Wire from ESP32 5V to Fuse -->
+    <line x1="325" y1="125" x2="393" y2="114" stroke="#dc2626" stroke-width="1.5"/>
+    <!-- Wire from Fuse to 5V Rail -->
+    <line x1="415" y1="114" x2="415" y2="67" stroke="#dc2626" stroke-width="1.5"/>
+    
+    <!-- I2C Pull-up Resistors (Columns 28-29) -->
+    <rect x="428" y="110" width="6" height="28" fill="#d4a574" stroke="#92400e"/>
+    <rect x="448" y="110" width="6" height="28" fill="#d4a574" stroke="#92400e"/>
+    <text x="441" y="150" font-family="Segoe UI" font-size="6" fill="#92400e" text-anchor="middle">4k7 Pull-ups</text>
+    <text x="441" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.28-29</text>
+    
+    <!-- Wire from pull-ups to 3.3V -->
+    <line x1="431" y1="110" x2="431" y2="100" stroke="#f97316" stroke-width="1"/>
+    <line x1="431" y1="100" x2="431" y2="282" stroke="#f97316" stroke-width="1" stroke-dasharray="2"/>
+    <line x1="451" y1="110" x2="451" y2="100" stroke="#f97316" stroke-width="1"/>
+    <line x1="451" y1="100" x2="451" y2="282" stroke="#f97316" stroke-width="1" stroke-dasharray="2"/>
+    
+    <!-- AHT20 Sensor (Columns 32-35) -->
+    <rect x="488" y="108" width="55" height="38" rx="3" fill="#10b981" stroke="#059669"/>
+    <text x="515" y="125" font-family="Segoe UI" font-size="9" fill="white" text-anchor="middle" font-weight="bold">AHT20</text>
+    <text x="515" y="138" font-family="Consolas" font-size="6" fill="white" text-anchor="middle">Temp/Hum</text>
+    <text x="515" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.32-35</text>
+    
+    <!-- SGP40 Sensor (Columns 38-41) -->
+    <rect x="568" y="108" width="55" height="38" rx="3" fill="#10b981" stroke="#059669"/>
+    <text x="595" y="125" font-family="Segoe UI" font-size="9" fill="white" text-anchor="middle" font-weight="bold">SGP40</text>
+    <text x="595" y="138" font-family="Consolas" font-size="6" fill="white" text-anchor="middle">VOC</text>
+    <text x="595" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.38-41</text>
+    
+    <!-- I2C Bus Lines -->
+    <line x1="155" y1="200" x2="155" y2="220" stroke="#14b8a6" stroke-width="1.5"/>
+    <line x1="155" y1="220" x2="600" y2="220" stroke="#14b8a6" stroke-width="1.5" stroke-dasharray="3"/>
+    <text x="380" y="232" font-family="Segoe UI" font-size="6" fill="#14b8a6" text-anchor="middle">SDA-Bus (GPIO 8)</text>
+    
+    <line x1="175" y1="200" x2="175" y2="240" stroke="#666" stroke-width="1.5"/>
+    <line x1="175" y1="240" x2="600" y2="240" stroke="#666" stroke-width="1.5" stroke-dasharray="3"/>
+    <text x="380" y="252" font-family="Segoe UI" font-size="6" fill="#666" text-anchor="middle">SCL-Bus (GPIO 18)</text>
+    
+    <!-- Button (Columns 44-45, spans center gap) -->
+    <rect x="668" y="150" width="30" height="40" rx="3" fill="#64748b" stroke="#475569"/>
+    <circle cx="683" cy="170" r="8" fill="#333"/>
+    <text x="683" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Button Sp.44-45</text>
+    
+    <!-- Legend -->
+    <rect x="480" y="320" width="230" height="30" rx="3" fill="white" stroke="#e2e8f0"/>
+    <text x="490" y="335" font-family="Segoe UI" font-size="7" fill="#333">📍 Sp.=Spalte | ESP32 überbrückt Reihen e↔f</text>
+    <text x="490" y="345" font-family="Segoe UI" font-size="7" fill="#666">I²C-Sensoren teilen sich SDA+SCL Bus</text>
+</svg>
+</div>
+
+<h4>Board 1 – Steckpositionen</h4>
+<table>
+    <thead>
+        <tr>
+            <th>Komponente</th>
+            <th>Spalten</th>
+            <th>Reihen</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Stützkondensator (Elko)</td>
+            <td>2–3</td>
+            <td>Stromschiene oben</td>
+            <td>+ an 5V, − an GND</td>
+        </tr>
+        <tr>
+            <td>ESP32-S3 DevKit</td>
+            <td>5–24</td>
+            <td>e + f (überbrückt Mitte)</td>
+            <td>USB-C zeigt nach links (Spalte 5)</td>
+        </tr>
+        <tr style="background:#fef3c7;">
+            <td><strong>Sicherung JK30 0,75A</strong></td>
+            <td><strong>26–27</strong></td>
+            <td><strong>a–b</strong></td>
+            <td><strong>Zwischen ESP32 5V und 5V-Schiene</strong></td>
+        </tr>
+        <tr>
+            <td>Pull-up 4,7kΩ (SDA)</td>
+            <td>28</td>
+            <td>a–c + 3,3V-Schiene</td>
+            <td>Verbindet 3,3V mit SDA-Bus</td>
+        </tr>
+        <tr>
+            <td>Pull-up 4,7kΩ (SCL)</td>
+            <td>29</td>
+            <td>a–c + 3,3V-Schiene</td>
+            <td>Verbindet 3,3V mit SCL-Bus</td>
+        </tr>
+        <tr>
+            <td>AHT20</td>
+            <td>32–35</td>
+            <td>a–d</td>
+            <td>VCC, GND, SDA, SCL</td>
+        </tr>
+        <tr>
+            <td>SGP40</td>
+            <td>38–41</td>
+            <td>a–d</td>
+            <td>VCC, GND, SDA, SCL</td>
+        </tr>
+        <tr>
+            <td>Button</td>
+            <td>44–45</td>
+            <td>d–g (überbrückt Mitte)</td>
+            <td>Eine Seite an GND, andere an GPIO 0</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>5.3 Board 2 – UART-Sensoren und Radar</h3>
+
+<div class="svg-container">
+<svg viewBox="0 0 750 380" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="750" height="380" fill="#f8fafc"/>
+    
+    <!-- Title -->
+    <text x="375" y="20" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1e40af" text-anchor="middle">Board 2 – PMS5003, MH-Z19C, LD2410C</text>
+    
+    <!-- Breadboard Base -->
+    <rect x="20" y="35" width="710" height="320" rx="5" fill="#f5f5dc" stroke="#d4d4aa" stroke-width="2"/>
+    
+    <!-- Column numbers -->
+    <g font-family="Consolas" font-size="7" fill="#888">
+        <text x="50" y="48">1</text><text x="90" y="48">5</text><text x="150" y="48">10</text>
+        <text x="230" y="48">15</text><text x="310" y="48">20</text><text x="390" y="48">25</text>
+        <text x="470" y="48">30</text><text x="550" y="48">35</text><text x="630" y="48">40</text>
+    </g>
+    
+    <!-- Power Rail Top 5V -->
+    <rect x="35" y="55" width="680" height="18" rx="2" fill="#ffe5e5" stroke="#dc2626"/>
+    <text x="28" y="67" font-family="Consolas" font-size="9" fill="#dc2626">+</text>
+    <text x="720" y="67" font-family="Segoe UI" font-size="8" fill="#dc2626">5V</text>
+    
+    <!-- Power Rail Top GND -->
+    <rect x="35" y="75" width="680" height="18" rx="2" fill="#e5e5ff" stroke="#1e40af"/>
+    <text x="28" y="87" font-family="Consolas" font-size="9" fill="#1e40af">−</text>
+    <text x="720" y="87" font-family="Segoe UI" font-size="8" fill="#1e40af">GND</text>
+    
+    <!-- Row labels -->
+    <g font-family="Consolas" font-size="8" fill="#666">
+        <text x="28" y="108">a</text><text x="28" y="122">b</text><text x="28" y="136">c</text>
+        <text x="28" y="150">d</text><text x="28" y="164">e</text>
+        <text x="28" y="203">f</text><text x="28" y="217">g</text><text x="28" y="231">h</text>
+        <text x="28" y="245">i</text><text x="28" y="259">j</text>
+    </g>
+    
+    <!-- Top hole area -->
+    <rect x="35" y="98" width="680" height="75" rx="2" fill="#fefefe" stroke="#ddd"/>
+    
+    <!-- Center gap -->
+    <rect x="35" y="175" width="680" height="14" rx="1" fill="#e0e0e0"/>
+    
+    <!-- Bottom hole area -->
+    <rect x="35" y="191" width="680" height="75" rx="2" fill="#fefefe" stroke="#ddd"/>
+    
+    <!-- Power Rail Bottom 3.3V -->
+    <rect x="35" y="275" width="680" height="18" rx="2" fill="#fff5e5" stroke="#f97316"/>
+    <text x="720" y="287" font-family="Segoe UI" font-size="8" fill="#f97316">3.3V</text>
+    
+    <!-- Power Rail Bottom GND -->
+    <rect x="35" y="295" width="680" height="18" rx="2" fill="#e5e5ff" stroke="#1e40af"/>
+    <text x="720" y="307" font-family="Segoe UI" font-size="8" fill="#1e40af">GND</text>
+    
+    <!-- ========== COMPONENTS ========== -->
+    
+    <!-- Jumper connection area (Columns 1-5) -->
+    <rect x="40" y="100" width="68" height="165" rx="3" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4"/>
+    <text x="74" y="118" font-family="Segoe UI" font-size="8" fill="#0369a1" text-anchor="middle" font-weight="bold">Jumper</text>
+    <text x="74" y="130" font-family="Segoe UI" font-size="7" fill="#0369a1" text-anchor="middle">von Board 1</text>
+    
+    <!-- Jumper wire indicators -->
+    <g font-family="Consolas" font-size="5" fill="#0369a1">
+        <text x="48" y="150">5V</text><text x="68" y="150">GND</text><text x="88" y="150">3V3</text>
+        <text x="48" y="200">G16</text><text x="68" y="200">G17</text>
+        <text x="48" y="220">G4</text><text x="68" y="220">G5</text>
+        <text x="48" y="240">G6</text><text x="68" y="240">G7</text><text x="88" y="240">G15</text>
+    </g>
+    <text x="74" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.1-5</text>
+    
+    <!-- PMS5003 (Columns 8-17) -->
+    <rect x="130" y="105" width="140" height="60" rx="4" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+    <text x="200" y="128" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">PMS5003</text>
+    <text x="200" y="143" font-family="Segoe UI" font-size="8" fill="#c4b5fd" text-anchor="middle">Feinstaub</text>
+    <text x="200" y="158" font-family="Consolas" font-size="6" fill="#fbbf24" text-anchor="middle">Molex-Adapter!</text>
+    <text x="200" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.8-17 Reihe a-d</text>
+    
+    <!-- MH-Z19C (Columns 20-29) -->
+    <rect x="300" y="105" width="140" height="60" rx="4" fill="#f97316" stroke="#ea580c" stroke-width="2"/>
+    <text x="370" y="128" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">MH-Z19C</text>
+    <text x="370" y="143" font-family="Segoe UI" font-size="8" fill="#fed7aa" text-anchor="middle">CO₂-Sensor</text>
+    <text x="370" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.20-29 Reihe a-d</text>
+    
+    <!-- LD2410C (Columns 32-38) -->
+    <rect x="480" y="105" width="100" height="60" rx="4" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+    <text x="530" y="128" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">LD2410C</text>
+    <text x="530" y="143" font-family="Segoe UI" font-size="8" fill="#fecaca" text-anchor="middle">Radar</text>
+    <text x="530" y="340" font-family="Segoe UI" font-size="7" fill="#666" text-anchor="middle">Sp.32-38 Reihe a-d</text>
+    
+    <!-- Level Shifter (Columns 40-45) - PFLICHT! -->
+    <rect x="608" y="105" width="95" height="80" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="655" y="122" font-family="Segoe UI" font-size="9" fill="#991b1b" text-anchor="middle" font-weight="bold">Level Shifter</text>
+    <text x="655" y="135" font-family="Segoe UI" font-size="7" fill="#991b1b" text-anchor="middle">(PFLICHT!)</text>
+    
+    <!-- Level Shifter pins -->
+    <rect x="618" y="145" width="30" height="35" rx="2" fill="#8b5cf6" stroke="#7c3aed"/>
+    <text x="633" y="158" font-family="Consolas" font-size="5" fill="white" text-anchor="middle">HV</text>
+    <text x="633" y="168" font-family="Consolas" font-size="5" fill="#fbbf24" text-anchor="middle">5V</text>
+    <text x="633" y="177" font-family="Consolas" font-size="4" fill="white" text-anchor="middle">HV1</text>
+    
+    <rect x="658" y="145" width="30" height="35" rx="2" fill="#8b5cf6" stroke="#7c3aed"/>
+    <text x="673" y="158" font-family="Consolas" font-size="5" fill="white" text-anchor="middle">LV</text>
+    <text x="673" y="168" font-family="Consolas" font-size="5" fill="#22c55e" text-anchor="middle">3.3V</text>
+    <text x="673" y="177" font-family="Consolas" font-size="4" fill="white" text-anchor="middle">LV1</text>
+    
+    <text x="655" y="340" font-family="Segoe UI" font-size="7" fill="#991b1b" text-anchor="middle" font-weight="bold">Sp.40-45 (Pflicht!)</text>
+    
+    <!-- Wire from LD2410C TX to Level Shifter HV1 -->
+    <path d="M 580 140 L 595 140 L 595 170 L 618 170" stroke="#dc2626" stroke-width="1.5" fill="none"/>
+    <text x="590" y="155" font-family="Consolas" font-size="5" fill="#dc2626">TX</text>
+    
+    <!-- Wire from Level Shifter LV1 to Jumper (GPIO 6) -->
+    <path d="M 688 170 L 700 170 L 700 260 L 88 260 L 88 240" stroke="#22c55e" stroke-width="1.5" fill="none"/>
+    <text x="695" y="215" font-family="Consolas" font-size="5" fill="#22c55e">→G6</text>
+    
+    <!-- Wire connections from jumper area -->
+    <path d="M 75 195 L 145 195 L 145 165" stroke="#84cc16" stroke-width="1.5" fill="none"/>
+    <path d="M 75 205 L 160 205 L 160 165" stroke="#65a30d" stroke-width="1.5" fill="none"/>
+    <path d="M 75 215 L 315 215 L 315 165" stroke="#fb923c" stroke-width="1.5" fill="none"/>
+    <path d="M 75 225 L 330 225 L 330 165" stroke="#c2410c" stroke-width="1.5" fill="none"/>
+    
+    <!-- Warning note -->
+    <rect x="300" y="320" width="250" height="28" rx="3" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="310" y="333" font-family="Segoe UI" font-size="7" fill="#991b1b">🚨 LD2410C TX IMMER über Level Shifter!</text>
+    <text x="310" y="343" font-family="Segoe UI" font-size="7" fill="#991b1b">TX→HV1 | LV1→GPIO 6 (Pflicht, nicht optional!)</text>
+</svg>
+</div>
+
+<h4>Board 2 – Steckpositionen</h4>
+<table>
+    <thead>
+        <tr>
+            <th>Komponente</th>
+            <th>Spalten</th>
+            <th>Reihen</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Jumper-Anschlüsse (von Board 1)</td>
+            <td>1–5</td>
+            <td>diverse + Stromschienen</td>
+            <td>5V, 3,3V, GND, UART-Signale</td>
+        </tr>
+        <tr>
+            <td>PMS5003 (via Molex-Adapter)</td>
+            <td>8–17</td>
+            <td>a–d</td>
+            <td>VCC→5V, GND, TX→G17, RX→G16</td>
+        </tr>
+        <tr>
+            <td>MH-Z19C</td>
+            <td>20–29</td>
+            <td>a–d</td>
+            <td>VCC→5V, GND, TX→G4, RX→G5</td>
+        </tr>
+        <tr>
+            <td>LD2410C</td>
+            <td>32–38</td>
+            <td>a–d</td>
+            <td>VCC→5V, GND, RX→G7, <strong>TX→Level Shifter</strong>, OUT→G15</td>
+        </tr>
+        <tr style="background:#fee2e2;">
+            <td><strong>Level Shifter (Pflicht!)</strong></td>
+            <td><strong>40–45</strong></td>
+            <td><strong>a–e</strong></td>
+            <td><strong>HV→5V, LV→3,3V, GND, HV1←LD2410C TX, LV1→G6</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>5.4 Verbindung zwischen den Boards</h3>
+
+<p>Die beiden Breadboards werden mit <strong>11 Jumperkabeln</strong> verbunden:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Board 1 (Quelle)</th>
+            <th>→</th>
+            <th>Board 2 (Ziel)</th>
+            <th>Farbe</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr style="background:#fee2e2;">
+            <td colspan="5" style="font-weight:bold;">Stromversorgung</td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>5V-Schiene (oben)</td>
+            <td>→</td>
+            <td>5V-Schiene (oben)</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>GND-Schiene (oben)</td>
+            <td>→</td>
+            <td>GND-Schiene (oben)</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>3,3V-Schiene (unten)</td>
+            <td>→</td>
+            <td>3,3V-Schiene (unten)</td>
+            <td><span class="cable-color" style="background:#f97316;"></span>Orange</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>GND-Schiene (unten)</td>
+            <td>→</td>
+            <td>GND-Schiene (unten)</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+        <tr style="background:#dbeafe;">
+            <td colspan="5" style="font-weight:bold;">UART1 – PMS5003</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>GPIO 16 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>Spalte 2, Reihe f</td>
+            <td><span class="cable-color" style="background:#65a30d;"></span>Dunkelgrün</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>GPIO 17 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>Spalte 3, Reihe f</td>
+            <td><span class="cable-color" style="background:#84cc16;"></span>Hellgrün</td>
+        </tr>
+        <tr style="background:#ffedd5;">
+            <td colspan="5" style="font-weight:bold;">UART2 – MH-Z19C</td>
+        </tr>
+        <tr>
+            <td>7</td>
+            <td>GPIO 4 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>Spalte 2, Reihe g</td>
+            <td><span class="cable-color" style="background:#fb923c;"></span>Hellorange</td>
+        </tr>
+        <tr>
+            <td>8</td>
+            <td>GPIO 5 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>Spalte 3, Reihe g</td>
+            <td><span class="cable-color" style="background:#c2410c;"></span>Braun</td>
+        </tr>
+        <tr style="background:#fee2e2;">
+            <td colspan="5" style="font-weight:bold;">Radar – LD2410C (über Level Shifter!)</td>
+        </tr>
+        <tr>
+            <td>9</td>
+            <td>GPIO 6 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td><strong>Level Shifter LV1</strong> (Spalte 42)</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+        </tr>
+        <tr>
+            <td>10</td>
+            <td>GPIO 7 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>LD2410C RX (direkt, 3,3V→5V OK)</td>
+            <td><span class="cable-color" style="background:#991b1b;"></span>Dunkelrot</td>
+        </tr>
+        <tr>
+            <td>11</td>
+            <td>GPIO 15 (ESP32 Spalte)</td>
+            <td>→</td>
+            <td>LD2410C OUT (direkt)</td>
+            <td><span class="cable-color" style="background:#d946ef;"></span>Magenta</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <strong>ℹ️ Level Shifter auf Board 2:</strong><br>
+    Die Verbindung <strong>LD2410C TX → Level Shifter HV1</strong> erfolgt direkt auf Board 2 (kurzes Jumper-Kabel). Der Level Shifter bezieht seine Referenzspannungen (HV=5V, LV=3,3V) von den Stromschienen auf Board 2.
+</div>
+
+<!-- ============================================ -->
+<h2 id="verkabelung-detail">6. Detaillierte Verkabelung</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Display ST7796S (SPI)</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Display-Pin</th>
+            <th>→</th>
+            <th>ESP32-Pin</th>
+            <th>Kabel</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>VCC</td>
+            <td>→</td>
+            <td>5V</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+            <td>Display-Logik benötigt 5V</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+            <td>Masse</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>CS</td>
+            <td>→</td>
+            <td>GPIO 14</td>
+            <td><span class="cable-color" style="background:#eab308;"></span>Gelb</td>
+            <td>Chip Select</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>RESET</td>
+            <td>→</td>
+            <td>GPIO 46</td>
+            <td><span class="cable-color" style="background:#f97316;"></span>Orange</td>
+            <td>Display Reset</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>DC/RS</td>
+            <td>→</td>
+            <td>GPIO 9</td>
+            <td><span class="cable-color" style="background:#22c55e;"></span>Grün</td>
+            <td>Data/Command</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>SDI/MOSI</td>
+            <td>→</td>
+            <td>GPIO 11</td>
+            <td><span class="cable-color" style="background:#3b82f6;"></span>Blau</td>
+            <td>SPI Data Out</td>
+        </tr>
+        <tr>
+            <td>7</td>
+            <td>SCK</td>
+            <td>→</td>
+            <td>GPIO 12</td>
+            <td><span class="cable-color" style="background:#a855f7;"></span>Lila</td>
+            <td>SPI Clock</td>
+        </tr>
+        <tr>
+            <td>8</td>
+            <td>LED/BL</td>
+            <td>→</td>
+            <td>GPIO 3</td>
+            <td><span class="cable-color" style="background:#f472b6;"></span>Rosa</td>
+            <td>Backlight (PWM-fähig)</td>
+        </tr>
+        <tr style="background:#f3f4f6;">
+            <td>9</td>
+            <td>SDO/MISO</td>
+            <td>→</td>
+            <td>GPIO 13</td>
+            <td><span class="cable-color" style="background:#6b7280;"></span>Grau</td>
+            <td><strong>Kann weggelassen werden!</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <strong>ℹ️ MISO weglassen?</strong> Die MISO-Leitung (SDO) wird nur benötigt, wenn du Pixel vom Display zurücklesen willst – das ist bei diesem Projekt nicht der Fall. Du kannst das graue Kabel weglassen. <em>Vorteil:</em> Einige 5V-Displays senden auf MISO 5V zurück, was den 3,3V-ESP32-Pin beschädigen könnte. Ohne Verbindung kein Risiko.
+</div>
+
+<h3>6.2 I²C-Sensoren (AHT20 + SGP40)</h3>
+
+<div class="info-box">
+    <strong>ℹ️ I²C-Bus:</strong> Beide Sensoren teilen sich SDA und SCL. Pull-up-Widerstände (4,7 kΩ) sind erforderlich!
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Sensor</th>
+            <th>Sensor-Pin</th>
+            <th>→</th>
+            <th>ESP32-Pin / Bus</th>
+            <th>Kabel</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="4">AHT20</td>
+            <td>VCC</td>
+            <td>→</td>
+            <td>3.3V</td>
+            <td><span class="cable-color" style="background:#f97316;"></span>Orange</td>
+        </tr>
+        <tr>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+        <tr>
+            <td>SDA</td>
+            <td>→</td>
+            <td>GPIO 8 (I²C-Bus)</td>
+            <td><span class="cable-color" style="background:#14b8a6;"></span>Cyan</td>
+        </tr>
+        <tr>
+            <td>SCL</td>
+            <td>→</td>
+            <td>GPIO 18 (I²C-Bus)</td>
+            <td><span class="cable-color" style="background:#fff;border:1px solid #333;"></span>Weiß</td>
+        </tr>
+        <tr>
+            <td rowspan="4">SGP40</td>
+            <td>VCC</td>
+            <td>→</td>
+            <td>3.3V</td>
+            <td><span class="cable-color" style="background:#f97316;"></span>Orange</td>
+        </tr>
+        <tr>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+        <tr>
+            <td>SDA</td>
+            <td>→</td>
+            <td>GPIO 8 (I²C-Bus)</td>
+            <td><span class="cable-color" style="background:#14b8a6;"></span>Cyan</td>
+        </tr>
+        <tr>
+            <td>SCL</td>
+            <td>→</td>
+            <td>GPIO 18 (I²C-Bus)</td>
+            <td><span class="cable-color" style="background:#fff;border:1px solid #333;"></span>Weiß</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4>I²C Pull-up-Schaltung</h4>
+
+<div class="svg-container">
+<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="200" fill="#f8fafc"/>
+    
+    <!-- 3.3V Rail -->
+    <line x1="50" y1="30" x2="350" y2="30" stroke="#f97316" stroke-width="3"/>
+    <text x="30" y="35" font-family="Consolas" font-size="12" fill="#f97316">3.3V</text>
+    
+    <!-- GND Rail -->
+    <line x1="50" y1="170" x2="350" y2="170" stroke="#1e40af" stroke-width="3"/>
+    <text x="30" y="175" font-family="Consolas" font-size="12" fill="#1e40af">GND</text>
+    
+    <!-- SDA Line -->
+    <line x1="120" y1="100" x2="350" y2="100" stroke="#14b8a6" stroke-width="2"/>
+    <text x="360" y="105" font-family="Consolas" font-size="11" fill="#14b8a6">SDA</text>
+    
+    <!-- SCL Line -->
+    <line x1="200" y1="130" x2="350" y2="130" stroke="#64748b" stroke-width="2"/>
+    <text x="360" y="135" font-family="Consolas" font-size="11" fill="#64748b">SCL</text>
+    
+    <!-- Pull-up Resistor SDA -->
+    <line x1="120" y1="30" x2="120" y2="50" stroke="#333" stroke-width="2"/>
+    <rect x="110" y="50" width="20" height="40" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+    <text x="120" y="75" font-family="Consolas" font-size="8" fill="#92400e" text-anchor="middle">4.7k</text>
+    <line x1="120" y1="90" x2="120" y2="100" stroke="#333" stroke-width="2"/>
+    
+    <!-- Pull-up Resistor SCL -->
+    <line x1="200" y1="30" x2="200" y2="50" stroke="#333" stroke-width="2"/>
+    <rect x="190" y="50" width="20" height="40" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+    <text x="200" y="75" font-family="Consolas" font-size="8" fill="#92400e" text-anchor="middle">4.7k</text>
+    <line x1="200" y1="90" x2="200" y2="130" stroke="#333" stroke-width="2"/>
+    
+    <!-- ESP32 Box -->
+    <rect x="280" y="85" width="60" height="60" rx="4" fill="#1e40af"/>
+    <text x="310" y="115" font-family="Segoe UI" font-size="9" fill="white" text-anchor="middle">ESP32</text>
+    <text x="310" y="130" font-family="Consolas" font-size="7" fill="#93c5fd" text-anchor="middle">GPIO 8,18</text>
+</svg>
+</div>
+
+<h3>6.3 PMS5003 Feinstaub-Sensor (UART1)</h3>
+
+<div class="warning-box">
+    <strong>⚠️ Achtung:</strong> Der PMS5003 hat einen Molex 1,25mm Stecker. Das mitgelieferte Adapterkabel verwenden!
+</div>
+
+<div class="danger-box">
+    <strong>🚨 WICHTIG – Kabelfarben sind NICHT genormt!</strong><br>
+    Die Adapterkabel für den PMS5003 haben <strong>je nach Hersteller unterschiedliche Farben</strong>. Bei einem Kabel ist Pin 1 lila, beim nächsten rot oder blau!<br><br>
+    <strong>Verlasse dich NIEMALS auf die Kabelfarbe!</strong> Orientiere dich ausschließlich an der <strong>Pin-Nummerierung am Sensor</strong>:<br>
+    <ul style="margin-bottom: 0;">
+        <li>Halte den Sensor so, dass die Lüftungsschlitze zu dir zeigen</li>
+        <li>Der Stecker ist an der Rückseite – Pin 1 ist meist markiert (kleines Dreieck oder "1")</li>
+        <li>Zähle die Pins durch: 1, 2, 3, 4, 5, 6, 7, 8</li>
+        <li>Verfolge jedes Kabel vom Sensor-Pin zum anderen Ende</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Pin-Nr.</th>
+            <th>Funktion</th>
+            <th>→</th>
+            <th>ESP32-Pin</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr style="background:#dcfce7;">
+            <td><strong>Pin 1</strong></td>
+            <td>VCC</td>
+            <td>→</td>
+            <td>5V</td>
+            <td>Stromversorgung (5V!)</td>
+        </tr>
+        <tr style="background:#dcfce7;">
+            <td><strong>Pin 2</strong></td>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td>Masse</td>
+        </tr>
+        <tr>
+            <td>Pin 3</td>
+            <td>SET</td>
+            <td>→</td>
+            <td>—</td>
+            <td>Nicht verbinden (Sleep-Modus)</td>
+        </tr>
+        <tr style="background:#dbeafe;">
+            <td><strong>Pin 4</strong></td>
+            <td>RX</td>
+            <td>→</td>
+            <td>GPIO 16</td>
+            <td>ESP TX → Sensor RX</td>
+        </tr>
+        <tr style="background:#dbeafe;">
+            <td><strong>Pin 5</strong></td>
+            <td>TX</td>
+            <td>→</td>
+            <td>GPIO 17</td>
+            <td>Sensor TX → ESP RX</td>
+        </tr>
+        <tr>
+            <td>Pin 6</td>
+            <td>RESET</td>
+            <td>→</td>
+            <td>—</td>
+            <td>Nicht verbinden</td>
+        </tr>
+        <tr>
+            <td>Pin 7</td>
+            <td>NC</td>
+            <td>→</td>
+            <td>—</td>
+            <td>Nicht verbinden</td>
+        </tr>
+        <tr>
+            <td>Pin 8</td>
+            <td>NC</td>
+            <td>→</td>
+            <td>—</td>
+            <td>Nicht verbinden</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <strong>ℹ️ Zusammenfassung:</strong> Nur 4 Kabel verbinden: <strong>Pin 1 → 5V</strong>, <strong>Pin 2 → GND</strong>, <strong>Pin 4 → GPIO 16</strong>, <strong>Pin 5 → GPIO 17</strong>. Die anderen Pins ignorieren.
+</div>
+
+<h3>6.4 MH-Z19C CO₂-Sensor (UART2)</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>MH-Z19C-Pin</th>
+            <th>→</th>
+            <th>ESP32-Pin</th>
+            <th>Kabel</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Vin (5V)</td>
+            <td>→</td>
+            <td>5V</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+        </tr>
+        <tr>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+        </tr>
+        <tr>
+            <td>RX</td>
+            <td>→</td>
+            <td>GPIO 5</td>
+            <td><span class="cable-color" style="background:#c2410c;"></span>Braun</td>
+        </tr>
+        <tr>
+            <td>TX</td>
+            <td>→</td>
+            <td>GPIO 4</td>
+            <td><span class="cable-color" style="background:#fb923c;"></span>Hellorange</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>6.5 LD2410C Radar-Sensor</h3>
+
+<div class="danger-box">
+    <strong>🚨 Level Shifter ist PFLICHT!</strong><br>
+    Verbinde den TX-Pin des LD2410C <strong>niemals direkt</strong> mit dem ESP32. Das Signal muss immer über den Level Shifter geleitet werden (HV1 → LV1 → GPIO 6).<br>
+    Siehe Abschnitt 8 für die korrekte Verkabelung.
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>LD2410C-Pin</th>
+            <th>→</th>
+            <th>Ziel</th>
+            <th>Kabel</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>VCC</td>
+            <td>→</td>
+            <td>5V</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>GND</td>
+            <td>→</td>
+            <td>GND</td>
+            <td><span class="cable-color" style="background:#000;"></span>Schwarz</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>RX</td>
+            <td>→</td>
+            <td>GPIO 7</td>
+            <td><span class="cable-color" style="background:#991b1b;"></span>Dunkelrot</td>
+            <td>Direkt (3,3V OK)</td>
+        </tr>
+        <tr>
+            <td style="background:#fee2e2;font-weight:bold;">TX</td>
+            <td>→</td>
+            <td style="background:#fee2e2;">Level Shifter HV1 → LV1 → GPIO 6</td>
+            <td><span class="cable-color" style="background:#dc2626;"></span>Rot</td>
+            <td style="background:#fee2e2;font-weight:bold;">🚨 IMMER über Level Shifter!</td>
+        </tr>
+        <tr>
+            <td>OUT</td>
+            <td>→</td>
+            <td>GPIO 15</td>
+            <td><span class="cable-color" style="background:#d946ef;"></span>Magenta</td>
+            <td>Presence Detection</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="anleitung-step">7. Schritt-für-Schritt Bauanleitung</h2>
+<!-- ============================================ -->
+
+<div class="step-container">
+    <span class="step-number">1</span>
+    <span class="step-title">Vorbereitung der Breadboards</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> 2× Breadboard (830 Punkte), ESP32-S3 DevKit</p>
+        <div class="info-box">
+            <strong>ℹ️ Warum 2 Breadboards?</strong><br>
+            Alle Sensoren passen nicht auf ein einzelnes 830er Breadboard. Der ESP32 sitzt auf Board 1, die großen UART-Sensoren (PMS5003, MH-Z19C, LD2410C) auf Board 2. Die Boards werden mit Jumperkabeln verbunden.
+        </div>
+        <h4>Board 1 vorbereiten (ESP32 + I²C):</h4>
+        <ol>
+            <li>Lege das erste Breadboard mit der langen Seite zu dir auf den Tisch</li>
+            <li>Identifiziere die <strong>Stromschienen</strong> (rot/blau markierte Reihen oben und unten)</li>
+            <li>Obere Schiene = <strong>5V + GND</strong>, untere Schiene = <strong>3,3V + GND</strong></li>
+            <li>Stecke den ESP32-S3 so ein, dass er die <strong>Mitteltrennung überbrückt</strong> (Spalten 5–24)</li>
+            <li>USB-C-Buchse zeigt nach links (Spalte 5)</li>
+        </ol>
+        <h4>Board 2 vorbereiten (UART-Sensoren):</h4>
+        <ol>
+            <li>Lege das zweite Breadboard daneben oder darunter (egal wo – Verbindung per Kabel)</li>
+            <li>Dieses Board nimmt später PMS5003, MH-Z19C und LD2410C auf</li>
+            <li>Reserviere Spalten 1–5 für die Jumper-Anschlüsse von Board 1</li>
+        </ol>
+        <div class="success-box">
+            <strong>✓ Prüfpunkt:</strong> Der ESP32 sitzt fest auf Board 1 und überbrückt die Mitteltrennung (Reihen e ↔ f). Board 2 liegt bereit.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">2</span>
+    <span class="step-title">Stromversorgung mit Sicherung einrichten (Board 1)</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> 1× Sicherung JK30 0,75A, 4× Jumper-Kabel</p>
+        
+        <h4>Schritt 2a: Sicherung in die 5V-Leitung einbauen</h4>
+        <p>Die Sicherung schützt deinen Computer/USB-Port bei einem Kurzschluss auf dem Breadboard.</p>
+        <ol>
+            <li>Stecke die Sicherung (JK30 0,75A) in eine <strong>freie Spalte</strong> auf Board 1 (z.B. Spalte 26–27, Reihe a–b)</li>
+            <li>Verbinde <code>5V</code> des ESP32 mit <strong>einer Seite der Sicherung</strong> (z.B. Spalte 26, Reihe c)</li>
+            <li>Verbinde die <strong>andere Seite der Sicherung</strong> mit der <strong>5V-Stromschiene</strong> (oben)</li>
+        </ol>
+        <div class="info-box">
+            <strong>ℹ️ Sicherung prüfen:</strong> Die Sicherung ist nicht gepolt – Richtung egal. Bei Überlast (>0,75A) unterbricht sie den Stromkreis und schützt so den USB-Port. Nach einem Auslösen muss sie ersetzt werden (oder rückstellbare Sicherung verwenden).
+        </div>
+        
+        <h4>Schritt 2b: Restliche Stromversorgung</h4>
+        <ol>
+            <li>Verbinde <code>GND</code> des ESP32 mit der <strong>oberen</strong> blauen Stromschiene (GND)</li>
+            <li>Verbinde <code>3.3V</code> des ESP32 mit der <strong>unteren</strong> roten Stromschiene (3,3V)</li>
+            <li>Verbinde einen zweiten <code>GND</code> mit der <strong>unteren</strong> blauen Stromschiene (GND)</li>
+        </ol>
+        
+        <div class="warning-box">
+            <strong>⚠️ Wichtig:</strong> Niemals 5V und 3,3V vertauschen! Das kann Komponenten beschädigen.
+        </div>
+        <div class="info-box">
+            <strong>ℹ️ Board 2 Stromversorgung:</strong> Die Stromversorgung für Board 2 erfolgt später über Jumperkabel von Board 1 (siehe Abschnitt 5.4 "Verbindung zwischen den Boards").
+        </div>
+        <div class="success-box">
+            <strong>✓ Prüfpunkt:</strong> Sicherung sitzt zwischen ESP32 5V-Pin und 5V-Schiene. Alle GND-Verbindungen sind hergestellt.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">2c</span>
+    <span class="step-title">Stützkondensator einbauen (Board 1, empfohlen)</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> 1× Elektrolyt-Kondensator 100–470 µF (mind. 16V)</p>
+        <ol>
+            <li>Stecke den Elko in die <strong>5V-Stromschiene von Board 1</strong> (oben, Spalte 2–3)</li>
+            <li><strong>Polung beachten!</strong> Der lange Pin (+) kommt an 5V, der kurze (−) an GND</li>
+            <li>Der Minuspol ist meist mit einem Streifen auf dem Gehäuse markiert</li>
+        </ol>
+        <div class="info-box">
+            <strong>ℹ️ Warum?</strong> Radar, PMS5003 und CO₂-Sensor ziehen pulsartig viel Strom. Ohne Puffer kann die Spannung einbrechen und der ESP32 neu starten. Der Kondensator glättet diese Spitzen – auch wenn die Sensoren auf Board 2 sitzen, hilft der Elko auf Board 1!
+        </div>
+        <div class="success-box">
+            <strong>✓ Prüfpunkt:</strong> Elko sitzt fest in der 5V-Schiene von Board 1, Polung stimmt (+ an 5V, − an GND).
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">3</span>
+    <span class="step-title">I²C-Bus mit Pull-ups aufbauen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> 2× 4,7 kΩ Widerstände, 2× Jumper</p>
+        <ol>
+            <li>Stecke den ersten Widerstand (4,7 kΩ) zwischen <strong>3,3V-Schiene</strong> und eine freie Reihe</li>
+            <li>Verbinde diese Reihe mit <code>GPIO 8</code> (SDA)</li>
+            <li>Stecke den zweiten Widerstand (4,7 kΩ) zwischen <strong>3,3V-Schiene</strong> und eine andere freie Reihe</li>
+            <li>Verbinde diese Reihe mit <code>GPIO 18</code> (SCL)</li>
+        </ol>
+        <p><strong>Warum Pull-ups?</strong> Der I²C-Bus arbeitet mit offenen Kollektor-Ausgängen. Ohne Pull-ups bleibt der Bus auf einem undefinierten Zustand.</p>
+        <div class="success-box">
+            <strong>✓ Prüfpunkt:</strong> Mit Multimeter: SDA und SCL sollten jeweils ~3,3V gegen GND zeigen.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">4</span>
+    <span class="step-title">I²C-Sensoren anschließen (AHT20 + SGP40)</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> AHT20, SGP40, 8× Jumper-Kabel</p>
+        <h4>AHT20 anschließen:</h4>
+        <ol>
+            <li><span class="cable-color" style="background:#f97316;"></span> VCC → 3,3V-Schiene (unten)</li>
+            <li><span class="cable-color" style="background:#000;"></span> GND → GND-Schiene (unten)</li>
+            <li><span class="cable-color" style="background:#14b8a6;"></span> SDA → I²C-SDA-Reihe (mit Pull-up)</li>
+            <li><span class="cable-color" style="background:#fff;border:1px solid #333;"></span> SCL → I²C-SCL-Reihe (mit Pull-up)</li>
+        </ol>
+        <h4>SGP40 anschließen (gleiche Verbindungen):</h4>
+        <ol>
+            <li><span class="cable-color" style="background:#f97316;"></span> VCC → 3,3V-Schiene (unten)</li>
+            <li><span class="cable-color" style="background:#000;"></span> GND → GND-Schiene (unten)</li>
+            <li><span class="cable-color" style="background:#14b8a6;"></span> SDA → I²C-SDA-Reihe (mit Pull-up)</li>
+            <li><span class="cable-color" style="background:#fff;border:1px solid #333;"></span> SCL → I²C-SCL-Reihe (mit Pull-up)</li>
+        </ol>
+        <div class="info-box">
+            <strong>ℹ️ I²C-Adressen:</strong> AHT20 = 0x38, SGP40 = 0x59 – kein Konflikt möglich.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">5</span>
+    <span class="step-title">Level Shifter für LD2410C aufbauen (PFLICHT!)</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> 1× Logic Level Shifter (z.B. BSS138-Modul), 5× Jumper-Kabel</p>
+        <div class="danger-box">
+            <strong>🚨 NICHT ÜBERSPRINGEN!</strong><br>
+            Der Level Shifter ist <strong>obligatorisch</strong>. Der LD2410C kann je nach Charge 3,3V oder 5V am TX-Pin ausgeben. 
+            Ein 5V-Signal am ESP32-Eingang kann den Mikrocontroller <strong>dauerhaft beschädigen</strong>. 
+            Der Level Shifter schützt zuverlässig – auch wenn das Modul nur 3,3V ausgibt, funktioniert er korrekt.
+        </div>
+        
+        <h4>Level Shifter verkabeln</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Level Shifter Pin</th>
+                    <th>Verbindung</th>
+                    <th>Funktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>HV</strong> (High Voltage)</td>
+                    <td>→ 5V-Schiene</td>
+                    <td>Referenzspannung High-Side</td>
+                </tr>
+                <tr>
+                    <td><strong>LV</strong> (Low Voltage)</td>
+                    <td>→ 3,3V-Schiene</td>
+                    <td>Referenzspannung Low-Side</td>
+                </tr>
+                <tr>
+                    <td><strong>GND</strong></td>
+                    <td>→ GND-Schiene</td>
+                    <td>Gemeinsame Masse</td>
+                </tr>
+                <tr style="background:#fee2e2;">
+                    <td><strong>HV1</strong> (High-Voltage Eingang)</td>
+                    <td>← LD2410C TX</td>
+                    <td>5V-Signal vom Radar</td>
+                </tr>
+                <tr style="background:#dcfce7;">
+                    <td><strong>LV1</strong> (Low-Voltage Ausgang)</td>
+                    <td>→ GPIO 6</td>
+                    <td>3,3V-Signal zum ESP32</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="info-box">
+            <strong>ℹ️ Warum Level Shifter statt Spannungsteiler?</strong>
+            <ul style="margin-bottom: 0;">
+                <li>Zuverlässiger bei schnellen UART-Signalen (115200 Baud)</li>
+                <li>Bidirektional – funktioniert in beide Richtungen</li>
+                <li>Kompakter und sauberer im Endaufbau</li>
+                <li>Kein Signalverlust durch Spannungsteilung</li>
+            </ul>
+        </div>
+        
+        <div class="success-box">
+            <strong>✓ Prüfpunkt:</strong> Mit Multimeter am LV1-Ausgang gegen GND messen. Bei anliegendem 5V-Signal am HV1 sollten ~3,3V anliegen.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">6</span>
+    <span class="step-title">LD2410C Radar-Sensor anschließen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> LD2410C, 5× Jumper-Kabel</p>
+        <ol>
+            <li><span class="cable-color" style="background:#dc2626;"></span> VCC → 5V-Schiene (oben)</li>
+            <li><span class="cable-color" style="background:#000;"></span> GND → GND-Schiene</li>
+            <li><span class="cable-color" style="background:#991b1b;"></span> RX → GPIO 7 (direkt)</li>
+            <li><span class="cable-color" style="background:#dc2626;"></span> <strong>TX → Level Shifter HV1</strong> (NICHT direkt an ESP32!)</li>
+            <li><span class="cable-color" style="background:#d946ef;"></span> OUT → GPIO 15</li>
+        </ol>
+        <div class="danger-box">
+            <strong>🚨 TX-Verbindung IMMER über Level Shifter!</strong><br>
+            Verbinde TX des LD2410C <strong>niemals</strong> direkt mit dem ESP32. Das Signal geht immer durch den Level Shifter (HV1 → LV1 → GPIO 6).
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">7</span>
+    <span class="step-title">PMS5003 Feinstaub-Sensor anschließen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> PMS5003 + Adapterkabel, 4× Jumper-Kabel</p>
+        <ol>
+            <li>Stecke das Adapterkabel in den Molex-Stecker des PMS5003</li>
+            <li><span class="cable-color" style="background:#a855f7;"></span> Pin 1 (VCC/Lila) → 5V-Schiene</li>
+            <li><span class="cable-color" style="background:#000;"></span> Pin 2 (GND/Schwarz) → GND-Schiene</li>
+            <li><span class="cable-color" style="background:#22c55e;"></span> Pin 4 (RX/Grün) → GPIO 16</li>
+            <li><span class="cable-color" style="background:#3b82f6;"></span> Pin 5 (TX/Blau) → GPIO 17</li>
+        </ol>
+        <div class="info-box">
+            <strong>ℹ️ Hinweis:</strong> Die Kabelfarben können je nach Adapterkabel variieren. Immer die Pin-Nummern beachten!
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">8</span>
+    <span class="step-title">MH-Z19C CO₂-Sensor anschließen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> MH-Z19C, 4× Jumper-Kabel</p>
+        <ol>
+            <li><span class="cable-color" style="background:#dc2626;"></span> Vin → 5V-Schiene</li>
+            <li><span class="cable-color" style="background:#000;"></span> GND → GND-Schiene</li>
+            <li><span class="cable-color" style="background:#c2410c;"></span> RX → GPIO 5</li>
+            <li><span class="cable-color" style="background:#fb923c;"></span> TX → GPIO 4</li>
+        </ol>
+        <div class="warning-box">
+            <strong>⚠️ Wärmeentwicklung:</strong> Der MH-Z19C hat einen Infrarot-Heizer. Mindestens 3 cm Abstand zum AHT20 einhalten!
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">9</span>
+    <span class="step-title">Display ST7796S anschließen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> Display, 9× Jumper-Kabel (Female-Female)</p>
+        <ol>
+            <li><span class="cable-color" style="background:#dc2626;"></span> VCC → 5V-Schiene (Display-Logik braucht 5V!)</li>
+            <li><span class="cable-color" style="background:#000;"></span> GND → GND-Schiene</li>
+            <li><span class="cable-color" style="background:#eab308;"></span> CS → GPIO 14</li>
+            <li><span class="cable-color" style="background:#f97316;"></span> RESET → GPIO 46</li>
+            <li><span class="cable-color" style="background:#22c55e;"></span> DC → GPIO 9</li>
+            <li><span class="cable-color" style="background:#3b82f6;"></span> SDI/MOSI → GPIO 11</li>
+            <li><span class="cable-color" style="background:#a855f7;"></span> SCK → GPIO 12</li>
+            <li><span class="cable-color" style="background:#f472b6;"></span> LED/BL → GPIO 3 (für PWM-Dimmung)</li>
+            <li><span class="cable-color" style="background:#6b7280;"></span> SDO/MISO → GPIO 13 (optional, kann weggelassen werden)</li>
+        </ol>
+        <div class="warning-box">
+            <strong>⚠️ Backlight prüfen:</strong><br>
+            Prüfe im Datenblatt deines Displays, ob der Pin "BL" oder "LED" direkt an einen Mikrocontroller angeschlossen werden darf. Die meisten Displays haben einen Transistor verbaut, der den Strom begrenzt – dann ist eine direkte Verbindung OK.<br><br>
+            <strong>Falls nicht:</strong> Schließe BL über einen 100Ω Vorwiderstand an oder direkt an 3,3V (dann ohne Dimmung).
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">10</span>
+    <span class="step-title">Button anschließen</span>
+    <div class="step-content">
+        <p><strong>Was du brauchst:</strong> Taster, 2× Jumper-Kabel</p>
+        <ol>
+            <li>Stecke den Taster über die Mitteltrennung des Breadboards</li>
+            <li>Eine Seite des Tasters → GND-Schiene</li>
+            <li>Andere Seite des Tasters → GPIO 0</li>
+        </ol>
+        <div class="info-box">
+            <strong>ℹ️ Pull-up:</strong> GPIO 0 hat einen internen Pull-up. Bei Tastendruck wird der Pin auf GND gezogen (aktiv LOW).
+        </div>
+        <div class="danger-box">
+            <strong>🚨 ACHTUNG – Bootloader-Modus!</strong><br>
+            <strong>Halte den Button NICHT gedrückt, während du den ESP32 einschaltest oder resettest!</strong><br>
+            GPIO 0 ist der "Boot-Pin" – wird er beim Start auf LOW gezogen, startet der ESP32 in den Bootloader-Modus statt dein Programm auszuführen. Falls das passiert: USB trennen, Button loslassen, neu verbinden.
+        </div>
+    </div>
+</div>
+
+<div class="step-container">
+    <span class="step-number">11</span>
+    <span class="step-title">Finale Prüfung vor dem Einschalten</span>
+    <div class="step-content">
+        <p><strong>Checkliste:</strong></p>
+        <ul class="checklist">
+            <li>Alle Verbindungen nochmal mit der Tabelle abgleichen</li>
+            <li>Keine losen Kabel oder wackeligen Kontakte</li>
+            <li>5V-Sensoren an 5V-Schiene (oben)</li>
+            <li>3,3V-Sensoren an 3,3V-Schiene (unten)</li>
+            <li><strong>Stützkondensator auf 5V-Schiene (Polung!)</strong></li>
+            <li><strong>Level Shifter für LD2410C TX verbaut?</strong></li>
+            <li>I²C-Pull-ups vorhanden</li>
+            <li>Keine Kurzschlüsse zwischen 5V und GND</li>
+            <li>Keine Kurzschlüsse zwischen 3,3V und GND</li>
+            <li><strong>Button NICHT gedrückt beim Einschalten!</strong></li>
+        </ul>
+        <div class="success-box">
+            <strong>✓ Alles geprüft?</strong> Dann kannst du den ESP32 per USB-C mit dem Computer verbinden und mit dem Programmieren beginnen!
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="levelshifter">8. Level Shifter für LD2410C (obligatorisch)</h2>
+<!-- ============================================ -->
+
+<div class="danger-box">
+    <strong>🚨 PFLICHTKOMPONENTE – Nicht weglassen!</strong><br>
+    Der Level Shifter ist <strong>obligatorisch</strong> für den LD2410C, unabhängig davon, welche TX-Spannung dein konkretes Modul ausgibt (3,3V oder 5V).
+    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+        <li><strong>Bei 5V TX:</strong> Der Level Shifter schützt den ESP32 vor Zerstörung</li>
+        <li><strong>Bei 3,3V TX:</strong> Der Level Shifter leitet das Signal sauber durch (kein Signalverlust)</li>
+        <li><strong>Warum nicht messen?</strong> Im eingebauten Zustand unpraktisch. Ein Level Shifter schadet nie.</li>
+    </ul>
+</div>
+
+<h3>Logic Level Shifter (empfohlen)</h3>
+
+<p>Verwende einen bidirektionalen Level Shifter (z.B. BSS138-Modul). Diese kosten ca. 0,50–1€ und sind zuverlässiger als ein Spannungsteiler.</p>
+
+<div class="svg-container">
+<svg viewBox="0 0 500 220" xmlns="http://www.w3.org/2000/svg">
+    <rect width="500" height="220" fill="#f8fafc"/>
+    
+    <text x="250" y="25" font-family="Segoe UI" font-size="16" font-weight="bold" fill="#1e40af" text-anchor="middle">Logic Level Shifter (BSS138-Modul) – PFLICHT</text>
+    
+    <!-- LD2410C -->
+    <rect x="30" y="70" width="80" height="80" rx="4" fill="#ef4444"/>
+    <text x="70" y="100" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">LD2410C</text>
+    <text x="70" y="120" font-family="Consolas" font-size="10" fill="white" text-anchor="middle">TX</text>
+    
+    <!-- Level Shifter Module -->
+    <rect x="180" y="50" width="140" height="120" rx="4" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+    <text x="250" y="75" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Level Shifter</text>
+    <text x="250" y="95" font-family="Segoe UI" font-size="9" fill="#c4b5fd" text-anchor="middle">4-Kanal, bidirektional</text>
+    
+    <!-- HV Side -->
+    <text x="195" y="120" font-family="Consolas" font-size="8" fill="white">HV</text>
+    <text x="195" y="135" font-family="Consolas" font-size="8" fill="#fbbf24">5V</text>
+    <text x="195" y="155" font-family="Consolas" font-size="8" fill="white">HV1</text>
+    
+    <!-- LV Side -->
+    <text x="295" y="120" font-family="Consolas" font-size="8" fill="white">LV</text>
+    <text x="295" y="135" font-family="Consolas" font-size="8" fill="#22c55e">3.3V</text>
+    <text x="295" y="155" font-family="Consolas" font-size="8" fill="white">LV1</text>
+    
+    <!-- ESP32 -->
+    <rect x="390" y="70" width="80" height="80" rx="4" fill="#1e40af"/>
+    <text x="430" y="100" font-family="Segoe UI" font-size="11" fill="white" text-anchor="middle" font-weight="bold">ESP32-S3</text>
+    <text x="430" y="120" font-family="Consolas" font-size="10" fill="#93c5fd" text-anchor="middle">GPIO 6</text>
+    
+    <!-- Connection Lines -->
+    <line x1="110" y1="110" x2="180" y2="150" stroke="#dc2626" stroke-width="2"/>
+    <line x1="320" y1="150" x2="390" y2="110" stroke="#22c55e" stroke-width="2"/>
+    
+    <!-- Labels -->
+    <text x="140" y="115" font-family="Segoe UI" font-size="9" fill="#dc2626">TX→HV1</text>
+    <text x="340" y="115" font-family="Segoe UI" font-size="9" fill="#22c55e">LV1→GPIO6</text>
+    
+    <!-- Power connections -->
+    <text x="250" y="195" font-family="Segoe UI" font-size="9" fill="#64748b" text-anchor="middle">HV→5V | LV→3.3V | GND→GND</text>
+</svg>
+</div>
+
+<h3>Verkabelung Level Shifter</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Level Shifter Pin</th>
+            <th>Verbindung</th>
+            <th>Funktion</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>HV</strong></td>
+            <td>→ 5V-Schiene</td>
+            <td>Referenzspannung High-Side</td>
+        </tr>
+        <tr>
+            <td><strong>LV</strong></td>
+            <td>→ 3,3V-Schiene</td>
+            <td>Referenzspannung Low-Side</td>
+        </tr>
+        <tr>
+            <td><strong>GND</strong></td>
+            <td>→ GND-Schiene</td>
+            <td>Gemeinsame Masse</td>
+        </tr>
+        <tr style="background:#fee2e2;">
+            <td><strong>HV1</strong></td>
+            <td>← LD2410C TX</td>
+            <td>Eingang vom Radar (5V oder 3,3V)</td>
+        </tr>
+        <tr style="background:#dcfce7;">
+            <td><strong>LV1</strong></td>
+            <td>→ GPIO 6</td>
+            <td>Ausgang zum ESP32 (immer 3,3V)</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Alternative: Spannungsteiler (nur Notfall)</h3>
+
+<p>Falls kein Level Shifter verfügbar ist, kann ein Spannungsteiler (10 kΩ + 20 kΩ) verwendet werden. <strong>Aber Achtung:</strong> Ein Spannungsteiler funktioniert nur zuverlässig, wenn das Modul tatsächlich 5V am TX ausgibt. Bei 3,3V-Modulen würde der Teiler das Signal auf ~2,2V reduzieren – zu niedrig für den ESP32!</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Vergleich</th>
+            <th>Spannungsteiler</th>
+            <th>Logic Level Shifter</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Kosten</td>
+            <td>~0,05€ (2 Widerstände)</td>
+            <td>~0,50–1€ (Modul)</td>
+        </tr>
+        <tr>
+            <td>Aufbau</td>
+            <td>2 lose Bauteile</td>
+            <td>Fertiges Modul</td>
+        </tr>
+        <tr>
+            <td>Bei 5V TX</td>
+            <td>✅ Funktioniert</td>
+            <td>✅ Funktioniert</td>
+        </tr>
+        <tr style="background:#fee2e2;">
+            <td><strong>Bei 3,3V TX</strong></td>
+            <td><strong>❌ Signal zu niedrig!</strong></td>
+            <td><strong>✅ Funktioniert</strong></td>
+        </tr>
+        <tr>
+            <td>Bidirektional</td>
+            <td>❌ Nein</td>
+            <td>✅ Ja</td>
+        </tr>
+        <tr style="background:#dcfce7;">
+            <td><strong>Empfehlung</strong></td>
+            <td>❌ Nicht empfohlen</td>
+            <td><strong>✅ IMMER verwenden</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <strong>ℹ️ AliExpress-Suchbegriffe:</strong><br>
+    <code>logic level converter 3.3v 5v</code> oder <code>BSS138 level shifter 4 channel</code><br>
+    Achte auf: 4-Kanal, bidirektional, mit HV/LV Beschriftung
+</div>
+
+<!-- ============================================ -->
+<h2 id="gehaeuse">9. Gehäuse-Layout (2 Ebenen)</h2>
+<!-- ============================================ -->
+
+<div class="svg-container">
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg">
+    <rect width="700" height="500" fill="#f8fafc"/>
+    
+    <text x="350" y="25" font-family="Segoe UI" font-size="16" font-weight="bold" fill="#1e40af" text-anchor="middle">Gehäuse-Layout – 2 Ebenen-Konzept</text>
+    
+    <!-- Upper Level Box -->
+    <rect x="50" y="50" width="280" height="200" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+    <text x="190" y="75" font-family="Segoe UI" font-size="14" fill="#92400e" text-anchor="middle" font-weight="bold">OBERE EBENE</text>
+    <text x="190" y="95" font-family="Segoe UI" font-size="10" fill="#78716c" text-anchor="middle">(Wärmeerzeuger + Elektronik)</text>
+    
+    <!-- ESP32 on Upper Level -->
+    <rect x="70" y="110" width="100" height="50" rx="4" fill="#1e40af"/>
+    <text x="120" y="135" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">ESP32-S3</text>
+    <text x="120" y="150" font-family="Segoe UI" font-size="8" fill="#93c5fd" text-anchor="middle">+ USB-C Zugang</text>
+    
+    <!-- MH-Z19C on Upper Level -->
+    <rect x="190" y="110" width="80" height="50" rx="4" fill="#f97316"/>
+    <text x="230" y="135" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">MH-Z19C</text>
+    <text x="230" y="150" font-family="Segoe UI" font-size="8" fill="#fed7aa" text-anchor="middle">CO₂ (warm!)</text>
+    
+    <!-- Radar on Upper Level -->
+    <rect x="70" y="175" width="80" height="45" rx="4" fill="#ef4444"/>
+    <text x="110" y="198" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">LD2410C</text>
+    <text x="110" y="212" font-family="Segoe UI" font-size="8" fill="#fecaca" text-anchor="middle">Radar</text>
+    
+    <!-- Ventilation Arrow -->
+    <text x="250" y="185" font-family="Segoe UI" font-size="20" fill="#d97706">↑</text>
+    <text x="250" y="220" font-family="Segoe UI" font-size="8" fill="#78716c" text-anchor="middle">Abluft</text>
+    
+    <!-- Lower Level Box -->
+    <rect x="370" y="50" width="280" height="200" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="510" y="75" font-family="Segoe UI" font-size="14" fill="#1e40af" text-anchor="middle" font-weight="bold">UNTERE EBENE</text>
+    <text x="510" y="95" font-family="Segoe UI" font-size="10" fill="#78716c" text-anchor="middle">(Sensoren – kühl halten)</text>
+    
+    <!-- AHT20 on Lower Level -->
+    <rect x="390" y="115" width="70" height="45" rx="4" fill="#10b981"/>
+    <text x="425" y="138" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">AHT20</text>
+    <text x="425" y="152" font-family="Segoe UI" font-size="8" fill="white" text-anchor="middle">Temp/Hum</text>
+    
+    <!-- SGP40 on Lower Level -->
+    <rect x="475" y="115" width="70" height="45" rx="4" fill="#10b981"/>
+    <text x="510" y="138" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">SGP40</text>
+    <text x="510" y="152" font-family="Segoe UI" font-size="8" fill="white" text-anchor="middle">VOC</text>
+    
+    <!-- PMS5003 on Lower Level -->
+    <rect x="560" y="115" width="70" height="45" rx="4" fill="#8b5cf6"/>
+    <text x="595" y="138" font-family="Segoe UI" font-size="10" fill="white" text-anchor="middle" font-weight="bold">PMS5003</text>
+    <text x="595" y="152" font-family="Segoe UI" font-size="8" fill="white" text-anchor="middle">Feinstaub</text>
+    
+    <!-- Air Inlet Arrow -->
+    <text x="510" y="200" font-family="Segoe UI" font-size="20" fill="#2563eb">↑</text>
+    <text x="510" y="230" font-family="Segoe UI" font-size="8" fill="#78716c" text-anchor="middle">Zuluft</text>
+    
+    <!-- Front View -->
+    <rect x="50" y="290" width="600" height="180" rx="8" fill="#d4a574" stroke="#92400e" stroke-width="2"/>
+    <text x="350" y="315" font-family="Segoe UI" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">FRONTANSICHT – Holzgehäuse</text>
+    
+    <!-- Display Cutout -->
+    <rect x="180" y="340" width="180" height="100" rx="4" fill="#1e293b" stroke="#fff" stroke-width="2"/>
+    <text x="270" y="390" font-family="Segoe UI" font-size="12" fill="#3b82f6" text-anchor="middle">4" TFT Display</text>
+    <text x="270" y="410" font-family="Segoe UI" font-size="10" fill="#64748b" text-anchor="middle">480 × 320 px</text>
+    
+    <!-- Radar Window -->
+    <rect x="400" y="360" width="60" height="40" rx="4" fill="rgba(255,255,255,0.3)" stroke="#fff" stroke-width="1" stroke-dasharray="4"/>
+    <text x="430" y="385" font-family="Segoe UI" font-size="8" fill="#fff" text-anchor="middle">Radar</text>
+    <text x="430" y="395" font-family="Segoe UI" font-size="7" fill="#fef3c7" text-anchor="middle">(Kunststoff)</text>
+    
+    <!-- USB Port -->
+    <rect x="500" y="375" width="40" height="15" rx="2" fill="#333"/>
+    <text x="520" y="385" font-family="Segoe UI" font-size="7" fill="#fff" text-anchor="middle">USB-C</text>
+    
+    <!-- Ventilation Slots -->
+    <rect x="80" y="350" width="60" height="80" rx="2" fill="none" stroke="#fff" stroke-width="1"/>
+    <line x1="90" y1="360" x2="130" y2="360" stroke="#fff" stroke-width="2"/>
+    <line x1="90" y1="375" x2="130" y2="375" stroke="#fff" stroke-width="2"/>
+    <line x1="90" y1="390" x2="130" y2="390" stroke="#fff" stroke-width="2"/>
+    <line x1="90" y1="405" x2="130" y2="405" stroke="#fff" stroke-width="2"/>
+    <line x1="90" y1="420" x2="130" y2="420" stroke="#fff" stroke-width="2"/>
+    <text x="110" y="448" font-family="Segoe UI" font-size="8" fill="#fff" text-anchor="middle">Lüftung</text>
+    
+    <!-- Button -->
+    <circle cx="580" y="400" r="12" fill="#64748b" stroke="#fff" stroke-width="2"/>
+    <text x="580" y="425" font-family="Segoe UI" font-size="8" fill="#fff" text-anchor="middle">Button</text>
+</svg>
+</div>
+
+<!-- ============================================ -->
+<h2 id="fehlerbehebung">10. Fehlerbehebung</h2>
+<!-- ============================================ -->
+
+<table>
+    <thead>
+        <tr>
+            <th>Problem</th>
+            <th>Mögliche Ursache</th>
+            <th>Lösung</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Display bleibt weiß</td>
+            <td>CS, DC oder RST falsch verkabelt</td>
+            <td>Verkabelung mit Tabelle abgleichen, Pins prüfen</td>
+        </tr>
+        <tr>
+            <td>Display bleibt schwarz</td>
+            <td>Backlight nicht verbunden oder defekt</td>
+            <td>LED-Pin an 3,3V oder GPIO 3 anschließen</td>
+        </tr>
+        <tr>
+            <td>I²C-Sensoren nicht erkannt</td>
+            <td>Pull-ups fehlen oder falsche Adresse</td>
+            <td>4,7 kΩ Pull-ups prüfen, I²C-Scanner laufen lassen</td>
+        </tr>
+        <tr>
+            <td>CO₂-Werte immer 0</td>
+            <td>TX/RX vertauscht oder falscher UART</td>
+            <td>TX→GPIO 4, RX→GPIO 5 prüfen, Serial2 verwenden</td>
+        </tr>
+        <tr>
+            <td>Radar reagiert nicht</td>
+            <td>Level Shifter fehlt oder falsch verkabelt</td>
+            <td>Level Shifter prüfen: HV→5V, LV→3,3V, GND→GND, TX→HV1, LV1→GPIO 6</td>
+        </tr>
+        <tr>
+            <td>ESP32 startet nicht</td>
+            <td>Kurzschluss oder Überstrom</td>
+            <td>Alle Verbindungen lösen, einzeln testen</td>
+        </tr>
+        <tr style="background:#fef3c7;">
+            <td><strong>ESP32 startet im Bootloader</strong></td>
+            <td><strong>Button beim Einschalten gedrückt</strong></td>
+            <td><strong>USB trennen, Button loslassen, neu verbinden</strong></td>
+        </tr>
+        <tr style="background:#fef3c7;">
+            <td><strong>ESP32 startet zufällig neu</strong></td>
+            <td><strong>Spannungseinbruch durch Sensoren</strong></td>
+            <td><strong>Stützkondensator (100–470µF) auf 5V-Schiene</strong></td>
+        </tr>
+        <tr>
+            <td>PMS5003 keine Daten</td>
+            <td>Molex-Adapter nicht richtig gesteckt</td>
+            <td>Stecker prüfen, Adapterkabel tauschen</td>
+        </tr>
+        <tr>
+            <td>Temperatur zu hoch</td>
+            <td>MH-Z19C zu nah am AHT20</td>
+            <td>Mindestens 3 cm Abstand, separate Ebenen</td>
+        </tr>
+        <tr>
+            <td>Button funktioniert nicht</td>
+            <td>Kein Pull-up aktiv</td>
+            <td>Im Code: <code>pinMode(0, INPUT_PULLUP)</code></td>
+        </tr>
+        <tr>
+            <td>Backlight flackert / ESP heiß</td>
+            <td>Display-BL zieht zu viel Strom</td>
+            <td>100Ω Vorwiderstand oder BL direkt an 3,3V</td>
+        </tr>
+        <tr style="background:#fef3c7;">
+            <td><strong>Gar nichts funktioniert mehr</strong></td>
+            <td><strong>Sicherung ausgelöst (Kurzschluss)</strong></td>
+            <td><strong>Sicherung prüfen/ersetzen, Kurzschluss suchen</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="software">11. Software-Hinweise</h2>
+<!-- ============================================ -->
+
+<h3>PlatformIO (empfohlen)</h3>
+<p>Das mitgelieferte PlatformIO-Projekt ist bereits korrekt konfiguriert. Einfach in VS Code mit PlatformIO öffnen und hochladen.</p>
+
+<h3>Arduino IDE</h3>
+<p>Falls du die Arduino IDE verwendest, achte auf folgende Einstellungen:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Einstellung</th>
+            <th>Wert</th>
+            <th>Hinweis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Board</td>
+            <td><code>ESP32S3 Dev Module</code></td>
+            <td>Oder spezifisches Waveshare-Board falls verfügbar</td>
+        </tr>
+        <tr>
+            <td>Flash Mode</td>
+            <td><code>QIO 80MHz</code></td>
+            <td>Wichtig für Stabilität</td>
+        </tr>
+        <tr>
+            <td>Flash Size</td>
+            <td><code>8MB</code></td>
+            <td>N8R8 hat 8MB Flash</td>
+        </tr>
+        <tr style="background:#fef3c7;">
+            <td><strong>PSRAM</strong></td>
+            <td><strong><code>OPI PSRAM</code></strong></td>
+            <td><strong>Wichtig! N8R8 nutzt Octal-PSRAM</strong></td>
+        </tr>
+        <tr>
+            <td>USB Mode</td>
+            <td><code>Hardware CDC and JTAG</code></td>
+            <td>Für Serial-Ausgabe über USB</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="warning-box">
+    <strong>⚠️ PSRAM-Einstellung kritisch:</strong> Wenn PSRAM falsch konfiguriert ist (z.B. "Disabled" oder "QSPI"), wird der ESP32 instabil oder das Display funktioniert nicht korrekt (LVGL braucht PSRAM für Double-Buffering).
+</div>
+
+<div class="success-box">
+    <strong>✅ Fertig!</strong> Wenn alle Schritte befolgt wurden und die Prüfpunkte bestanden sind, ist der INSPECTAIR bereit für die Programmierung. Viel Erfolg beim Projekt!
+</div>
+
+<hr style="margin-top: 3rem;">
+<p style="color: var(--text-light); font-size: 0.9rem; text-align: center;">
+    INSPECTAIR Bauanleitung v2.0 | DHBW Ravensburg | Stand: Januar 2026<br>
+    Erstellt mit korrekter UTF-8-Kodierung für alle Sonderzeichen (ä, ö, ü, ß, ², ³, °, Ω, →, ✓, etc.)
+</p>
+
+</body>
+</html>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900">
+  <defs>
+    <style>
+      .title { font: bold 24px Arial; fill: #1e3a5f; }
+      .subtitle { font: 14px Arial; fill: #666; }
+      .month-header { font: bold 12px Arial; fill: #1e3a5f; }
+      .week-header { font: 9px Arial; fill: #666; }
+      .task-label { font: 11px Arial; fill: #333; }
+      .phase-label { font: bold 12px Arial; fill: white; }
+      .milestone { font: bold 10px Arial; fill: #dc2626; }
+      .legend-text { font: 10px Arial; fill: #333; }
+      .today-label { font: bold 10px Arial; fill: #dc2626; }
+    </style>
+    <!-- Milestone diamond -->
+    <polygon id="diamond" points="0,-8 8,0 0,8 -8,0" fill="#dc2626"/>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1400" height="900" fill="#fafafa"/>
+  
+  <!-- Title -->
+  <text x="700" y="35" text-anchor="middle" class="title">INSPECTAIR - Projektplan (Gantt-Diagramm)</text>
+  <text x="700" y="55" text-anchor="middle" class="subtitle">Zeitraum: November 2025 - März 2026 | Abgabe: 13.03.2026</text>
+  
+  <!-- Timeline Header -->
+  <g transform="translate(250, 80)">
+    <!-- Month backgrounds -->
+    <rect x="0" y="0" width="200" height="40" fill="#e0e7ff" stroke="#c7d2fe"/>
+    <rect x="200" y="0" width="200" height="40" fill="#dbeafe" stroke="#bfdbfe"/>
+    <rect x="400" y="0" width="200" height="40" fill="#e0e7ff" stroke="#c7d2fe"/>
+    <rect x="600" y="0" width="200" height="40" fill="#dbeafe" stroke="#bfdbfe"/>
+    <rect x="800" y="0" width="200" height="40" fill="#fee2e2" stroke="#fecaca"/>
+    
+    <!-- Month labels -->
+    <text x="100" y="18" text-anchor="middle" class="month-header">November 2025</text>
+    <text x="300" y="18" text-anchor="middle" class="month-header">Dezember 2025</text>
+    <text x="500" y="18" text-anchor="middle" class="month-header">Januar 2026</text>
+    <text x="700" y="18" text-anchor="middle" class="month-header">Februar 2026</text>
+    <text x="900" y="18" text-anchor="middle" class="month-header">März 2026</text>
+    
+    <!-- Week markers -->
+    <g class="week-header">
+      <!-- November -->
+      <text x="25" y="35">KW45</text>
+      <text x="75" y="35">KW46</text>
+      <text x="125" y="35">KW47</text>
+      <text x="175" y="35">KW48</text>
+      <!-- December -->
+      <text x="225" y="35">KW49</text>
+      <text x="275" y="35">KW50</text>
+      <text x="325" y="35">KW51</text>
+      <text x="375" y="35">KW52</text>
+      <!-- January -->
+      <text x="425" y="35">KW1</text>
+      <text x="475" y="35">KW2</text>
+      <text x="525" y="35">KW3</text>
+      <text x="575" y="35">KW4</text>
+      <!-- February -->
+      <text x="625" y="35">KW5</text>
+      <text x="675" y="35">KW6</text>
+      <text x="725" y="35">KW7</text>
+      <text x="775" y="35">KW8</text>
+      <!-- March -->
+      <text x="825" y="35">KW9</text>
+      <text x="875" y="35">KW10</text>
+      <text x="925" y="35">KW11</text>
+      <text x="975" y="35">KW12</text>
+    </g>
+    
+    <!-- Grid lines -->
+    <g stroke="#e5e7eb" stroke-width="1">
+      <line x1="50" y1="40" x2="50" y2="680"/>
+      <line x1="100" y1="40" x2="100" y2="680"/>
+      <line x1="150" y1="40" x2="150" y2="680"/>
+      <line x1="200" y1="40" x2="200" y2="680"/>
+      <line x1="250" y1="40" x2="250" y2="680"/>
+      <line x1="300" y1="40" x2="300" y2="680"/>
+      <line x1="350" y1="40" x2="350" y2="680"/>
+      <line x1="400" y1="40" x2="400" y2="680"/>
+      <line x1="450" y1="40" x2="450" y2="680"/>
+      <line x1="500" y1="40" x2="500" y2="680"/>
+      <line x1="550" y1="40" x2="550" y2="680"/>
+      <line x1="600" y1="40" x2="600" y2="680"/>
+      <line x1="650" y1="40" x2="650" y2="680"/>
+      <line x1="700" y1="40" x2="700" y2="680"/>
+      <line x1="750" y1="40" x2="750" y2="680"/>
+      <line x1="800" y1="40" x2="800" y2="680"/>
+      <line x1="850" y1="40" x2="850" y2="680"/>
+      <line x1="900" y1="40" x2="900" y2="680"/>
+      <line x1="950" y1="40" x2="950" y2="680"/>
+      <line x1="1000" y1="40" x2="1000" y2="680"/>
+    </g>
+    
+    <!-- Today marker (20. Jan 2026 = KW4) -->
+    <line x1="590" y1="40" x2="590" y2="680" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="590" y="695" text-anchor="middle" class="today-label">▼ HEUTE (20.01.)</text>
+    
+    <!-- Deadline marker -->
+    <line x1="930" y1="40" x2="930" y2="680" stroke="#dc2626" stroke-width="3"/>
+    <text x="930" y="695" text-anchor="middle" class="milestone">▼ ABGABE 13.03.</text>
+  </g>
+  
+  <!-- Task Labels (Left side) -->
+  <g transform="translate(20, 130)">
+    <!-- Phase 1: Planung -->
+    <rect x="0" y="0" width="220" height="25" rx="3" fill="#6366f1"/>
+    <text x="110" y="17" text-anchor="middle" class="phase-label">PHASE 1: PLANUNG</text>
+    
+    <text x="10" y="50" class="task-label">Projektidee & Pitch</text>
+    <text x="10" y="75" class="task-label">Hardware-Recherche</text>
+    <text x="10" y="100" class="task-label">Bauteile bestellen</text>
+    
+    <!-- Phase 2: Hardware -->
+    <rect x="0" y="120" width="220" height="25" rx="3" fill="#22c55e"/>
+    <text x="110" y="137" text-anchor="middle" class="phase-label">PHASE 2: HARDWARE</text>
+    
+    <text x="10" y="170" class="task-label">Einzeltests Sensoren</text>
+    <text x="10" y="195" class="task-label">Display-Test</text>
+    <text x="10" y="220" class="task-label">Level Shifter + Kondensatoren</text>
+    <text x="10" y="245" class="task-label">MOSFET Backlight</text>
+    <text x="10" y="270" class="task-label">Komplett-Verkabelung</text>
+    
+    <!-- Phase 3: Software -->
+    <rect x="0" y="290" width="220" height="25" rx="3" fill="#f59e0b"/>
+    <text x="110" y="307" text-anchor="middle" class="phase-label">PHASE 3: SOFTWARE</text>
+    
+    <text x="10" y="340" class="task-label">Sensor-Modul</text>
+    <text x="10" y="365" class="task-label">Display-Modul (LVGL)</text>
+    <text x="10" y="390" class="task-label">Clean-UI Design</text>
+    <text x="10" y="415" class="task-label">Detailed-UI Design</text>
+    <text x="10" y="440" class="task-label">Button-Handler</text>
+    <text x="10" y="465" class="task-label">Radar Dimming/Wake</text>
+    <text x="10" y="490" class="task-label">Deep Sleep (optional)</text>
+    
+    <!-- Phase 4: Integration -->
+    <rect x="0" y="510" width="220" height="25" rx="3" fill="#ec4899"/>
+    <text x="110" y="527" text-anchor="middle" class="phase-label">PHASE 4: GEHÄUSE</text>
+    
+    <text x="10" y="560" class="task-label">Gehäuse-Design</text>
+    <text x="10" y="585" class="task-label">Holzbox bauen/beschaffen</text>
+    <text x="10" y="610" class="task-label">Komponenten einbauen</text>
+    
+    <!-- Phase 5: Test & Doku -->
+    <rect x="0" y="630" width="220" height="25" rx="3" fill="#dc2626"/>
+    <text x="110" y="647" text-anchor="middle" class="phase-label">PHASE 5: TEST & DOKU</text>
+    
+    <text x="10" y="680" class="task-label">Integrationstests</text>
+    <text x="10" y="705" class="task-label">Dokumentation finalisieren</text>
+    <text x="10" y="730" class="task-label">Präsentation vorbereiten</text>
+  </g>
+  
+  <!-- Gantt Bars -->
+  <g transform="translate(250, 130)">
+    <!-- Phase 1: Planung (Nov) -->
+    <!-- Projektidee & Pitch -->
+    <rect x="0" y="35" width="150" height="18" rx="3" fill="#818cf8"/>
+    <text x="75" y="48" text-anchor="middle" style="font: 9px Arial; fill: white;">Maxi</text>
+    
+    <!-- Hardware-Recherche -->
+    <rect x="50" y="60" width="150" height="18" rx="3" fill="#818cf8"/>
+    <text x="125" y="73" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle</text>
+    
+    <!-- Bauteile bestellen -->
+    <rect x="150" y="85" width="100" height="18" rx="3" fill="#818cf8"/>
+    <text x="200" y="98" text-anchor="middle" style="font: 9px Arial; fill: white;">Maxi</text>
+    
+    <!-- Milestone M1: Pitch -->
+    <use href="#diamond" x="150" y="50"/>
+    <text x="150" y="30" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M1</text>
+    
+    <!-- Phase 2: Hardware (Dez-Jan) -->
+    <!-- Einzeltests Sensoren -->
+    <rect x="200" y="155" width="250" height="18" rx="3" fill="#4ade80"/>
+    <text x="325" y="168" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle ✓</text>
+    
+    <!-- Display-Test -->
+    <rect x="200" y="180" width="200" height="18" rx="3" fill="#4ade80"/>
+    <text x="300" y="193" text-anchor="middle" style="font: 9px Arial; fill: white;">Jannis ✓</text>
+    
+    <!-- Level Shifter + Kondensatoren -->
+    <rect x="400" y="205" width="150" height="18" rx="3" fill="#86efac"/>
+    <text x="475" y="218" text-anchor="middle" style="font: 9px Arial; fill: #166534;">Cedric</text>
+    
+    <!-- MOSFET Backlight -->
+    <rect x="450" y="230" width="100" height="18" rx="3" fill="#86efac"/>
+    <text x="500" y="243" text-anchor="middle" style="font: 9px Arial; fill: #166534;">Maxi</text>
+    
+    <!-- Komplett-Verkabelung -->
+    <rect x="500" y="255" width="100" height="18" rx="3" fill="#86efac"/>
+    <text x="550" y="268" text-anchor="middle" style="font: 9px Arial; fill: #166534;">Alle</text>
+    
+    <!-- Milestone M2: HW beschafft -->
+    <use href="#diamond" x="300" y="170"/>
+    <text x="300" y="150" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M2 ✓</text>
+    
+    <!-- Milestone M3: HW Integration -->
+    <use href="#diamond" x="550" y="245"/>
+    <text x="550" y="285" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M3</text>
+    
+    <!-- Phase 3: Software (Jan-Feb) -->
+    <!-- Sensor-Modul -->
+    <rect x="500" y="325" width="150" height="18" rx="3" fill="#fbbf24"/>
+    <text x="575" y="338" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Maxi</text>
+    
+    <!-- Display-Modul -->
+    <rect x="500" y="350" width="200" height="18" rx="3" fill="#fbbf24"/>
+    <text x="600" y="363" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Jannis</text>
+    
+    <!-- Clean-UI -->
+    <rect x="600" y="375" width="150" height="18" rx="3" fill="#fcd34d"/>
+    <text x="675" y="388" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Jannis</text>
+    
+    <!-- Detailed-UI -->
+    <rect x="600" y="400" width="150" height="18" rx="3" fill="#fcd34d"/>
+    <text x="675" y="413" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Cedric</text>
+    
+    <!-- Button-Handler -->
+    <rect x="650" y="425" width="100" height="18" rx="3" fill="#fcd34d"/>
+    <text x="700" y="438" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Maxi</text>
+    
+    <!-- Radar Dimming -->
+    <rect x="700" y="450" width="100" height="18" rx="3" fill="#fcd34d"/>
+    <text x="750" y="463" text-anchor="middle" style="font: 9px Arial; fill: #78350f;">Cedric</text>
+    
+    <!-- Deep Sleep (optional) -->
+    <rect x="750" y="475" width="50" height="18" rx="3" fill="#fef3c7" stroke="#fbbf24" stroke-dasharray="4,2"/>
+    <text x="775" y="488" text-anchor="middle" style="font: 9px Arial; fill: #92400e;">opt.</text>
+    
+    <!-- Milestone M4: SW fertig -->
+    <use href="#diamond" x="800" y="395"/>
+    <text x="800" y="375" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M4</text>
+    
+    <!-- Phase 4: Gehäuse (Feb) -->
+    <!-- Gehäuse-Design -->
+    <rect x="650" y="545" width="100" height="18" rx="3" fill="#f472b6"/>
+    <text x="700" y="558" text-anchor="middle" style="font: 9px Arial; fill: white;">Cedric</text>
+    
+    <!-- Holzbox -->
+    <rect x="700" y="570" width="100" height="18" rx="3" fill="#f472b6"/>
+    <text x="750" y="583" text-anchor="middle" style="font: 9px Arial; fill: white;">Cedric</text>
+    
+    <!-- Einbauen -->
+    <rect x="750" y="595" width="100" height="18" rx="3" fill="#f472b6"/>
+    <text x="800" y="608" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle</text>
+    
+    <!-- Milestone M5: Gehäuse -->
+    <use href="#diamond" x="850" y="585"/>
+    <text x="850" y="565" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M5</text>
+    
+    <!-- Phase 5: Test & Doku (Mär) -->
+    <!-- Integrationstests -->
+    <rect x="800" y="665" width="100" height="18" rx="3" fill="#f87171"/>
+    <text x="850" y="678" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle</text>
+    
+    <!-- Dokumentation -->
+    <rect x="800" y="690" width="130" height="18" rx="3" fill="#f87171"/>
+    <text x="865" y="703" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle</text>
+    
+    <!-- Präsentation -->
+    <rect x="850" y="715" width="80" height="18" rx="3" fill="#f87171"/>
+    <text x="890" y="728" text-anchor="middle" style="font: 9px Arial; fill: white;">Alle</text>
+    
+    <!-- Milestone M6: Test & Doku -->
+    <use href="#diamond" x="900" y="700"/>
+    <text x="900" y="750" text-anchor="middle" style="font: 8px Arial; fill: #dc2626;">M6</text>
+    
+    <!-- Final Milestone: ABGABE -->
+    <use href="#diamond" x="930" y="700"/>
+    <polygon points="930,692 938,700 930,708 922,700" fill="#dc2626" stroke="#991b1b" stroke-width="2"/>
+    <text x="930" y="765" text-anchor="middle" style="font: bold 10px Arial; fill: #dc2626;">M7: ABGABE</text>
+  </g>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 820)">
+    <rect x="0" y="0" width="1300" height="60" rx="5" fill="white" stroke="#e5e7eb"/>
+    <text x="650" y="18" text-anchor="middle" style="font: bold 12px Arial; fill: #333;">Legende</text>
+    
+    <g transform="translate(30, 35)">
+      <rect x="0" y="0" width="20" height="12" rx="2" fill="#818cf8"/>
+      <text x="28" y="10" class="legend-text">Planung</text>
+      
+      <rect x="100" y="0" width="20" height="12" rx="2" fill="#4ade80"/>
+      <text x="128" y="10" class="legend-text">Hardware ✓</text>
+      
+      <rect x="210" y="0" width="20" height="12" rx="2" fill="#86efac"/>
+      <text x="238" y="10" class="legend-text">Hardware (offen)</text>
+      
+      <rect x="350" y="0" width="20" height="12" rx="2" fill="#fbbf24"/>
+      <text x="378" y="10" class="legend-text">Software</text>
+      
+      <rect x="450" y="0" width="20" height="12" rx="2" fill="#f472b6"/>
+      <text x="478" y="10" class="legend-text">Gehäuse</text>
+      
+      <rect x="550" y="0" width="20" height="12" rx="2" fill="#f87171"/>
+      <text x="578" y="10" class="legend-text">Test & Doku</text>
+      
+      <use href="#diamond" x="680" y="6"/>
+      <text x="698" y="10" class="legend-text">Meilenstein</text>
+      
+      <line x1="780" y1="6" x2="810" y2="6" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,3"/>
+      <text x="818" y="10" class="legend-text">Heute</text>
+      
+      <rect x="890" y="0" width="20" height="12" rx="2" fill="#fef3c7" stroke="#fbbf24" stroke-dasharray="3,2"/>
+      <text x="918" y="10" class="legend-text">Optional</text>
+      
+      <text x="1000" y="10" style="font: bold 10px Arial; fill: #166534;">✓ = Erledigt</text>
+    </g>
+  </g>
+  
+  <!-- Footer -->
+  <text x="700" y="895" text-anchor="middle" style="font: 10px Arial; fill: #999;">InspectAir Projektplan | Team: Maxi, Jannis, Cedric | DHBW Ravensburg | Stand: Januar 2026</text>
+</svg>
