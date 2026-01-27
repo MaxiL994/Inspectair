@@ -1,5 +1,5 @@
 #include "aht_sgp.h"
-#include "../include/pins.h"
+#include "pins.h"
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
 #include <Adafruit_SGP40.h>
@@ -80,7 +80,7 @@ bool sensors_sgp40_read(float temperature, float humidity, SGP40_Data* data) {
   
   // Debug: zeige VOC-Wert
   if (vocIndex <= 0) {
-    Serial.printf("    [SGP40] VOC-Index ungültig: %ld (erwartet > 0)\n", vocIndex);
+    Serial.printf("    [SGP40] VOC-Index: %ld (Initialisierung...)\n", vocIndex);
   }
 
   return vocIndex > 0;
