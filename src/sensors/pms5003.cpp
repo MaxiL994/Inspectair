@@ -7,7 +7,7 @@
 // PMS5003 FEINSTAUB SENSOR IMPLEMENTATION
 // ============================================
 
-static HardwareSerial SerialPMS(1);
+static HardwareSerial SerialPMS(0); // ÄNDERUNG: Nutze UART0 statt UART1
 static PMS pms(SerialPMS);
 static PMS::DATA pmsData;
 
