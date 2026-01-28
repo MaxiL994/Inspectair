@@ -1,52 +1,62 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * INSPECTAIR - LVGL 9 UI MANAGER
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Display: 480x320 (ST7796S)
+ * Framework: LVGL 9.x
+ */
+
 #ifndef UI_MANAGER_H
 #define UI_MANAGER_H
 
-#include <stdint.h>
-#include "../include/display_config.h"
-#include "../include/sensor_types.h"
+#include <lvgl.h>
+#include "sensor_types.h"
 
-// ============================================
-// UI MANAGER - DISPLAY RENDERING
-// ============================================
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FONT DEKLARATIONEN (Custom Fonts mit Umlauten)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+LV_FONT_DECLARE(ui_font_12);
+LV_FONT_DECLARE(ui_font_16);
+LV_FONT_DECLARE(ui_font_20);
+LV_FONT_DECLARE(ui_font_28);
+LV_FONT_DECLARE(ui_font_48);
 
-extern LGFX tft;  // Global display object
+/* ═══════════════════════════════════════════════════════════════════════════
+ * API FUNKTIONEN
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Initialisiert das Display und zeigt Startbildschirm
+ * Initialisiert die LVGL UI
+ * Muss nach lvgl_init() aufgerufen werden
  */
 void ui_init(void);
 
 /**
- * Zeichnet eine Sensor-Box mit Wert und Einheit
- * @param x X-Position
- * @param y Y-Position
- * @param w Breite
- * @param h Höhe
- * @param label Beschriftung (z.B. "TEMPERATUR")
- * @param value Messwert als String
- * @param unit Einheit (z.B. "°C")
- * @param valueColor Farbe des Messwertes (RGB565)
+ * Aktualisiert die Uhrzeit-Anzeige
+ * @param hour Stunde (0-23)
+ * @param minute Minute (0-59)
  */
-void ui_drawSensorBox(int x, int y, int w, int h, 
-                      const char* label, const char* value, 
-                      const char* unit, uint16_t valueColor);
+void ui_updateTime(int hour, int minute);
 
 /**
- * Updated alle Sensor-Boxen mit aktuellen Werten
- * @param readings Aktuelle Sensormesswerte
+ * Aktualisiert das Datum
+ * @param date_str Formatierter Datums-String (z.B. "Di, 14. Jan")
  */
-void ui_updateDisplay(const SensorReadings& readings);
+void ui_updateDate(const char* date_str);
 
 /**
- * Zeigt Fehlermeldung auf dem Display
- * @param message Fehlermeldung
+ * Aktualisiert alle Sensorwerte
+ * @param temp Temperatur in °C
+ * @param hum Luftfeuchtigkeit in %
+ * @param co2 CO2 in ppm
+ * @param pm25 PM2.5 in µg/m³
  */
-void ui_showError(const char* message);
+void ui_updateSensorValues(float temp, float hum, int co2, int pm25);
 
 /**
- * Setzt Display-Helligkeit
- * @param brightness 0-255
+ * Aktualisiert alle Sensorwerte aus SensorReadings-Struktur
  */
-void ui_setBacklight(uint8_t brightness);
+void ui_updateSensors(const SensorReadings& readings);
 
-#endif
+#endif // UI_MANAGER_H
