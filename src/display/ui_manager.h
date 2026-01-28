@@ -51,8 +51,9 @@ void ui_updateDate(const char* date_str);
  * @param hum Luftfeuchtigkeit in %
  * @param co2 CO2 in ppm
  * @param pm25 PM2.5 in µg/m³
+ * @param voc VOC Index (0-500)
  */
-void ui_updateSensorValues(float temp, float hum, int co2, int pm25);
+void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc);
 
 /**
  * Aktualisiert alle Sensorwerte aus SensorReadings-Struktur
