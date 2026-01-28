@@ -18,6 +18,12 @@ LV_IMAGE_DECLARE(emoji_happy);
 LV_IMAGE_DECLARE(emoji_meh);
 LV_IMAGE_DECLARE(emoji_mask);
 
+// Sensor-Icons (14x14)
+LV_IMAGE_DECLARE(emoji_icon_thermometer);
+LV_IMAGE_DECLARE(emoji_icon_droplet);
+LV_IMAGE_DECLARE(emoji_icon_cloud);
+LV_IMAGE_DECLARE(emoji_icon_dash);
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT KONFIGURATION
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -33,7 +39,7 @@ LV_IMAGE_DECLARE(emoji_mask);
 #define TXT_MAESSIG         "Mäßig"
 #define TXT_SCHLECHT        "Schlecht"
 #define TXT_TEMPERATUR      "Temperatur"
-#define TXT_FEUCHTE         "Luftfeuchtigkeit"
+#define TXT_FEUCHTE         "Feuchte"
 #define TXT_UNIT_TEMP       "°C"
 #define TXT_UNIT_PM         "µg/m³"
 
@@ -79,9 +85,11 @@ static lv_obj_t* lbl_aqi_status = nullptr;
 struct SensorCard {
     lv_obj_t* container;
     lv_obj_t* label;
+    lv_obj_t* emoji;    // Emoji nach dem Titel
     lv_obj_t* value;
     lv_obj_t* unit;
     lv_obj_t* bar;
+    int width;          // Kartenbreite speichern
 };
 static SensorCard cards[4];
 
@@ -201,20 +209,19 @@ void ui_init() {
 
     init_styles();
 
-    // UHRZEIT
+    // UHRZEIT - fest zentriert links neben AQI Box
     lbl_time = lv_label_create(scr);
     lv_obj_set_style_text_font(lbl_time, FONT_48, 0);
     lv_obj_set_style_text_color(lbl_time, COLOR_TEXT, 0);
-    lv_label_set_text(lbl_time, "--:--");
-    lv_obj_update_layout(lbl_time);
-    lv_obj_set_pos(lbl_time, (AQI_BOX_X - lv_obj_get_width(lbl_time)) / 2, 63);
+    lv_label_set_text(lbl_time, "00:00");
+    lv_obj_set_pos(lbl_time, 65, 55);
 
     // DATUM
     lbl_date = lv_label_create(scr);
     lv_obj_set_style_text_font(lbl_date, FONT_16, 0);
     lv_obj_set_style_text_color(lbl_date, COLOR_DATE, 0);
-    lv_label_set_text(lbl_date, "--.--.----");
-    lv_obj_align_to(lbl_date, lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    lv_label_set_text(lbl_date, "Di, 28. Jan");
+    lv_obj_set_pos(lbl_date, 75, 115);
 
     // AQI BOX
     lv_obj_t* aqi_box = lv_obj_create(scr);
@@ -267,32 +274,50 @@ void ui_init() {
         int x = CARD_START_X;
         for(int j = 0; j < i; j++) x += card_widths[j] + CARD_GAP;
 
+        cards[i].width = card_widths[i];
         cards[i].container = lv_obj_create(scr);
         lv_obj_add_style(cards[i].container, &style_card, 0);
         lv_obj_set_size(cards[i].container, card_widths[i], CARD_H);
         lv_obj_set_pos(cards[i].container, x, CARD_Y);
         lv_obj_remove_flag(cards[i].container, LV_OBJ_FLAG_SCROLLABLE);
 
+        // Titel Label
         cards[i].label = lv_label_create(cards[i].container);
         lv_obj_set_style_text_font(cards[i].label, FONT_12, 0);
         lv_obj_set_style_text_color(cards[i].label, COLOR_TEXT_L, 0);
         lv_label_set_text(cards[i].label, labels[i]);
-        lv_obj_align(cards[i].label, LV_ALIGN_TOP_LEFT, 0, 0);
+        lv_obj_set_pos(cards[i].label, 0, 0);
 
+        // Sensor-Icon neben Titel (passend für jeden Sensor)
+        cards[i].emoji = lv_image_create(cards[i].container);
+        const lv_image_dsc_t* sensor_icons[] = {
+            &emoji_icon_thermometer,  // Temperatur
+            &emoji_icon_droplet,      // Feuchte
+            &emoji_icon_cloud,        // CO2
+            &emoji_icon_dash          // Feinstaub
+        };
+        lv_image_set_src(cards[i].emoji, sensor_icons[i]);
+        lv_image_set_scale(cards[i].emoji, 256);  // 100% (Icons sind bereits 14x14)
+        lv_obj_set_pos(cards[i].emoji, card_widths[i] - 38, 0);
+
+        // Wert - weiter unten positioniert
         cards[i].value = lv_label_create(cards[i].container);
         lv_obj_set_style_text_font(cards[i].value, FONT_28, 0);
         lv_obj_set_style_text_color(cards[i].value, COLOR_TEXT, 0);
         lv_label_set_text(cards[i].value, "--");
-        lv_obj_align(cards[i].value, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_set_pos(cards[i].value, 0, 32);
 
+        // Einheit - rechts neben Wert, unten ausgerichtet
         cards[i].unit = lv_label_create(cards[i].container);
         lv_obj_set_style_text_font(cards[i].unit, FONT_12, 0);
         lv_obj_set_style_text_color(cards[i].unit, COLOR_TEXT_L, 0);
         lv_label_set_text(cards[i].unit, units[i]);
+        lv_obj_set_pos(cards[i].unit, 40, 48);
 
+        // Status-Balken
         cards[i].bar = lv_bar_create(cards[i].container);
-        lv_obj_set_width(cards[i].bar, card_widths[i] - 16);
-        lv_obj_align(cards[i].bar, LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_obj_set_size(cards[i].bar, card_widths[i] - 24, 4);
+        lv_obj_set_pos(cards[i].bar, 0, CARD_H - 32);
         lv_bar_set_range(cards[i].bar, 0, 100);
         lv_bar_set_value(cards[i].bar, 33, LV_ANIM_OFF);
         lv_obj_add_style(cards[i].bar, &style_bar_bg, LV_PART_MAIN);
@@ -308,13 +333,12 @@ void ui_updateTime(int hour, int minute) {
     char buf[8];
     snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
     lv_label_set_text(lbl_time, buf);
-    lv_obj_update_layout(lbl_time);
-    lv_obj_set_pos(lbl_time, (AQI_BOX_X - lv_obj_get_width(lbl_time)) / 2, 63);
-    if (lbl_date) lv_obj_align_to(lbl_date, lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
 }
 
 void ui_updateDate(const char* date_str) {
-    if (lbl_date) lv_label_set_text(lbl_date, date_str);
+    if (lbl_date && date_str) {
+        lv_label_set_text(lbl_date, date_str);
+    }
 }
 
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
@@ -328,23 +352,40 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
     };
 
     char buf[16];
+    
+    // Temperatur
     snprintf(buf, sizeof(buf), "%.1f", temp);
     lv_label_set_text(cards[0].value, buf);
+    lv_obj_update_layout(cards[0].value);
+    lv_obj_set_pos(cards[0].unit, lv_obj_get_x(cards[0].value) + lv_obj_get_width(cards[0].value) + 3, 48);
+    
+    // Luftfeuchtigkeit  
     snprintf(buf, sizeof(buf), "%d", (int)hum);
     lv_label_set_text(cards[1].value, buf);
+    lv_obj_update_layout(cards[1].value);
+    lv_obj_set_pos(cards[1].unit, lv_obj_get_x(cards[1].value) + lv_obj_get_width(cards[1].value) + 3, 48);
+    
+    // CO2
     snprintf(buf, sizeof(buf), "%d", co2);
     lv_label_set_text(cards[2].value, buf);
+    lv_obj_update_layout(cards[2].value);
+    lv_obj_set_pos(cards[2].unit, lv_obj_get_x(cards[2].value) + lv_obj_get_width(cards[2].value) + 3, 48);
+    
+    // PM2.5
     snprintf(buf, sizeof(buf), "%d", pm25);
     lv_label_set_text(cards[3].value, buf);
+    lv_obj_update_layout(cards[3].value);
+    lv_obj_set_pos(cards[3].unit, lv_obj_get_x(cards[3].value) + lv_obj_get_width(cards[3].value) + 3, 48);
 
+    // Status-Balken aktualisieren (Icons bleiben fix)
     for (int i = 0; i < 4; i++) {
-        lv_obj_align_to(cards[i].unit, cards[i].value, LV_ALIGN_OUT_RIGHT_BOTTOM, 3, -2);
         lv_obj_remove_style(cards[i].bar, NULL, LV_PART_INDICATOR);
         lv_obj_add_style(cards[i].bar, get_bar_style(statuses[i]), LV_PART_INDICATOR);
         int pct = (statuses[i] == GOOD) ? 33 : (statuses[i] == WARN) ? 66 : 100;
         lv_bar_set_value(cards[i].bar, pct, LV_ANIM_ON);
     }
 
+    // Luftqualität (AQI) aktualisieren
     Status air = get_air_quality(co2, pm25);
     lv_color_t col = get_status_color(air);
     lv_obj_set_style_arc_color(arc_aqi, col, LV_PART_INDICATOR);
