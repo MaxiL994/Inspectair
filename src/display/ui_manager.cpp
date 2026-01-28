@@ -1,155 +1,365 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * INSPECTAIR - LVGL 9 UI MANAGER
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Display: 480x320 (ST7796S)
+ * Framework: LVGL 9.x
+ */
+
 #include "ui_manager.h"
-#include "pins.h"
-#include "colors.h"
-#include "display_config.h"
+#include <stdio.h>
+#include <string.h>
 
-extern LGFX tft;
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMOJI BILDER (LVGL 9 kompatibel)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+LV_IMAGE_DECLARE(emoji_happy);
+LV_IMAGE_DECLARE(emoji_meh);
+LV_IMAGE_DECLARE(emoji_mask);
 
-// Layout Konstanten
-#define BOX_MARGIN    10   // Erhöht, damit links nichts abgeschnitten wird
-#define BOX_PADDING   10   // Mehr Innenabstand
-#define ROW_HEIGHT    90
-#define COL_WIDTH     225  // Etwas schmaler, damit es mit größerem Margin passt (10+225+10+225+10 = 480)
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FONT KONFIGURATION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+#define FONT_12  &ui_font_12
+#define FONT_16  &ui_font_16
+#define FONT_20  &ui_font_20
+#define FONT_28  &ui_font_28
+#define FONT_48  &ui_font_48
 
-// Sprite für flackerfreies Zeichnen der Werte
-static LGFX_Sprite* valSprite = nullptr;
+// Texte mit Umlauten
+#define TXT_LUFTQUALITAET   "Luftqualität"
+#define TXT_SEHR_GUT        "Sehr gut"
+#define TXT_MAESSIG         "Mäßig"
+#define TXT_SCHLECHT        "Schlecht"
+#define TXT_TEMPERATUR      "Temperatur"
+#define TXT_FEUCHTE         "Luftfeuchtigkeit"
+#define TXT_UNIT_TEMP       "°C"
+#define TXT_UNIT_PM         "µg/m³"
 
-// Hilfsfunktion: Zeichnet eine statische Box (Hintergrund + Labels)
-// Wird nur EINMAL aufgerufen
-void ui_drawBoxStatic(int x, int y, int w, int h, const char* label, const char* unit) {
-  tft.fillRoundRect(x, y, w, h, 8, COLOR_BOX_BG);
-  tft.drawRoundRect(x, y, w, h, 8, 0x4208); // Dunkler Rahmen
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FARBEN
+ * ═══════════════════════════════════════════════════════════════════════════ */
+#define COLOR_BG        lv_color_hex(0xFAFAFA)
+#define COLOR_CARD      lv_color_hex(0xFFFFFF)
+#define COLOR_TEXT      lv_color_hex(0x1A1A1A)
+#define COLOR_TEXT_L    lv_color_hex(0x666666)
+#define COLOR_DATE      lv_color_hex(0x888888)
 
-  // Label oben links
-  tft.setFont(nullptr);
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_LABEL);
-  tft.setTextSize(1);
-  tft.drawString(label, x + BOX_PADDING, y + BOX_PADDING);
+#define COLOR_GOOD      lv_color_hex(0x10B981)
+#define COLOR_WARN      lv_color_hex(0xF59E0B)
+#define COLOR_BAD       lv_color_hex(0xEF4444)
 
-  // Einheit unten links
-  tft.setFont(nullptr);
-  tft.setTextDatum(BL_DATUM);
-  tft.setTextColor(COLOR_LABEL);
-  tft.setTextSize(1);
-  tft.drawString(unit, x + BOX_PADDING, y + h - BOX_PADDING - 2); // 2px höher
+#define COLOR_BAR_BG    lv_color_hex(0xF0F0F0)
+#define COLOR_RING_BG   lv_color_hex(0xEEEEEE)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LAYOUT (480x320)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+#define AQI_BOX_X       270
+#define AQI_BOX_Y       38
+#define AQI_BOX_W       190
+#define AQI_BOX_H       90
+
+#define CARD_Y          163
+#define CARD_H          100
+#define CARD_GAP        5
+#define CARD_START_X    7
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBALE UI ELEMENTE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+static lv_obj_t* lbl_time = nullptr;
+static lv_obj_t* lbl_date = nullptr;
+static lv_obj_t* arc_aqi = nullptr;
+static lv_obj_t* img_aqi_emoji = nullptr;
+static lv_obj_t* lbl_aqi_title = nullptr;
+static lv_obj_t* lbl_aqi_status = nullptr;
+
+struct SensorCard {
+    lv_obj_t* container;
+    lv_obj_t* label;
+    lv_obj_t* value;
+    lv_obj_t* unit;
+    lv_obj_t* bar;
+};
+static SensorCard cards[4];
+
+static lv_style_t style_card;
+static lv_style_t style_bar_bg;
+static lv_style_t style_bar_good;
+static lv_style_t style_bar_warn;
+static lv_style_t style_bar_bad;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STATUS HELPER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+enum Status { GOOD = 0, WARN = 1, BAD = 2 };
+
+static Status get_temp_status(float t) {
+    if (t >= 18 && t <= 26) return GOOD;
+    if (t >= 15 && t <= 30) return WARN;
+    return BAD;
 }
 
-// Hilfsfunktion: Aktualisiert nur den Wert (mit Sprite gegen Flackern)
-void ui_drawValue(int x, int y, int w, int h, const char* value, uint16_t color) {
-  if (!valSprite) return;
-  
-  // Sprite löschen (mit Box-Hintergrundfarbe füllen)
-  valSprite->fillScreen(COLOR_BOX_BG);
-  
-  // Wert in das Sprite zeichnen
-  valSprite->setFont(&FreeSansBold18pt7b);
-  valSprite->setTextColor(color);
-  valSprite->setTextDatum(MC_DATUM);
-  valSprite->drawString(value, valSprite->width() / 2, valSprite->height() / 2);
-  
-  // Das fertige Sprite auf das Display kopieren (zentriert in der Box)
-  // Vertikal zentriert in der Box, um Platz für Label und Einheit zu lassen
-  valSprite->pushSprite(x + BOX_PADDING, y + (h - valSprite->height()) / 2);
+static Status get_hum_status(float h) {
+    if (h >= 30 && h <= 60) return GOOD;
+    if (h >= 20 && h <= 70) return WARN;
+    return BAD;
 }
 
+static Status get_co2_status(int c) {
+    if (c <= 800) return GOOD;
+    if (c <= 1200) return WARN;
+    return BAD;
+}
+
+static Status get_pm25_status(int p) {
+    if (p <= 15) return GOOD;
+    if (p <= 35) return WARN;
+    return BAD;
+}
+
+static Status get_air_quality(int co2, int pm25) {
+    Status s1 = get_co2_status(co2);
+    Status s2 = get_pm25_status(pm25);
+    if (s1 == BAD || s2 == BAD) return BAD;
+    if (s1 == WARN || s2 == WARN) return WARN;
+    return GOOD;
+}
+
+static lv_color_t get_status_color(Status s) {
+    if (s == GOOD) return COLOR_GOOD;
+    if (s == WARN) return COLOR_WARN;
+    return COLOR_BAD;
+}
+
+static lv_style_t* get_bar_style(Status s) {
+    if (s == GOOD) return &style_bar_good;
+    if (s == WARN) return &style_bar_warn;
+    return &style_bar_bad;
+}
+
+static const char* get_status_text(Status s) {
+    if (s == GOOD) return TXT_SEHR_GUT;
+    if (s == WARN) return TXT_MAESSIG;
+    return TXT_SCHLECHT;
+}
+
+static const lv_image_dsc_t* get_status_emoji_img(Status s) {
+    if (s == GOOD) return &emoji_happy;
+    if (s == WARN) return &emoji_meh;
+    return &emoji_mask;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STYLES INITIALISIEREN
+ * ═══════════════════════════════════════════════════════════════════════════ */
+static void init_styles() {
+    // Karten-Style
+    lv_style_init(&style_card);
+    lv_style_set_bg_color(&style_card, COLOR_CARD);
+    lv_style_set_bg_opa(&style_card, LV_OPA_COVER);
+    lv_style_set_radius(&style_card, 12);
+    lv_style_set_border_width(&style_card, 0);
+    lv_style_set_outline_width(&style_card, 0);
+    lv_style_set_shadow_width(&style_card, 12);
+    lv_style_set_shadow_color(&style_card, lv_color_hex(0x000000));
+    lv_style_set_shadow_opa(&style_card, LV_OPA_20);
+    lv_style_set_shadow_offset_y(&style_card, 4);
+    lv_style_set_pad_all(&style_card, 12);
+
+    // Balken-Styles
+    lv_style_init(&style_bar_bg);
+    lv_style_set_bg_color(&style_bar_bg, COLOR_BAR_BG);
+    lv_style_set_bg_opa(&style_bar_bg, LV_OPA_COVER);
+    lv_style_set_radius(&style_bar_bg, 2);
+
+    lv_style_init(&style_bar_good);
+    lv_style_set_bg_color(&style_bar_good, COLOR_GOOD);
+    lv_style_set_bg_opa(&style_bar_good, LV_OPA_COVER);
+    lv_style_set_radius(&style_bar_good, 2);
+
+    lv_style_init(&style_bar_warn);
+    lv_style_set_bg_color(&style_bar_warn, COLOR_WARN);
+    lv_style_set_bg_opa(&style_bar_warn, LV_OPA_COVER);
+    lv_style_set_radius(&style_bar_warn, 2);
+
+    lv_style_init(&style_bar_bad);
+    lv_style_set_bg_color(&style_bar_bad, COLOR_BAD);
+    lv_style_set_bg_opa(&style_bar_bad, LV_OPA_COVER);
+    lv_style_set_radius(&style_bar_bad, 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * UI ERSTELLEN
+ * ═══════════════════════════════════════════════════════════════════════════ */
 void ui_init() {
-  // Display Hardware Init
-  tft.init();
-  tft.setRotation(1);
-  
-  // Sprite erstellen (Breite = Boxbreite - Padding, Höhe = 40px für die Schrift)
-  if (valSprite == nullptr) {
-    valSprite = new LGFX_Sprite(&tft);
-    valSprite->createSprite(COL_WIDTH - (BOX_PADDING * 2), 30);
-  }
+    lv_obj_t* scr = lv_screen_active();
+    lv_obj_set_style_bg_color(scr, COLOR_BG, 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
 
-  // Hintergrund und Titel
-  tft.fillScreen(COLOR_BG);
-  tft.setTextColor(COLOR_TITLE);
-  tft.setTextSize(2);
-  tft.setCursor(10, 8);
-  tft.print("INSPECTAIR");
+    init_styles();
 
-  // Statisches Layout zeichnen (alle Boxen leer)
-  int row1 = 35;
-  int row2 = row1 + ROW_HEIGHT + BOX_MARGIN;
-  int row3 = row2 + ROW_HEIGHT + BOX_MARGIN;
-  int col1 = BOX_MARGIN;
-  int col2 = col1 + COL_WIDTH + BOX_MARGIN;
+    // UHRZEIT
+    lbl_time = lv_label_create(scr);
+    lv_obj_set_style_text_font(lbl_time, FONT_48, 0);
+    lv_obj_set_style_text_color(lbl_time, COLOR_TEXT, 0);
+    lv_label_set_text(lbl_time, "--:--");
+    lv_obj_update_layout(lbl_time);
+    lv_obj_set_pos(lbl_time, (AQI_BOX_X - lv_obj_get_width(lbl_time)) / 2, 63);
 
-  ui_drawBoxStatic(col1, row1, COL_WIDTH, ROW_HEIGHT, "TEMPERATUR", "Grad Celsius");
-  ui_drawBoxStatic(col2, row1, COL_WIDTH, ROW_HEIGHT, "LUFTFEUCHTE", "% rel. Feuchte");
-  
-  ui_drawBoxStatic(col1, row2, COL_WIDTH, ROW_HEIGHT, "CO2", "ppm");
-  ui_drawBoxStatic(col2, row2, COL_WIDTH, ROW_HEIGHT, "VOC INDEX", "1-500");
-  
-  ui_drawBoxStatic(col1, row3, COL_WIDTH, ROW_HEIGHT, "FEINSTAUB PM2.5", "ug/m3");
-  ui_drawBoxStatic(col2, row3, COL_WIDTH, ROW_HEIGHT, "FEINSTAUB PM10", "ug/m3");
+    // DATUM
+    lbl_date = lv_label_create(scr);
+    lv_obj_set_style_text_font(lbl_date, FONT_16, 0);
+    lv_obj_set_style_text_color(lbl_date, COLOR_DATE, 0);
+    lv_label_set_text(lbl_date, "--.--.----");
+    lv_obj_align_to(lbl_date, lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+
+    // AQI BOX
+    lv_obj_t* aqi_box = lv_obj_create(scr);
+    lv_obj_add_style(aqi_box, &style_card, 0);
+    lv_obj_set_size(aqi_box, AQI_BOX_W, AQI_BOX_H);
+    lv_obj_set_pos(aqi_box, AQI_BOX_X, AQI_BOX_Y);
+    lv_obj_remove_flag(aqi_box, LV_OBJ_FLAG_SCROLLABLE);
+
+    // AQI Ring
+    arc_aqi = lv_arc_create(aqi_box);
+    lv_obj_set_size(arc_aqi, 60, 60);
+    lv_obj_align(arc_aqi, LV_ALIGN_LEFT_MID, 5, 0);
+    lv_arc_set_rotation(arc_aqi, 270);
+    lv_arc_set_bg_angles(arc_aqi, 0, 360);
+    lv_arc_set_range(arc_aqi, 0, 100);
+    lv_arc_set_value(arc_aqi, 100);
+    lv_obj_remove_style(arc_aqi, NULL, LV_PART_KNOB);
+    lv_obj_remove_flag(arc_aqi, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_set_style_arc_width(arc_aqi, 6, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(arc_aqi, COLOR_RING_BG, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(arc_aqi, 6, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(arc_aqi, COLOR_GOOD, LV_PART_INDICATOR);
+
+    // Emoji im Ring
+    img_aqi_emoji = lv_image_create(arc_aqi);
+    lv_image_set_src(img_aqi_emoji, &emoji_happy);
+    lv_obj_center(img_aqi_emoji);
+
+    // Titel
+    lbl_aqi_title = lv_label_create(aqi_box);
+    lv_obj_set_style_text_font(lbl_aqi_title, FONT_12, 0);
+    lv_obj_set_style_text_color(lbl_aqi_title, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_aqi_title, TXT_LUFTQUALITAET);
+    lv_obj_align(lbl_aqi_title, LV_ALIGN_TOP_RIGHT, -5, 5);
+
+    // Status Text
+    lbl_aqi_status = lv_label_create(aqi_box);
+    lv_obj_set_style_text_font(lbl_aqi_status, FONT_16, 0);
+    lv_obj_set_style_text_color(lbl_aqi_status, COLOR_GOOD, 0);
+    lv_label_set_text(lbl_aqi_status, TXT_SEHR_GUT);
+    lv_obj_align(lbl_aqi_status, LV_ALIGN_BOTTOM_RIGHT, -5, -5);
+
+    // SENSOR KARTEN
+    const char* labels[] = {TXT_TEMPERATUR, TXT_FEUCHTE, "CO2", "Feinstaub"};
+    const char* units[]  = {TXT_UNIT_TEMP, "%", "ppm", TXT_UNIT_PM};
+    const int card_widths[] = {108, 128, 113, 100};
+
+    for (int i = 0; i < 4; i++) {
+        int x = CARD_START_X;
+        for(int j = 0; j < i; j++) x += card_widths[j] + CARD_GAP;
+
+        cards[i].container = lv_obj_create(scr);
+        lv_obj_add_style(cards[i].container, &style_card, 0);
+        lv_obj_set_size(cards[i].container, card_widths[i], CARD_H);
+        lv_obj_set_pos(cards[i].container, x, CARD_Y);
+        lv_obj_remove_flag(cards[i].container, LV_OBJ_FLAG_SCROLLABLE);
+
+        cards[i].label = lv_label_create(cards[i].container);
+        lv_obj_set_style_text_font(cards[i].label, FONT_12, 0);
+        lv_obj_set_style_text_color(cards[i].label, COLOR_TEXT_L, 0);
+        lv_label_set_text(cards[i].label, labels[i]);
+        lv_obj_align(cards[i].label, LV_ALIGN_TOP_LEFT, 0, 0);
+
+        cards[i].value = lv_label_create(cards[i].container);
+        lv_obj_set_style_text_font(cards[i].value, FONT_28, 0);
+        lv_obj_set_style_text_color(cards[i].value, COLOR_TEXT, 0);
+        lv_label_set_text(cards[i].value, "--");
+        lv_obj_align(cards[i].value, LV_ALIGN_LEFT_MID, 0, 0);
+
+        cards[i].unit = lv_label_create(cards[i].container);
+        lv_obj_set_style_text_font(cards[i].unit, FONT_12, 0);
+        lv_obj_set_style_text_color(cards[i].unit, COLOR_TEXT_L, 0);
+        lv_label_set_text(cards[i].unit, units[i]);
+
+        cards[i].bar = lv_bar_create(cards[i].container);
+        lv_obj_set_width(cards[i].bar, card_widths[i] - 16);
+        lv_obj_align(cards[i].bar, LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_bar_set_range(cards[i].bar, 0, 100);
+        lv_bar_set_value(cards[i].bar, 33, LV_ANIM_OFF);
+        lv_obj_add_style(cards[i].bar, &style_bar_bg, LV_PART_MAIN);
+        lv_obj_add_style(cards[i].bar, &style_bar_good, LV_PART_INDICATOR);
+    }
 }
 
-void ui_updateDisplay(const SensorReadings& readings) {
-  static SensorReadings last = {0};
-  static bool first = true;
-  
-  int row1 = 35;
-  int row2 = row1 + ROW_HEIGHT + BOX_MARGIN;
-  int row3 = row2 + ROW_HEIGHT + BOX_MARGIN;
-  int col1 = BOX_MARGIN;
-  int col2 = col1 + COL_WIDTH + BOX_MARGIN;
-  
-  char buf[16];
-
-  // Nur aktualisieren, wenn sich der Wert geändert hat (oder beim ersten Mal)
-
-  // 1. Temperatur (Änderung > 0.1)
-  if (first || abs(readings.aht.temperature - last.aht.temperature) > 0.1) {
-    sprintf(buf, "%.1f", readings.aht.temperature);
-    ui_drawValue(col1, row1, COL_WIDTH, ROW_HEIGHT, buf, getTempColor(readings.aht.temperature));
-  }
-
-  // 2. Luftfeuchte (Änderung > 0.9)
-  if (first || abs(readings.aht.humidity - last.aht.humidity) > 0.9) {
-    sprintf(buf, "%.0f", readings.aht.humidity);
-    ui_drawValue(col2, row1, COL_WIDTH, ROW_HEIGHT, buf, getHumColor(readings.aht.humidity));
-  }
-
-  // 3. CO2
-  if (first || readings.mhz.co2_ppm != last.mhz.co2_ppm) {
-    if (readings.mhz.co2_ppm <= 0) {
-       ui_drawValue(col1, row2, COL_WIDTH, ROW_HEIGHT, "WAIT", COLOR_LABEL);
-    } else {
-       sprintf(buf, "%d", readings.mhz.co2_ppm);
-       ui_drawValue(col1, row2, COL_WIDTH, ROW_HEIGHT, buf, getCO2Color(readings.mhz.co2_ppm));
-    }
-  }
-
-  // 4. VOC
-  if (first || readings.sgp.voc_index != last.sgp.voc_index) {
-    if (readings.sgp.voc_index <= 0) {
-       ui_drawValue(col2, row2, COL_WIDTH, ROW_HEIGHT, "INIT", COLOR_LABEL);
-    } else {
-       sprintf(buf, "%d", readings.sgp.voc_index);
-       ui_drawValue(col2, row2, COL_WIDTH, ROW_HEIGHT, buf, getVOCColor(readings.sgp.voc_index));
-    }
-  }
-
-  // 5. PM2.5
-  if (first || readings.pms.PM_AE_UG_2_5 != last.pms.PM_AE_UG_2_5) {
-    sprintf(buf, "%u", readings.pms.PM_AE_UG_2_5);
-    ui_drawValue(col1, row3, COL_WIDTH, ROW_HEIGHT, buf, getPM25Color(readings.pms.PM_AE_UG_2_5));
-  }
-
-  // 6. PM10
-  if (first || readings.pms.PM_AE_UG_10_0 != last.pms.PM_AE_UG_10_0) {
-    sprintf(buf, "%u", readings.pms.PM_AE_UG_10_0);
-    ui_drawValue(col2, row3, COL_WIDTH, ROW_HEIGHT, buf, getPM25Color(readings.pms.PM_AE_UG_10_0));
-  }
-
-  last = readings;
-  first = false;
+/* ═══════════════════════════════════════════════════════════════════════════
+ * UPDATE FUNKTIONEN
+ * ═══════════════════════════════════════════════════════════════════════════ */
+void ui_updateTime(int hour, int minute) {
+    if (!lbl_time) return;
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
+    lv_label_set_text(lbl_time, buf);
+    lv_obj_update_layout(lbl_time);
+    lv_obj_set_pos(lbl_time, (AQI_BOX_X - lv_obj_get_width(lbl_time)) / 2, 63);
+    if (lbl_date) lv_obj_align_to(lbl_date, lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
 }
 
-void ui_showError(const char* message) {
-  // Optional: Fehleranzeige
+void ui_updateDate(const char* date_str) {
+    if (lbl_date) lv_label_set_text(lbl_date, date_str);
+}
+
+void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
+    if (!cards[0].value) return;
+    
+    Status statuses[4] = {
+        get_temp_status(temp),
+        get_hum_status(hum),
+        get_co2_status(co2),
+        get_pm25_status(pm25)
+    };
+
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.1f", temp);
+    lv_label_set_text(cards[0].value, buf);
+    snprintf(buf, sizeof(buf), "%d", (int)hum);
+    lv_label_set_text(cards[1].value, buf);
+    snprintf(buf, sizeof(buf), "%d", co2);
+    lv_label_set_text(cards[2].value, buf);
+    snprintf(buf, sizeof(buf), "%d", pm25);
+    lv_label_set_text(cards[3].value, buf);
+
+    for (int i = 0; i < 4; i++) {
+        lv_obj_align_to(cards[i].unit, cards[i].value, LV_ALIGN_OUT_RIGHT_BOTTOM, 3, -2);
+        lv_obj_remove_style(cards[i].bar, NULL, LV_PART_INDICATOR);
+        lv_obj_add_style(cards[i].bar, get_bar_style(statuses[i]), LV_PART_INDICATOR);
+        int pct = (statuses[i] == GOOD) ? 33 : (statuses[i] == WARN) ? 66 : 100;
+        lv_bar_set_value(cards[i].bar, pct, LV_ANIM_ON);
+    }
+
+    Status air = get_air_quality(co2, pm25);
+    lv_color_t col = get_status_color(air);
+    lv_obj_set_style_arc_color(arc_aqi, col, LV_PART_INDICATOR);
+    int arc_val = (air == GOOD) ? 100 : (air == WARN) ? 66 : 33;
+    lv_arc_set_value(arc_aqi, arc_val);
+    lv_label_set_text(lbl_aqi_status, get_status_text(air));
+    lv_obj_set_style_text_color(lbl_aqi_status, col, 0);
+    lv_image_set_src(img_aqi_emoji, get_status_emoji_img(air));
+}
+
+void ui_updateSensors(const SensorReadings& readings) {
+    ui_updateSensorValues(
+        readings.aht.temperature,
+        readings.aht.humidity,
+        readings.mhz.co2_ppm,
+        readings.pms.PM_AE_UG_2_5
+    );
 }
