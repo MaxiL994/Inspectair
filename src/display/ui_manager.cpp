@@ -444,11 +444,17 @@ void ui_updateTime(int hour, int minute, int second) {
     snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
     lv_label_set_text(lbl_time, buf);
     
-    // Sekunden separat aktualisieren
+    // Sekunden separat aktualisieren mit dynamischer Position
     if (lbl_seconds) {
         char sec_buf[4];
         snprintf(sec_buf, sizeof(sec_buf), "%02d", second);
         lv_label_set_text(lbl_seconds, sec_buf);
+        
+        // Position dynamisch nach Uhrzeit-Breite berechnen
+        lv_obj_update_layout(lbl_time);
+        int time_x = lv_obj_get_x(lbl_time);
+        int time_w = lv_obj_get_width(lbl_time);
+        lv_obj_set_pos(lbl_seconds, time_x + time_w + 3, 65);
     }
 }
 

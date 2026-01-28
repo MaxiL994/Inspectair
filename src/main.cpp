@@ -27,6 +27,8 @@
 #include "sensors/pms5003.h"
 #include "sensors/ld2410c.h"
 #include "WifiClock.h"
+#include "utils/sensor_filter.h"
+#include "utils/sensor_history.h"
 
 // ============================================
 // WLAN KONFIGURATION
@@ -41,8 +43,9 @@ WifiClock myClock;
 static SensorReadings readings = {0};
 
 // Timing
-static unsigned long lastSensorUpdate = 0;
+static unsigned long lastSensorRead = 0;       // Schnelles Sensor-Auslesen
 static unsigned long lastTimeUpdate = 0;
+static unsigned long lastStatusPrint = 0;      // Status-Ausgabe alle 30s
 static unsigned long last_pms_ok = 0;
 static unsigned long last_radar_ok = 0;
 
@@ -114,9 +117,19 @@ void setup() {
         Serial.println("[ERROR] LD2410C konnte nicht initialisiert werden!");
     }
     
+    // === SENSOR FILTER & HISTORIE INITIALISIEREN ===
+    Serial.println("[INIT] Sensor-Filter & Historie...");
+    sensorFilter.begin();
+    sensorHistory.begin();
+    
+    // Timing-Variablen initialisieren für äquidistante Intervalle
+    lastSensorRead = millis();
+    lastTimeUpdate = millis();
+    
     Serial.println("\n[INFO] Initialisierung abgeschlossen!");
-    Serial.println("[INFO] Sensor-Update alle 2 Sekunden");
-    Serial.println("[INFO] Zeit-Update jede Sekunde\n");
+    Serial.println("[INFO] Sensor-Messung alle 2 Sekunden (äquidistant)");
+    Serial.println("[INFO] Display-Update: Klima alle 60s, Luft alle 12s");
+    Serial.println("[INFO] Zeit-Update jede Sekunde (äquidistant)\n");
 }
 
 void loop() {
@@ -126,6 +139,9 @@ void loop() {
     
     // === WIFI RECONNECT CHECK ===
     myClock.update();
+    
+    // === SENSOR HISTORIE UPDATE ===
+    sensorHistory.update();
     
     // === KONTINUIERLICHE SENSOR-LESEVORGÄNGE ===
     // PMS5003 kontinuierlich auslesen (asynchron)
@@ -138,9 +154,9 @@ void loop() {
         last_radar_ok = millis();
     }
     
-    // === UHRZEIT UPDATE (jede Sekunde) ===
-    if (millis() - lastTimeUpdate > 1000) {
-        lastTimeUpdate = millis();
+    // === UHRZEIT UPDATE (jede Sekunde, äquidistant) ===
+    if (millis() - lastTimeUpdate >= 1000) {
+        lastTimeUpdate += 1000;  // Feste Intervalle statt Drift
         
         struct tm timeinfo;
         if (getLocalTime(&timeinfo)) {
@@ -152,9 +168,10 @@ void loop() {
         }
     }
     
-    // === SENSOR-UPDATE (alle 2 Sekunden) ===
-    if (millis() - lastSensorUpdate > 2000) {
-        lastSensorUpdate = millis();
+    // === SCHNELLES SENSOR-AUSLESEN (alle 2 Sekunden, äquidistant) ===
+    // Werte werden vom Filter geglättet, Display nur periodisch aktualisiert
+    if (millis() - lastSensorRead >= 2000) {
+        lastSensorRead += 2000;  // Feste Intervalle statt Drift
         readings.timestamp = millis();
         
         // Sensoren auslesen
@@ -168,17 +185,74 @@ void loop() {
                                &readings.sgp);
         }
         
-        // === UI MIT SENSORWERTEN AKTUALISIEREN ===
-        ui_updateSensors(readings);
+        // === WERTE AN FILTER ÜBERGEBEN ===
+        if (aht_ok) {
+            sensorFilter.addClimateMeasurement(readings.aht.temperature, 
+                                               readings.aht.humidity);
+        }
         
-        // === SERIAL AUSGABE (für Debugging) ===
-        Serial.printf("[%lu] T:%.1f H:%.0f CO2:%ld PM2.5:%u Radar:%d\n",
-                      readings.timestamp,
+        // Luftqualitätswerte zum Filter
+        sensorFilter.addAirMeasurement(readings.mhz.co2_ppm,
+                                       readings.sgp.voc_index,
+                                       readings.pms.PM_AE_UG_2_5);
+        
+        // === WERTE AN HISTORIE ÜBERGEBEN ===
+        sensorHistory.addMeasurement(readings.aht.temperature,
+                                     readings.aht.humidity,
+                                     readings.mhz.co2_ppm,
+                                     readings.sgp.voc_index,
+                                     readings.pms.PM_AE_UG_2_5);
+    }
+    
+    // === DISPLAY UPDATE (GEGLÄTTET) ===
+    bool needsUIUpdate = false;
+    
+    // Klima-Update prüfen (alle 60s)
+    if (sensorFilter.shouldUpdateClimateDisplay()) {
+        needsUIUpdate = true;
+        Serial.printf("[DISPLAY] Klima-Update: T=%.1f°C H=%.0f%%\n",
+                      sensorFilter.getSmoothedTemp(),
+                      sensorFilter.getSmoothedHum());
+    }
+    
+    // Luftqualitäts-Update prüfen (alle 12s)
+    if (sensorFilter.shouldUpdateAirDisplay()) {
+        needsUIUpdate = true;
+        Serial.printf("[DISPLAY] Luft-Update: CO2=%ld VOC=%ld PM=%ld\n",
+                      sensorFilter.getSmoothedCO2(),
+                      sensorFilter.getSmoothedVOC(),
+                      sensorFilter.getSmoothedPM25());
+    }
+    
+    // UI aktualisieren wenn nötig
+    if (needsUIUpdate) {
+        ui_updateSensorValues(
+            sensorFilter.getSmoothedTemp(),
+            sensorFilter.getSmoothedHum(),
+            sensorFilter.getSmoothedCO2(),
+            sensorFilter.getSmoothedPM25(),
+            sensorFilter.getSmoothedVOC()
+        );
+    }
+    
+    // === STATUS-AUSGABE (alle 30 Sekunden) ===
+    if (millis() - lastStatusPrint > 30000) {
+        lastStatusPrint = millis();
+        
+        Serial.printf("\n[RAW]      T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%u Radar:%d\n",
                       readings.aht.temperature,
                       readings.aht.humidity,
                       readings.mhz.co2_ppm,
+                      readings.sgp.voc_index,
                       readings.pms.PM_AE_UG_2_5,
                       readings.radar.presence);
+        Serial.printf("[SMOOTHED] T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%ld\n",
+                      sensorFilter.getSmoothedTemp(),
+                      sensorFilter.getSmoothedHum(),
+                      sensorFilter.getSmoothedCO2(),
+                      sensorFilter.getSmoothedVOC(),
+                      sensorFilter.getSmoothedPM25());
+        Serial.printf("[HISTORY]  Einträge: %d\n", sensorHistory.getEntryCount());
     }
     
     // Kleine Pause für Stabilität
