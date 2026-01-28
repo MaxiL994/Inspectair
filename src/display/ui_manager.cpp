@@ -24,6 +24,7 @@ LV_IMAGE_DECLARE(emoji_icon_thermometer);
 LV_IMAGE_DECLARE(emoji_icon_droplet);
 LV_IMAGE_DECLARE(emoji_icon_cloud);
 LV_IMAGE_DECLARE(emoji_icon_dash);
+LV_IMAGE_DECLARE(emoji_icon_nose);  // VOC Icon
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT KONFIGURATION
@@ -68,7 +69,7 @@ LV_IMAGE_DECLARE(emoji_icon_dash);
 #define AQI_BOX_W       190
 #define AQI_BOX_H       90
 
-#define CARD_Y          163
+#define CARD_Y          178
 #define CARD_H          100
 #define CARD_GAP        5
 #define CARD_START_X    7
@@ -84,16 +85,30 @@ static lv_obj_t* img_aqi_emoji = nullptr;
 static lv_obj_t* lbl_aqi_title = nullptr;
 static lv_obj_t* lbl_aqi_status = nullptr;
 
+// Kombinierte Temp/Feuchte Kachel (links)
+static lv_obj_t* card_climate = nullptr;
+static lv_obj_t* lbl_temp_title = nullptr;
+static lv_obj_t* img_temp = nullptr;
+static lv_obj_t* lbl_temp_value = nullptr;
+static lv_obj_t* lbl_temp_unit = nullptr;
+static lv_obj_t* bar_temp = nullptr;
+static lv_obj_t* lbl_hum_title = nullptr;
+static lv_obj_t* img_hum = nullptr;
+static lv_obj_t* lbl_hum_value = nullptr;
+static lv_obj_t* lbl_hum_unit = nullptr;
+static lv_obj_t* bar_hum = nullptr;
+
+// Einzelne Kacheln (rechts)
 struct SensorCard {
     lv_obj_t* container;
     lv_obj_t* label;
-    lv_obj_t* emoji;    // Emoji nach dem Titel
+    lv_obj_t* emoji;
     lv_obj_t* value;
     lv_obj_t* unit;
     lv_obj_t* bar;
-    int width;          // Kartenbreite speichern
+    int width;
 };
-static SensorCard cards[4];
+static SensorCard cards[3];  // CO2, PM2.5, VOC
 
 static lv_style_t style_card;
 static lv_style_t style_bar_bg;
@@ -130,6 +145,13 @@ static Status get_pm25_status(int p) {
     if (p <= 15) return GOOD;     // WHO: Zielwert
     if (p <= 25) return WARN;     // WHO: Übergangsziel
     return BAD;                   // WHO: ungesund
+}
+
+// VOC Index (Sensirion SGP40)
+static Status get_voc_status(int voc) {
+    if (voc <= 150) return GOOD;   // Excellent - Good
+    if (voc <= 250) return WARN;   // Moderate
+    return BAD;                    // Unhealthy
 }
 
 static Status get_air_quality(int co2, int pm25) {
@@ -225,7 +247,7 @@ void ui_init() {
     lv_obj_set_style_text_font(lbl_seconds, FONT_28, 0);
     lv_obj_set_style_text_color(lbl_seconds, COLOR_TEXT_L, 0);
     lv_label_set_text(lbl_seconds, "00");
-    lv_obj_set_pos(lbl_seconds, 184, 65);  // Direkt angrenzend, Unterkante aligned
+    lv_obj_set_pos(lbl_seconds, 189, 65);  // Etwas nach rechts
 
     // DATUM
     lbl_date = lv_label_create(scr);
@@ -276,13 +298,96 @@ void ui_init() {
     lv_label_set_text(lbl_aqi_status, TXT_SEHR_GUT);
     lv_obj_align(lbl_aqi_status, LV_ALIGN_BOTTOM_RIGHT, -5, -5);
 
-    // SENSOR KARTEN
-    const char* labels[] = {TXT_TEMPERATUR, TXT_FEUCHTE, "CO2", "Feinstaub"};
-    const char* units[]  = {TXT_UNIT_TEMP, "%", "ppm", TXT_UNIT_PM};
-    const int card_widths[] = {108, 128, 113, 100};
+    // ═══════════════════════════════════════════════════════════════════════
+    // KOMBINIERTE TEMP/FEUCHTE KACHEL (Links)
+    // ═══════════════════════════════════════════════════════════════════════
+    const int CLIMATE_CARD_W = 110;
+    const int CLIMATE_CARD_H = 145;
+    
+    card_climate = lv_obj_create(scr);
+    lv_obj_add_style(card_climate, &style_card, 0);
+    lv_obj_set_size(card_climate, CLIMATE_CARD_W, CLIMATE_CARD_H);
+    lv_obj_set_pos(card_climate, CARD_START_X, 155);
+    lv_obj_remove_flag(card_climate, LV_OBJ_FLAG_SCROLLABLE);
 
-    for (int i = 0; i < 4; i++) {
-        int x = CARD_START_X;
+    // --- TEMPERATUR (oben in der Kachel) ---
+    lbl_temp_title = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_temp_title, FONT_12, 0);
+    lv_obj_set_style_text_color(lbl_temp_title, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_temp_title, "Temp");
+    lv_obj_set_pos(lbl_temp_title, 0, 0);
+
+    img_temp = lv_image_create(card_climate);
+    lv_image_set_src(img_temp, &emoji_icon_thermometer);
+    lv_obj_set_pos(img_temp, CLIMATE_CARD_W - 38, 0);
+
+    lbl_temp_value = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_temp_value, FONT_28, 0);
+    lv_obj_set_style_text_color(lbl_temp_value, COLOR_TEXT, 0);
+    lv_label_set_text(lbl_temp_value, "--");
+    lv_obj_set_pos(lbl_temp_value, 0, 18);
+
+    lbl_temp_unit = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_temp_unit, FONT_12, 0);
+    lv_obj_set_style_text_color(lbl_temp_unit, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_temp_unit, TXT_UNIT_TEMP);
+    lv_obj_set_pos(lbl_temp_unit, 50, 34);
+
+    bar_temp = lv_bar_create(card_climate);
+    lv_obj_set_size(bar_temp, CLIMATE_CARD_W - 24, 4);
+    lv_obj_set_pos(bar_temp, 0, 52);
+    lv_bar_set_range(bar_temp, 0, 100);
+    lv_bar_set_value(bar_temp, 33, LV_ANIM_OFF);
+    lv_obj_add_style(bar_temp, &style_bar_bg, LV_PART_MAIN);
+    lv_obj_add_style(bar_temp, &style_bar_good, LV_PART_INDICATOR);
+
+    // --- FEUCHTE (unten in der Kachel) ---
+    lbl_hum_title = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_hum_title, FONT_12, 0);
+    lv_obj_set_style_text_color(lbl_hum_title, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_hum_title, TXT_FEUCHTE);
+    lv_obj_set_pos(lbl_hum_title, 0, 62);
+
+    img_hum = lv_image_create(card_climate);
+    lv_image_set_src(img_hum, &emoji_icon_droplet);
+    lv_obj_set_pos(img_hum, CLIMATE_CARD_W - 38, 62);
+
+    lbl_hum_value = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_hum_value, FONT_28, 0);
+    lv_obj_set_style_text_color(lbl_hum_value, COLOR_TEXT, 0);
+    lv_label_set_text(lbl_hum_value, "--");
+    lv_obj_set_pos(lbl_hum_value, 0, 80);
+
+    lbl_hum_unit = lv_label_create(card_climate);
+    lv_obj_set_style_text_font(lbl_hum_unit, FONT_12, 0);
+    lv_obj_set_style_text_color(lbl_hum_unit, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_hum_unit, "%");
+    lv_obj_set_pos(lbl_hum_unit, 35, 96);
+
+    bar_hum = lv_bar_create(card_climate);
+    lv_obj_set_size(bar_hum, CLIMATE_CARD_W - 24, 4);
+    lv_obj_set_pos(bar_hum, 0, 114);
+    lv_bar_set_range(bar_hum, 0, 100);
+    lv_bar_set_value(bar_hum, 33, LV_ANIM_OFF);
+    lv_obj_add_style(bar_hum, &style_bar_bg, LV_PART_MAIN);
+    lv_obj_add_style(bar_hum, &style_bar_good, LV_PART_INDICATOR);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SENSOR KARTEN (Rechts: CO2, Feinstaub, VOC)
+    // ═══════════════════════════════════════════════════════════════════════
+    const char* labels[] = {"CO2", "Feinstaub", "VOC"};
+    const char* units[]  = {"ppm", TXT_UNIT_PM, "idx"};
+    const int card_widths[] = {113, 120, 100};
+    const int card_start_x = CARD_START_X + CLIMATE_CARD_W + CARD_GAP;
+    
+    const lv_image_dsc_t* sensor_icons[] = {
+        &emoji_icon_cloud,        // CO2
+        &emoji_icon_dash,         // Feinstaub
+        &emoji_icon_nose          // VOC
+    };
+
+    for (int i = 0; i < 3; i++) {
+        int x = card_start_x;
         for(int j = 0; j < i; j++) x += card_widths[j] + CARD_GAP;
 
         cards[i].width = card_widths[i];
@@ -299,26 +404,20 @@ void ui_init() {
         lv_label_set_text(cards[i].label, labels[i]);
         lv_obj_set_pos(cards[i].label, 0, 0);
 
-        // Sensor-Icon neben Titel (passend für jeden Sensor)
+        // Sensor-Icon
         cards[i].emoji = lv_image_create(cards[i].container);
-        const lv_image_dsc_t* sensor_icons[] = {
-            &emoji_icon_thermometer,  // Temperatur
-            &emoji_icon_droplet,      // Feuchte
-            &emoji_icon_cloud,        // CO2
-            &emoji_icon_dash          // Feinstaub
-        };
         lv_image_set_src(cards[i].emoji, sensor_icons[i]);
-        lv_image_set_scale(cards[i].emoji, 256);  // 100% (Icons sind bereits 14x14)
+        lv_image_set_scale(cards[i].emoji, 256);
         lv_obj_set_pos(cards[i].emoji, card_widths[i] - 38, 0);
 
-        // Wert - weiter unten positioniert
+        // Wert
         cards[i].value = lv_label_create(cards[i].container);
         lv_obj_set_style_text_font(cards[i].value, FONT_28, 0);
         lv_obj_set_style_text_color(cards[i].value, COLOR_TEXT, 0);
         lv_label_set_text(cards[i].value, "--");
         lv_obj_set_pos(cards[i].value, 0, 32);
 
-        // Einheit - rechts neben Wert, unten ausgerichtet
+        // Einheit
         cards[i].unit = lv_label_create(cards[i].container);
         lv_obj_set_style_text_font(cards[i].unit, FONT_12, 0);
         lv_obj_set_style_text_color(cards[i].unit, COLOR_TEXT_L, 0);
@@ -359,64 +458,86 @@ void ui_updateDate(const char* date_str) {
     }
 }
 
-void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
-    if (!cards[0].value) {
-        Serial.println("[UI] ERROR: cards not initialized!");
+void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
+    if (!lbl_temp_value || !cards[0].value) {
+        Serial.println("[UI] ERROR: UI not initialized!");
         return;
     }
     
-    Serial.printf("[UI] Updating: T=%.1f H=%.0f CO2=%d PM=%d\n", temp, hum, co2, pm25);
-    
-    Status statuses[4] = {
-        get_temp_status(temp),
-        get_hum_status(hum),
-        get_co2_status(co2),
-        get_pm25_status(pm25)
-    };
+    Serial.printf("[UI] Updating: T=%.1f H=%.0f CO2=%d PM=%d VOC=%d\n", temp, hum, co2, pm25, voc);
 
     char buf[16];
     
+    // ═══════════════════════════════════════════════════════════════════════
+    // KLIMAKARTE (Temp + Feuchte)
+    // ═══════════════════════════════════════════════════════════════════════
+    
     // Temperatur
     snprintf(buf, sizeof(buf), "%.1f", temp);
-    Serial.printf("[UI] Temp: '%s' -> label=%p parent=%p\n", buf, (void*)cards[0].value, (void*)lv_obj_get_parent(cards[0].value));
+    lv_label_set_text(lbl_temp_value, buf);
+    lv_obj_invalidate(lbl_temp_value);
+    lv_obj_update_layout(lbl_temp_value);
+    lv_obj_set_pos(lbl_temp_unit, lv_obj_get_x(lbl_temp_value) + lv_obj_get_width(lbl_temp_value) + 3, 34);
+    
+    Status temp_status = get_temp_status(temp);
+    lv_obj_remove_style(bar_temp, NULL, LV_PART_INDICATOR);
+    lv_obj_add_style(bar_temp, get_bar_style(temp_status), LV_PART_INDICATOR);
+    int temp_pct = (temp_status == GOOD) ? 33 : (temp_status == WARN) ? 66 : 100;
+    lv_bar_set_value(bar_temp, temp_pct, LV_ANIM_ON);
+    
+    // Feuchte
+    snprintf(buf, sizeof(buf), "%d", (int)hum);
+    lv_label_set_text(lbl_hum_value, buf);
+    lv_obj_invalidate(lbl_hum_value);
+    lv_obj_update_layout(lbl_hum_value);
+    lv_obj_set_pos(lbl_hum_unit, lv_obj_get_x(lbl_hum_value) + lv_obj_get_width(lbl_hum_value) + 3, 96);
+    
+    Status hum_status = get_hum_status(hum);
+    lv_obj_remove_style(bar_hum, NULL, LV_PART_INDICATOR);
+    lv_obj_add_style(bar_hum, get_bar_style(hum_status), LV_PART_INDICATOR);
+    int hum_pct = (hum_status == GOOD) ? 33 : (hum_status == WARN) ? 66 : 100;
+    lv_bar_set_value(bar_hum, hum_pct, LV_ANIM_ON);
+    
+    lv_obj_invalidate(card_climate);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SENSOR KARTEN (CO2, Feinstaub, VOC)
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    Status statuses[3] = {
+        get_co2_status(co2),
+        get_pm25_status(pm25),
+        get_voc_status(voc)
+    };
+    
+    // CO2
+    snprintf(buf, sizeof(buf), "%d", co2);
     lv_label_set_text(cards[0].value, buf);
     lv_obj_invalidate(cards[0].value);
     lv_obj_update_layout(cards[0].value);
-    int32_t w = lv_obj_get_width(cards[0].value);
-    int32_t h = lv_obj_get_height(cards[0].value);
-    int32_t x = lv_obj_get_x(cards[0].value);
-    int32_t y = lv_obj_get_y(cards[0].value);
-    Serial.printf("[UI] Temp label: x=%d y=%d w=%d h=%d text='%s'\n", (int)x, (int)y, (int)w, (int)h, lv_label_get_text(cards[0].value));
-    lv_obj_set_pos(cards[0].unit, x + w + 3, 48);
+    lv_obj_set_pos(cards[0].unit, lv_obj_get_x(cards[0].value) + lv_obj_get_width(cards[0].value) + 3, 48);
     
-    // Luftfeuchtigkeit  
-    snprintf(buf, sizeof(buf), "%d", (int)hum);
+    // PM2.5
+    snprintf(buf, sizeof(buf), "%d", pm25);
     lv_label_set_text(cards[1].value, buf);
     lv_obj_invalidate(cards[1].value);
     lv_obj_update_layout(cards[1].value);
     lv_obj_set_pos(cards[1].unit, lv_obj_get_x(cards[1].value) + lv_obj_get_width(cards[1].value) + 3, 48);
     
-    // CO2
-    snprintf(buf, sizeof(buf), "%d", co2);
+    // VOC
+    snprintf(buf, sizeof(buf), "%d", voc);
     lv_label_set_text(cards[2].value, buf);
     lv_obj_invalidate(cards[2].value);
     lv_obj_update_layout(cards[2].value);
     lv_obj_set_pos(cards[2].unit, lv_obj_get_x(cards[2].value) + lv_obj_get_width(cards[2].value) + 3, 48);
     
-    // PM2.5
-    snprintf(buf, sizeof(buf), "%d", pm25);
-    lv_label_set_text(cards[3].value, buf);
-    lv_obj_invalidate(cards[3].value);
-    lv_obj_update_layout(cards[3].value);
-    lv_obj_set_pos(cards[3].unit, lv_obj_get_x(cards[3].value) + lv_obj_get_width(cards[3].value) + 3, 48);
-    
-    // Alle Karten invalidieren für sicheres Redraw
-    for (int i = 0; i < 4; i++) {
+    // Alle Karten invalidieren
+    for (int i = 0; i < 3; i++) {
         lv_obj_invalidate(cards[i].container);
     }
 
-    // Status-Balken aktualisieren (Icons bleiben fix)
-    for (int i = 0; i < 4; i++) {
+    // Status-Balken aktualisieren
+    for (int i = 0; i < 3; i++) {
         lv_obj_remove_style(cards[i].bar, NULL, LV_PART_INDICATOR);
         lv_obj_add_style(cards[i].bar, get_bar_style(statuses[i]), LV_PART_INDICATOR);
         int pct = (statuses[i] == GOOD) ? 33 : (statuses[i] == WARN) ? 66 : 100;
@@ -439,6 +560,7 @@ void ui_updateSensors(const SensorReadings& readings) {
         readings.aht.temperature,
         readings.aht.humidity,
         readings.mhz.co2_ppm,
-        readings.pms.PM_AE_UG_2_5
+        readings.pms.PM_AE_UG_2_5,
+        readings.sgp.voc_index
     );
 }
