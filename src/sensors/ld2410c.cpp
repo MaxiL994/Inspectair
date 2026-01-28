@@ -27,14 +27,36 @@ bool sensors_radar_read(LD2410C_Data* data) {
   radar.read(); // Standard read
   
   if (radar.isConnected()) {
-    // Lese Präsenz-Status
-    data->presence = (radar.presenceDetected() ? 1 : 0);
+    // Lese Distanz (in cm)
+    uint16_t moving_dist = radar.movingTargetDistance();
+    uint16_t stationary_dist = radar.stationaryTargetDistance();
     
-    // Lese Bewegungsdaten
+    // Debug alle 5 Sekunden
+    static unsigned long lastDebug = 0;
+    if (millis() - lastDebug > 5000) {
+      lastDebug = millis();
+      Serial.printf("[RADAR] Moving: %dcm, Stationary: %dcm, Connected: %d\n", 
+                    moving_dist, stationary_dist, radar.isConnected());
+    }
+    
+    // Minimum der beiden Distanzen nehmen
+    uint16_t min_dist = moving_dist;
+    if (stationary_dist > 0 && (min_dist == 0 || stationary_dist < min_dist)) {
+      min_dist = stationary_dist;
+    }
+    
+    // Auslösen bei 10cm oder näher
+    data->presence = (min_dist > 0 && min_dist <= 10) ? 1 : 0;
     data->motion = radar.movingTargetDetected() ? 1 : 0;
-    data->distance = radar.movingTargetDistance();
+    data->distance = min_dist;
     
     return true;
+  } else {
+    static unsigned long lastWarn = 0;
+    if (millis() - lastWarn > 10000) {
+      lastWarn = millis();
+      Serial.println("[RADAR] Sensor nicht verbunden!");
+    }
   }
 
   return false;

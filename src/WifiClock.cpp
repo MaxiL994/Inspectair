@@ -9,29 +9,86 @@ WifiClock::WifiClock() {
 }
 
 void WifiClock::begin(const char* ssid, const char* password) {
-    Serial.print("Verbinde mit WiFi: ");Serial.println(ssid);
+    _ssid = ssid;
+    _password = password;
+    
+    Serial.print("Verbinde mit WiFi: ");
+    Serial.println(ssid);
+    
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     
-    // Wir warten hier nicht blockierend ewig, damit der Rest booten kann,
-    // aber NTP braucht eine Verbindung.
+    // Warte bis zu 30 Sekunden auf Verbindung
     int retry = 0;
-    while (WiFi.status() != WL_CONNECTED && retry < 20) {
+    while (WiFi.status() != WL_CONNECTED && retry < 60) {
         delay(500);
         Serial.print(".");
         retry++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi verbunden!");
+        Serial.println();
+        Serial.print("WiFi verbunden! IP: ");
+        Serial.println(WiFi.localIP());
+        
         // Zeit konfigurieren
+        Serial.println("Konfiguriere NTP...");
         configTzTime(timeZone, ntpServer);
+        
+        // Warte auf erste Zeit-Synchronisation
+        Serial.print("Warte auf NTP Sync");
+        struct tm timeinfo;
+        int ntpRetry = 0;
+        while (!getLocalTime(&timeinfo) && ntpRetry < 20) {
+            delay(500);
+            Serial.print(".");
+            ntpRetry++;
+        }
+        
+        if (getLocalTime(&timeinfo)) {
+            Serial.println();
+            Serial.printf("Zeit synchronisiert: %02d:%02d:%02d\n", 
+                         timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        } else {
+            Serial.println("\nNTP Sync fehlgeschlagen!");
+        }
     } else {
-        Serial.println("\nWiFi Verbindung fehlgeschlagen (läuft im Hintergrund weiter).");
+        Serial.println("\nWiFi Verbindung fehlgeschlagen!");
+        Serial.printf("WiFi Status: %d\n", WiFi.status());
     }
 }
 
 void WifiClock::update() {
-    // Hier könnte man Reconnect-Logik einbauen, falls gewünscht
+    // Reconnect falls Verbindung verloren
+    if (WiFi.status() != WL_CONNECTED && _ssid != nullptr) {
+        static unsigned long lastReconnect = 0;
+        if (millis() - lastReconnect > 30000) { // Alle 30 Sekunden
+            lastReconnect = millis();
+            Serial.printf("WiFi Reconnect... (Status: %d)\n", WiFi.status());
+            // Status-Codes: 0=IDLE, 1=NO_SSID_AVAIL, 2=SCAN_COMPLETED, 
+            // 3=CONNECTED, 4=CONNECT_FAILED, 5=CONNECTION_LOST, 6=DISCONNECTED
+            WiFi.disconnect();
+            delay(100);
+            WiFi.begin(_ssid, _password);
+            
+            // Kurz warten auf Verbindung
+            int retry = 0;
+            while (WiFi.status() != WL_CONNECTED && retry < 20) {
+                delay(500);
+                Serial.print(".");
+                retry++;
+            }
+            
+            if (WiFi.status() == WL_CONNECTED) {
+                Serial.println();
+                Serial.print("WiFi verbunden! IP: ");
+                Serial.println(WiFi.localIP());
+                configTzTime(timeZone, ntpServer);
+            } else {
+                Serial.printf("\nWiFi fehlgeschlagen. Status: %d\n", WiFi.status());
+            }
+        }
+    }
 }
 
 String WifiClock::getFormattedTime() {

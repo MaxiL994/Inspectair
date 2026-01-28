@@ -8,6 +8,7 @@
  */
 
 #include "ui_manager.h"
+#include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -41,7 +42,7 @@ LV_IMAGE_DECLARE(emoji_icon_dash);
 #define TXT_TEMPERATUR      "Temperatur"
 #define TXT_FEUCHTE         "Feuchte"
 #define TXT_UNIT_TEMP       "°C"
-#define TXT_UNIT_PM         "µg/m³"
+#define TXT_UNIT_PM         "ug/m3"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * FARBEN
@@ -76,6 +77,7 @@ LV_IMAGE_DECLARE(emoji_icon_dash);
  * GLOBALE UI ELEMENTE
  * ═══════════════════════════════════════════════════════════════════════════ */
 static lv_obj_t* lbl_time = nullptr;
+static lv_obj_t* lbl_seconds = nullptr;
 static lv_obj_t* lbl_date = nullptr;
 static lv_obj_t* arc_aqi = nullptr;
 static lv_obj_t* img_aqi_emoji = nullptr;
@@ -116,16 +118,18 @@ static Status get_hum_status(float h) {
     return BAD;
 }
 
+// WHO Indoor Air Quality Guidelines
 static Status get_co2_status(int c) {
-    if (c <= 800) return GOOD;
-    if (c <= 1200) return WARN;
-    return BAD;
+    if (c <= 1000) return GOOD;   // WHO: gut belüftet
+    if (c <= 1500) return WARN;   // WHO: mäßig
+    return BAD;                   // WHO: schlecht belüftet
 }
 
+// WHO PM2.5 Guidelines 2021 (24h Durchschnitt)
 static Status get_pm25_status(int p) {
-    if (p <= 15) return GOOD;
-    if (p <= 35) return WARN;
-    return BAD;
+    if (p <= 15) return GOOD;     // WHO: Zielwert
+    if (p <= 25) return WARN;     // WHO: Übergangsziel
+    return BAD;                   // WHO: ungesund
 }
 
 static Status get_air_quality(int co2, int pm25) {
@@ -215,6 +219,13 @@ void ui_init() {
     lv_obj_set_style_text_color(lbl_time, COLOR_TEXT, 0);
     lv_label_set_text(lbl_time, "00:00");
     lv_obj_set_pos(lbl_time, 65, 55);
+
+    // SEKUNDEN - direkt angrenzend an Uhrzeit, Unterkante auf gleicher Höhe
+    lbl_seconds = lv_label_create(scr);
+    lv_obj_set_style_text_font(lbl_seconds, FONT_28, 0);
+    lv_obj_set_style_text_color(lbl_seconds, COLOR_TEXT_L, 0);
+    lv_label_set_text(lbl_seconds, "00");
+    lv_obj_set_pos(lbl_seconds, 184, 65);  // Direkt angrenzend, Unterkante aligned
 
     // DATUM
     lbl_date = lv_label_create(scr);
@@ -328,11 +339,18 @@ void ui_init() {
 /* ═══════════════════════════════════════════════════════════════════════════
  * UPDATE FUNKTIONEN
  * ═══════════════════════════════════════════════════════════════════════════ */
-void ui_updateTime(int hour, int minute) {
+void ui_updateTime(int hour, int minute, int second) {
     if (!lbl_time) return;
     char buf[8];
     snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
     lv_label_set_text(lbl_time, buf);
+    
+    // Sekunden separat aktualisieren
+    if (lbl_seconds) {
+        char sec_buf[4];
+        snprintf(sec_buf, sizeof(sec_buf), "%02d", second);
+        lv_label_set_text(lbl_seconds, sec_buf);
+    }
 }
 
 void ui_updateDate(const char* date_str) {
@@ -342,7 +360,12 @@ void ui_updateDate(const char* date_str) {
 }
 
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
-    if (!cards[0].value) return;
+    if (!cards[0].value) {
+        Serial.println("[UI] ERROR: cards not initialized!");
+        return;
+    }
+    
+    Serial.printf("[UI] Updating: T=%.1f H=%.0f CO2=%d PM=%d\n", temp, hum, co2, pm25);
     
     Status statuses[4] = {
         get_temp_status(temp),
@@ -355,27 +378,42 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25) {
     
     // Temperatur
     snprintf(buf, sizeof(buf), "%.1f", temp);
+    Serial.printf("[UI] Temp: '%s' -> label=%p parent=%p\n", buf, (void*)cards[0].value, (void*)lv_obj_get_parent(cards[0].value));
     lv_label_set_text(cards[0].value, buf);
+    lv_obj_invalidate(cards[0].value);
     lv_obj_update_layout(cards[0].value);
-    lv_obj_set_pos(cards[0].unit, lv_obj_get_x(cards[0].value) + lv_obj_get_width(cards[0].value) + 3, 48);
+    int32_t w = lv_obj_get_width(cards[0].value);
+    int32_t h = lv_obj_get_height(cards[0].value);
+    int32_t x = lv_obj_get_x(cards[0].value);
+    int32_t y = lv_obj_get_y(cards[0].value);
+    Serial.printf("[UI] Temp label: x=%d y=%d w=%d h=%d text='%s'\n", (int)x, (int)y, (int)w, (int)h, lv_label_get_text(cards[0].value));
+    lv_obj_set_pos(cards[0].unit, x + w + 3, 48);
     
     // Luftfeuchtigkeit  
     snprintf(buf, sizeof(buf), "%d", (int)hum);
     lv_label_set_text(cards[1].value, buf);
+    lv_obj_invalidate(cards[1].value);
     lv_obj_update_layout(cards[1].value);
     lv_obj_set_pos(cards[1].unit, lv_obj_get_x(cards[1].value) + lv_obj_get_width(cards[1].value) + 3, 48);
     
     // CO2
     snprintf(buf, sizeof(buf), "%d", co2);
     lv_label_set_text(cards[2].value, buf);
+    lv_obj_invalidate(cards[2].value);
     lv_obj_update_layout(cards[2].value);
     lv_obj_set_pos(cards[2].unit, lv_obj_get_x(cards[2].value) + lv_obj_get_width(cards[2].value) + 3, 48);
     
     // PM2.5
     snprintf(buf, sizeof(buf), "%d", pm25);
     lv_label_set_text(cards[3].value, buf);
+    lv_obj_invalidate(cards[3].value);
     lv_obj_update_layout(cards[3].value);
     lv_obj_set_pos(cards[3].unit, lv_obj_get_x(cards[3].value) + lv_obj_get_width(cards[3].value) + 3, 48);
+    
+    // Alle Karten invalidieren für sicheres Redraw
+    for (int i = 0; i < 4; i++) {
+        lv_obj_invalidate(cards[i].container);
+    }
 
     // Status-Balken aktualisieren (Icons bleiben fix)
     for (int i = 0; i < 4; i++) {
