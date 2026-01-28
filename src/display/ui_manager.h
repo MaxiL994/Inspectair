@@ -37,7 +37,7 @@ void ui_init(void);
  * @param hour Stunde (0-23)
  * @param minute Minute (0-59)
  */
-void ui_updateTime(int hour, int minute);
+void ui_updateTime(int hour, int minute, int second);
 
 /**
  * Aktualisiert das Datum

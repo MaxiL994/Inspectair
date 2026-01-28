@@ -5,9 +5,13 @@
 
 #include "lvgl_driver.h"
 #include "pins.h"
+#include <Arduino.h>
 
 // Globales Display-Objekt
 static LGFX tft;
+
+// LVGL Tick
+static uint32_t last_tick = 0;
 
 // LVGL Display und Buffer
 static lv_display_t* display = nullptr;
@@ -74,9 +78,18 @@ void lvgl_init(void) {
 }
 
 /**
- * LVGL Loop Handler
+ * LVGL Loop Handler - MUSS regelmäßig aufgerufen werden!
  */
 void lvgl_loop(void) {
+    // LVGL Tick aktualisieren (WICHTIG für LVGL 9!)
+    uint32_t now = millis();
+    uint32_t elapsed = now - last_tick;
+    if (elapsed > 0) {
+        lv_tick_inc(elapsed);
+        last_tick = now;
+    }
+    
+    // Timer/Tasks verarbeiten
     lv_timer_handler();
 }
 

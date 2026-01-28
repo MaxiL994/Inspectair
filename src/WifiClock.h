@@ -19,4 +19,8 @@ public:
     
     // Gibt das volle Datum zurück (z.B. "25.01.2026")
     String getFormattedDate();
+
+private:
+    const char* _ssid = nullptr;
+    const char* _password = nullptr;
 };

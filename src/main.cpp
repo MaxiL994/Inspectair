@@ -31,7 +31,7 @@
 // ============================================
 // WLAN KONFIGURATION
 // ============================================
-#define WIFI_SSID     "AndroidAP3a99"
+#define WIFI_SSID     "AndroidAP3a99     j    vb h 7  b"
 #define WIFI_PASSWORD "12345678"
 
 // ============================================
@@ -124,6 +124,9 @@ void loop() {
     // Muss regelmäßig aufgerufen werden für UI Updates
     lvgl_loop();
     
+    // === WIFI RECONNECT CHECK ===
+    myClock.update();
+    
     // === KONTINUIERLICHE SENSOR-LESEVORGÄNGE ===
     // PMS5003 kontinuierlich auslesen (asynchron)
     if (sensors_pms_read(&readings.pms)) {
@@ -141,8 +144,8 @@ void loop() {
         
         struct tm timeinfo;
         if (getLocalTime(&timeinfo)) {
-            // Uhrzeit in UI aktualisieren
-            ui_updateTime(timeinfo.tm_hour, timeinfo.tm_min);
+            // Uhrzeit in UI aktualisieren (mit Sekunden)
+            ui_updateTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
             
             // Datum aktualisieren
             ui_updateDate(getFormattedDateString().c_str());
