@@ -29,6 +29,14 @@ LV_IMAGE_DECLARE(emoji_icon_cloud);
 LV_IMAGE_DECLARE(emoji_icon_dash);
 LV_IMAGE_DECLARE(emoji_icon_nose);
 
+// Baum und Blätter für Tree-Animation
+LV_IMAGE_DECLARE(img_tree_green);
+LV_IMAGE_DECLARE(img_tree_yellow);
+LV_IMAGE_DECLARE(img_tree_red);
+LV_IMAGE_DECLARE(img_leaf_yellow);
+LV_IMAGE_DECLARE(img_leaf_yellow_mirrored);
+LV_IMAGE_DECLARE(img_leaf_red);
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT KONFIGURATION
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -37,6 +45,12 @@ LV_IMAGE_DECLARE(emoji_icon_nose);
 #define FONT_20  &ui_font_20
 #define FONT_28  &ui_font_28
 #define FONT_48  &ui_font_48
+
+// Playfair Display fonts (Serif, für Uhrzeit/Branding im Analog-Screen)
+LV_FONT_DECLARE(playfair_14);
+LV_FONT_DECLARE(playfair_48);
+#define FONT_PLAYFAIR_14  &playfair_14
+#define FONT_PLAYFAIR_48  &playfair_48
 
 // Texte mit Umlauten
 #define TXT_LUFTQUALITAET   "Luftqualität"
@@ -180,8 +194,8 @@ static void init_styles() {
 /* ═══════════════════════════════════════════════════════════════════════════
  * SCREEN MANAGEMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
-static lv_obj_t* screens[UI_SCREEN_COUNT] = {nullptr, nullptr};
-static UIScreen current_screen = UI_SCREEN_OVERVIEW;
+static lv_obj_t* screens[UI_SCREEN_COUNT] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+static UIScreen current_screen = UI_SCREEN_TREE;
 
 // Gecachte Sensorwerte für Screen-Updates
 static float cached_temp = 0;
@@ -193,6 +207,367 @@ static int cached_hour = 0;
 static int cached_min = 0;
 static int cached_sec = 0;
 static char cached_date[20] = "Di, 28. Jan";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SCREEN 0: BAUM-ANIMATION (Startbildschirm)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Layout:
+ * ┌──────────────────────────────────────────────────────────┐
+ * │                                                          │
+ * │              🌳 Animierter Baum 🌳                      │
+ * │              (Farbe je nach Luftqualität)                │
+ * │                                                          │
+ * │              🍂 Fallende Blätter 🍂                     │
+ * │              (bei gelb/rot)                              │
+ * │                                                          │
+ * └──────────────────────────────────────────────────────────┘
+ */
+
+// Screen 0 (Tree) UI Elemente
+static lv_obj_t* s0_tree_img = nullptr;
+static lv_obj_t* s0_leaf_yellow_1 = nullptr;
+static lv_obj_t* s0_leaf_yellow_2 = nullptr;
+static lv_obj_t* s0_leaf_red = nullptr;
+static int s0_leaf_end_y = 290;  // Boden-Y-Position für 320px Höhe
+static Status s0_last_air_status = GOOD;
+
+// Forward-Deklarationen für Blatt-Animationen
+static void s0_animate_yellow_leaf_from_branch(lv_obj_t* leaf, float branch_x_ratio, float branch_y_ratio, int sway, uint32_t delay_ms, int end_y_offset);
+static void s0_animate_red_leaf_from_branch(lv_obj_t* leaf);
+static void s0_animate_fade_in(lv_obj_t* obj, uint32_t duration_ms);
+
+// ------------------------------------------------------------
+// Callback wenn Blatt unten angekommen ist - startet von neuer Position
+// ------------------------------------------------------------
+static void s0_leaf_fall_complete_cb(lv_anim_t* a)
+{
+    lv_obj_t* leaf = (lv_obj_t*)a->var;
+
+    // Nur neu starten wenn das Blatt noch sichtbar ist (Zustand nicht gewechselt)
+    if(!lv_obj_has_flag(leaf, LV_OBJ_FLAG_HIDDEN)) {
+        // Alle laufenden Animationen für dieses Blatt stoppen
+        lv_anim_delete(leaf, NULL);
+
+        // Gelbe Blätter auf festen Pfaden neustarten
+        if(leaf == s0_leaf_yellow_1) {
+            s0_animate_yellow_leaf_from_branch(leaf, 0.36f, 0.31f, 14, 0, -12);
+        } else if(leaf == s0_leaf_yellow_2) {
+            s0_animate_yellow_leaf_from_branch(leaf, 0.66f, 0.36f, 22, 650, -24);
+        } else {
+            // Rotes Blatt: von der Astspitze starten
+            s0_animate_red_leaf_from_branch(leaf);
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// Gelbe Blatt-Animation: Astspitze berechnet, eigener Pfad + Delay
+// ------------------------------------------------------------
+static void s0_animate_yellow_leaf_from_branch(lv_obj_t* leaf, float branch_x_ratio, float branch_y_ratio, int sway, uint32_t delay_ms, int end_y_offset)
+{
+    if (!s0_tree_img) return;
+    
+    // Baum-Position und -Größe ermitteln
+    int tree_x = lv_obj_get_x(s0_tree_img);
+    int tree_y = lv_obj_get_y(s0_tree_img);
+    int tree_w = lv_obj_get_width(s0_tree_img);
+    int tree_h = lv_obj_get_height(s0_tree_img);
+
+    int tip_x = tree_x + (int)(tree_w * branch_x_ratio);
+    int tip_y = tree_y + (int)(tree_h * branch_y_ratio);
+
+    int leaf_w = lv_obj_get_width(leaf);
+    int leaf_h = lv_obj_get_height(leaf);
+    int start_x = tip_x - (leaf_w / 2);
+    int start_y = tip_y - (leaf_h / 2);
+    int end_y = s0_leaf_end_y + end_y_offset;
+
+    lv_obj_set_pos(leaf, start_x, start_y);
+    lv_obj_remove_flag(leaf, LV_OBJ_FLAG_HIDDEN);
+
+    const uint32_t hang_ms = 3500;
+
+    // Vertikaler Fall
+    lv_anim_t a_y;
+    lv_anim_init(&a_y);
+    lv_anim_set_var(&a_y, leaf);
+    lv_anim_set_values(&a_y, start_y, end_y);
+    lv_anim_set_duration(&a_y, 4500 + (rand() % 1200));
+    lv_anim_set_delay(&a_y, hang_ms + delay_ms);
+    lv_anim_set_path_cb(&a_y, lv_anim_path_ease_in);
+    lv_anim_set_exec_cb(&a_y, [](void* obj, int32_t v) { lv_obj_set_y((lv_obj_t*)obj, v); });
+    lv_anim_set_ready_cb(&a_y, s0_leaf_fall_complete_cb);
+    lv_anim_start(&a_y);
+
+    // Horizontaler Wind (eigener Pfad)
+    lv_anim_t a_x;
+    lv_anim_init(&a_x);
+    lv_anim_set_var(&a_x, leaf);
+    lv_anim_set_values(&a_x, start_x - sway, start_x + sway);
+    lv_anim_set_duration(&a_x, 900 + (rand() % 500));
+    lv_anim_set_playback_duration(&a_x, 900 + (rand() % 500));
+    lv_anim_set_repeat_count(&a_x, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_delay(&a_x, hang_ms + delay_ms);
+    lv_anim_set_path_cb(&a_x, lv_anim_path_ease_in_out);
+    lv_anim_set_exec_cb(&a_x, [](void* obj, int32_t v) { lv_obj_set_x((lv_obj_t*)obj, v); });
+    lv_anim_start(&a_x);
+
+    // Leichte Rotation
+    lv_anim_t a_rot;
+    lv_anim_init(&a_rot);
+    lv_anim_set_var(&a_rot, leaf);
+    lv_anim_set_values(&a_rot, -25, 25);
+    lv_anim_set_duration(&a_rot, 800 + (rand() % 400));
+    lv_anim_set_playback_duration(&a_rot, 800 + (rand() % 400));
+    lv_anim_set_repeat_count(&a_rot, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_delay(&a_rot, hang_ms + delay_ms);
+    lv_anim_set_exec_cb(&a_rot, [](void* obj, int32_t v) { lv_image_set_rotation((lv_obj_t*)obj, v * 10); });
+    lv_anim_start(&a_rot);
+}
+
+// ------------------------------------------------------------
+// Rotes Blatt: Start von Astspitze (Position aus Baumgröße berechnet)
+// ------------------------------------------------------------
+static void s0_animate_red_leaf_from_branch(lv_obj_t* leaf)
+{
+    if (!s0_tree_img) return;
+    
+    // Baum-Position und -Größe ermitteln
+    int tree_x = lv_obj_get_x(s0_tree_img);
+    int tree_y = lv_obj_get_y(s0_tree_img);
+    int tree_w = lv_obj_get_width(s0_tree_img);
+    int tree_h = lv_obj_get_height(s0_tree_img);
+
+    // Astspitze relativ zur Baumgrafik
+    const float BRANCH_TIP_X_RATIO = 0.84f;
+    const float BRANCH_TIP_Y_RATIO = 0.40f;
+
+    int tip_x = tree_x + (int)(tree_w * BRANCH_TIP_X_RATIO);
+    int tip_y = tree_y + (int)(tree_h * BRANCH_TIP_Y_RATIO);
+
+    // Blatt auf Astspitze zentrieren
+    int leaf_w = lv_obj_get_width(leaf);
+    int leaf_h = lv_obj_get_height(leaf);
+    int start_x = tip_x - (leaf_w / 2);
+    int start_y = tip_y - (leaf_h / 2);
+    int end_y = s0_leaf_end_y - 7;
+
+    lv_obj_set_pos(leaf, start_x, start_y);
+    lv_obj_remove_flag(leaf, LV_OBJ_FLAG_HIDDEN);
+
+    // Vertikaler Fall
+    lv_anim_t a_y;
+    lv_anim_init(&a_y);
+    lv_anim_set_var(&a_y, leaf);
+    lv_anim_set_values(&a_y, start_y, end_y);
+    lv_anim_set_duration(&a_y, 3000 + (rand() % 1500));
+    lv_anim_set_delay(&a_y, 3500);
+    lv_anim_set_path_cb(&a_y, lv_anim_path_ease_in);
+    lv_anim_set_exec_cb(&a_y, [](void* obj, int32_t v) { lv_obj_set_y((lv_obj_t*)obj, v); });
+    lv_anim_set_ready_cb(&a_y, s0_leaf_fall_complete_cb);
+    lv_anim_start(&a_y);
+
+    // Horizontaler Wind
+    lv_anim_t a_x;
+    lv_anim_init(&a_x);
+    lv_anim_set_var(&a_x, leaf);
+    lv_anim_set_values(&a_x, start_x - 15, start_x + 15);
+    lv_anim_set_duration(&a_x, 600 + (rand() % 400));
+    lv_anim_set_playback_duration(&a_x, 600 + (rand() % 400));
+    lv_anim_set_delay(&a_x, 3500);
+    lv_anim_set_repeat_count(&a_x, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_path_cb(&a_x, lv_anim_path_ease_in_out);
+    lv_anim_set_exec_cb(&a_x, [](void* obj, int32_t v) { lv_obj_set_x((lv_obj_t*)obj, v); });
+    lv_anim_start(&a_x);
+
+    // Leichte Rotation
+    lv_anim_t a_rot;
+    lv_anim_init(&a_rot);
+    lv_anim_set_var(&a_rot, leaf);
+    lv_anim_set_values(&a_rot, -25, 25);
+    lv_anim_set_duration(&a_rot, 600 + (rand() % 300));
+    lv_anim_set_playback_duration(&a_rot, 600 + (rand() % 300));
+    lv_anim_set_delay(&a_rot, 3500);
+    lv_anim_set_repeat_count(&a_rot, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_exec_cb(&a_rot, [](void* obj, int32_t v) { lv_image_set_rotation((lv_obj_t*)obj, v * 10); });
+    lv_anim_start(&a_rot);
+}
+
+// ------------------------------------------------------------
+// Smooth Fade-In
+// ------------------------------------------------------------
+static void s0_animate_fade_in(lv_obj_t* obj, uint32_t duration_ms)
+{
+    lv_obj_set_style_opa(obj, LV_OPA_TRANSP, 0);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
+    lv_anim_set_duration(&a, duration_ms);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+    lv_anim_set_exec_cb(&a, [](void* o, int32_t v) {
+        lv_obj_set_style_opa((lv_obj_t*)o, v, 0);
+    });
+    lv_anim_start(&a);
+}
+
+// ------------------------------------------------------------
+// Baum-Zustandswechsel basierend auf Luftqualität
+// ------------------------------------------------------------
+static void s0_show_green()
+{
+    if (!s0_tree_img) return;
+    
+    lv_image_set_src(s0_tree_img, &img_tree_green);
+
+    // Animationen stoppen und Blätter verstecken
+    if (s0_leaf_yellow_1) {
+        lv_anim_delete(s0_leaf_yellow_1, NULL);
+        lv_obj_add_flag(s0_leaf_yellow_1, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (s0_leaf_yellow_2) {
+        lv_anim_delete(s0_leaf_yellow_2, NULL);
+        lv_obj_add_flag(s0_leaf_yellow_2, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (s0_leaf_red) {
+        lv_anim_delete(s0_leaf_red, NULL);
+        lv_obj_add_flag(s0_leaf_red, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void s0_show_yellow()
+{
+    if (!s0_tree_img) return;
+    
+    lv_image_set_src(s0_tree_img, &img_tree_yellow);
+
+    // Alte Animationen stoppen
+    if (s0_leaf_yellow_1) lv_anim_delete(s0_leaf_yellow_1, NULL);
+    if (s0_leaf_yellow_2) lv_anim_delete(s0_leaf_yellow_2, NULL);
+    if (s0_leaf_red) {
+        lv_anim_delete(s0_leaf_red, NULL);
+        lv_obj_add_flag(s0_leaf_red, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // Zwei gelbe Blätter: Astspitzen links/rechts, zeitversetzt, unterschiedliche Pfade
+    if (s0_leaf_yellow_1) {
+        s0_animate_yellow_leaf_from_branch(s0_leaf_yellow_1, 0.36f, 0.31f, 14, 0, -12);
+        s0_animate_fade_in(s0_leaf_yellow_1, 500);
+    }
+    if (s0_leaf_yellow_2) {
+        s0_animate_yellow_leaf_from_branch(s0_leaf_yellow_2, 0.66f, 0.36f, 22, 650, -24);
+        s0_animate_fade_in(s0_leaf_yellow_2, 500);
+    }
+}
+
+static void s0_show_red()
+{
+    if (!s0_tree_img) return;
+    
+    lv_image_set_src(s0_tree_img, &img_tree_red);
+
+    // Alte Animationen stoppen
+    if (s0_leaf_yellow_1) {
+        lv_anim_delete(s0_leaf_yellow_1, NULL);
+        lv_obj_add_flag(s0_leaf_yellow_1, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (s0_leaf_yellow_2) {
+        lv_anim_delete(s0_leaf_yellow_2, NULL);
+        lv_obj_add_flag(s0_leaf_yellow_2, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // Rotes Blatt animieren: Start an der Astspitze
+    if (s0_leaf_red) {
+        lv_anim_delete(s0_leaf_red, NULL);
+        s0_animate_red_leaf_from_branch(s0_leaf_red);
+        s0_animate_fade_in(s0_leaf_red, 500);
+    }
+}
+
+// ------------------------------------------------------------
+// Baum-Screen erstellen
+// ------------------------------------------------------------
+static void create_screen0_tree() {
+    screens[UI_SCREEN_TREE] = lv_obj_create(NULL);
+    lv_obj_t* scr = screens[UI_SCREEN_TREE];
+    
+    // Weißer Hintergrund
+    lv_obj_set_style_bg_color(scr, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+    // Display-Größe: 480x320
+    const int disp_w = 480;
+    const int disp_h = 320;
+    
+    // Baum-Bild erstellen und zentrieren
+    s0_tree_img = lv_image_create(scr);
+    lv_image_set_src(s0_tree_img, &img_tree_green);
+    lv_image_set_scale(s0_tree_img, 320);  // ~125% Größe (256 = 100%)
+    
+    // Layout aktualisieren um Größe zu erhalten
+    lv_obj_update_layout(s0_tree_img);
+    int tree_w = lv_obj_get_width(s0_tree_img);
+    int tree_h = lv_obj_get_height(s0_tree_img);
+    const int extra_down_px = 20;
+    
+    lv_obj_set_pos(s0_tree_img, (disp_w - tree_w) / 2, disp_h - tree_h + extra_down_px);
+    
+    // Blätterhaufen-Position berechnen
+    const int leaf_pile_offset = 30;
+    s0_leaf_end_y = disp_h - leaf_pile_offset;
+
+    // Gelbes Blatt 1 (links)
+    s0_leaf_yellow_1 = lv_image_create(scr);
+    lv_image_set_src(s0_leaf_yellow_1, &img_leaf_yellow);
+    lv_image_set_scale(s0_leaf_yellow_1, 48);  // ~19% Größe
+    lv_obj_add_flag(s0_leaf_yellow_1, LV_OBJ_FLAG_HIDDEN);
+
+    // Gelbes Blatt 2 (rechts, gespiegelt)
+    s0_leaf_yellow_2 = lv_image_create(scr);
+    lv_image_set_src(s0_leaf_yellow_2, &img_leaf_yellow_mirrored);
+    lv_image_set_scale(s0_leaf_yellow_2, 48);
+    lv_obj_add_flag(s0_leaf_yellow_2, LV_OBJ_FLAG_HIDDEN);
+
+    // Rotes Blatt
+    s0_leaf_red = lv_image_create(scr);
+    lv_image_set_src(s0_leaf_red, &img_leaf_red);
+    lv_image_set_scale(s0_leaf_red, 48);
+    lv_obj_add_flag(s0_leaf_red, LV_OBJ_FLAG_HIDDEN);
+
+    // Initial: Grüner Baum (gute Luftqualität)
+    s0_last_air_status = GOOD;
+    s0_show_green();
+
+    Serial.println("[UI] Screen 0 (Baum-Animation) erstellt");
+}
+
+// ------------------------------------------------------------
+// Baum-Screen basierend auf Luftqualität aktualisieren
+// ------------------------------------------------------------
+static void update_screen0_tree() {
+    Status air = get_air_quality(cached_co2, cached_pm25);
+    
+    // Nur aktualisieren wenn sich der Zustand geändert hat
+    if (air != s0_last_air_status) {
+        s0_last_air_status = air;
+        
+        switch (air) {
+            case GOOD:
+                s0_show_green();
+                break;
+            case WARN:
+                s0_show_yellow();
+                break;
+            case BAD:
+                s0_show_red();
+                break;
+        }
+        
+        Serial.printf("[UI] Baum-Zustand geändert: %s\n", 
+                      air == GOOD ? "GRÜN" : (air == WARN ? "GELB" : "ROT"));
+    }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * SCREEN 1: ÜBERSICHT (Große AQI + 2 große Kacheln)
@@ -658,6 +1033,442 @@ static void create_screen2() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * SCREEN 3: ANALOG COCKPIT (Instrumente mit Zeigern)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Layout:
+ * ┌──────────────────────────────────────────────────────────┐
+ * │                    INSPECTAIR                            │
+ * │                     14:32                                │
+ * │                   Fr, 31. Jan                            │
+ * ├──────────────────────────────────────────────────────────┤
+ * │   [Temp °C]      [   CO2 ppm   ]      [Feuchte %]       │
+ * │    (klein)          (GROSS)            (klein)          │
+ * └──────────────────────────────────────────────────────────┘
+ */
+
+// Analog Screen Farben
+#define COLOR_ANALOG_BG      lv_color_hex(0x2c3e50)
+#define COLOR_ANALOG_BORDER  lv_color_hex(0x8b7355)
+#define COLOR_ANALOG_BEIGE   lv_color_hex(0xf5f5dc)
+#define COLOR_ANALOG_GRAY    lv_color_hex(0xbbbbbb)
+#define COLOR_ANALOG_DGRAY   lv_color_hex(0x888888)
+#define COLOR_GAUGE_BG       lv_color_hex(0x2a2a2a)
+#define COLOR_NEEDLE         lv_color_hex(0xc0392b)
+#define COLOR_TEMP_GAUGE     lv_color_hex(0xe74c3c)
+#define COLOR_CO2_GAUGE      lv_color_hex(0x9b59b6)
+#define COLOR_HUM_GAUGE      lv_color_hex(0x3498db)
+
+// Gauge Struktur für Analog-Screen
+typedef struct {
+    lv_obj_t* container;
+    lv_obj_t* arc_bg;
+    lv_obj_t* arc_fill;
+    lv_obj_t* needle;
+    lv_obj_t* needle_center;
+    lv_obj_t* tick_lines[12];
+    lv_point_precise_t tick_points[12][2];
+    lv_obj_t* value_label;
+    lv_obj_t* name_label;
+    float current_value;
+    float min_val;
+    float max_val;
+    lv_color_t color;
+    const char* unit;
+    const char* name;
+    bool is_big;
+    int cx, cy;
+    int needle_len;
+    int tick_count;
+} AnalogGauge;
+
+// Screen 3 UI Elemente
+static lv_obj_t* s3_lbl_time = nullptr;
+static lv_obj_t* s3_lbl_date = nullptr;
+static lv_obj_t* s3_lbl_brand = nullptr;
+
+static AnalogGauge s3_gauge_temp;
+static AnalogGauge s3_gauge_co2;
+static AnalogGauge s3_gauge_hum;
+
+// Zeiger Punkte
+static lv_point_precise_t s3_needle_pts_temp[2];
+static lv_point_precise_t s3_needle_pts_co2[2];
+static lv_point_precise_t s3_needle_pts_hum[2];
+
+// ------------------------------------------------------------
+// Gauge Update Funktion
+// ------------------------------------------------------------
+static void s3_update_gauge(AnalogGauge* g, lv_point_precise_t* pts) {
+    float clampedValue = g->current_value;
+    if (clampedValue < g->min_val) clampedValue = g->min_val;
+    if (clampedValue > g->max_val) clampedValue = g->max_val;
+    float ratio = (clampedValue - g->min_val) / (g->max_val - g->min_val);
+
+    // Arc Update
+    lv_arc_set_value(g->arc_fill, (int)(ratio * 100));
+
+    // Zeiger Update (180° = links, 360° = rechts)
+    float needle_angle_deg = 180.0f + ratio * 180.0f;
+    float needle_rad = needle_angle_deg * (float)M_PI / 180.0f;
+
+    int nx = g->cx + (int)(g->needle_len * cosf(needle_rad));
+    int ny = g->cy + (int)(g->needle_len * sinf(needle_rad));
+
+    pts[0].x = g->cx;
+    pts[0].y = g->cy;
+    pts[1].x = nx;
+    pts[1].y = ny;
+    lv_line_set_points(g->needle, pts, 2);
+
+    // Wert Label
+    char buf[16];
+    if (g->is_big) {
+        snprintf(buf, sizeof(buf), "%d %s", (int)g->current_value, g->unit);
+    } else {
+        snprintf(buf, sizeof(buf), "%.1f %s", g->current_value, g->unit);
+    }
+    lv_label_set_text(g->value_label, buf);
+}
+
+// ------------------------------------------------------------
+// Kleine Gauge erstellen (Temperatur / Feuchtigkeit)
+// ------------------------------------------------------------
+static void s3_create_small_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
+                                  float min_val, float max_val, lv_color_t color,
+                                  const char* unit, const char* name, lv_point_precise_t* pts) {
+    g->min_val = min_val;
+    g->max_val = max_val;
+    g->color = color;
+    g->unit = unit;
+    g->name = name;
+    g->current_value = min_val;
+    g->is_big = false;
+    g->cx = 50;
+    g->cy = 55;
+    g->needle_len = 36;
+    g->tick_count = 9;
+
+    // Container
+    g->container = lv_obj_create(parent);
+    lv_obj_remove_style_all(g->container);
+    lv_obj_set_size(g->container, 100, 110);
+    lv_obj_set_pos(g->container, x, y);
+    lv_obj_clear_flag(g->container, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Hintergrund Arc
+    g->arc_bg = lv_arc_create(g->container);
+    lv_obj_set_size(g->arc_bg, 80, 80);
+    lv_obj_set_pos(g->arc_bg, 10, 15);
+    lv_arc_set_rotation(g->arc_bg, 180);
+    lv_arc_set_bg_angles(g->arc_bg, 0, 180);
+    lv_arc_set_value(g->arc_bg, 0);
+    lv_obj_remove_style(g->arc_bg, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(g->arc_bg, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(g->arc_bg, 8, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(g->arc_bg, COLOR_GAUGE_BG, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(g->arc_bg, false, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g->arc_bg, 0, LV_PART_INDICATOR);
+
+    // Farbiger Arc
+    g->arc_fill = lv_arc_create(g->container);
+    lv_obj_set_size(g->arc_fill, 80, 80);
+    lv_obj_set_pos(g->arc_fill, 10, 15);
+    lv_arc_set_rotation(g->arc_fill, 180);
+    lv_arc_set_bg_angles(g->arc_fill, 0, 180);
+    lv_arc_set_range(g->arc_fill, 0, 100);
+    lv_arc_set_value(g->arc_fill, 50);
+    lv_obj_remove_style(g->arc_fill, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(g->arc_fill, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(g->arc_fill, 0, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g->arc_fill, 8, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(g->arc_fill, color, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_rounded(g->arc_fill, false, LV_PART_INDICATOR);
+
+    // Skalenstriche
+    for (int i = 0; i < g->tick_count; i++) {
+        float ratio = (float)i / (g->tick_count - 1);
+        float angle_deg = 180.0f + ratio * 180.0f;
+        float angle_rad = angle_deg * (float)M_PI / 180.0f;
+
+        bool major = (i % 2 == 0);
+        int outer = 40;
+        int inner = major ? 32 : 34;
+        int width = major ? 1 : 1;
+
+        int x1 = g->cx + (int)(inner * cosf(angle_rad));
+        int y1 = g->cy + (int)(inner * sinf(angle_rad));
+        int x2 = g->cx + (int)(outer * cosf(angle_rad));
+        int y2 = g->cy + (int)(outer * sinf(angle_rad));
+
+        g->tick_points[i][0].x = x1;
+        g->tick_points[i][0].y = y1;
+        g->tick_points[i][1].x = x2;
+        g->tick_points[i][1].y = y2;
+
+        g->tick_lines[i] = lv_line_create(g->container);
+        lv_obj_set_style_line_width(g->tick_lines[i], width, 0);
+        lv_obj_set_style_line_color(g->tick_lines[i], COLOR_ANALOG_DGRAY, 0);
+        lv_line_set_points(g->tick_lines[i], g->tick_points[i], 2);
+    }
+
+    // Zeiger
+    g->needle = lv_line_create(g->container);
+    lv_obj_set_style_line_width(g->needle, 2, 0);
+    lv_obj_set_style_line_color(g->needle, COLOR_NEEDLE, 0);
+    lv_obj_set_style_line_rounded(g->needle, true, 0);
+    pts[0].x = g->cx;
+    pts[0].y = g->cy;
+    pts[1].x = g->cx - g->needle_len;
+    pts[1].y = g->cy;
+    lv_line_set_points(g->needle, pts, 2);
+
+    // Zeiger Mittelpunkt
+    g->needle_center = lv_obj_create(g->container);
+    lv_obj_remove_style_all(g->needle_center);
+    lv_obj_set_size(g->needle_center, 10, 10);
+    lv_obj_set_pos(g->needle_center, g->cx - 5, g->cy - 5);
+    lv_obj_set_style_radius(g->needle_center, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(g->needle_center, COLOR_NEEDLE, 0);
+    lv_obj_set_style_bg_opa(g->needle_center, LV_OPA_COVER, 0);
+
+    // Wert Label
+    g->value_label = lv_label_create(g->container);
+    lv_obj_set_style_text_font(g->value_label, FONT_12, 0);
+    lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
+    lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(g->value_label, 100);
+    lv_obj_set_pos(g->value_label, 0, 72);
+    lv_label_set_text(g->value_label, "--");
+
+    // Name Label
+    g->name_label = lv_label_create(g->container);
+    lv_obj_set_style_text_font(g->name_label, FONT_12, 0);
+    lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
+    lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(g->name_label, 100);
+    lv_obj_set_pos(g->name_label, 0, 86);
+    lv_label_set_text(g->name_label, name);
+}
+
+// ------------------------------------------------------------
+// Große Gauge erstellen (CO2)
+// ------------------------------------------------------------
+static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
+                                float min_val, float max_val, lv_color_t color,
+                                const char* unit, const char* name, lv_point_precise_t* pts) {
+    g->min_val = min_val;
+    g->max_val = max_val;
+    g->color = color;
+    g->unit = unit;
+    g->name = name;
+    g->current_value = min_val;
+    g->is_big = true;
+    g->cx = 110;
+    g->cy = 110;
+    g->needle_len = 82;
+    g->tick_count = 11;
+
+    // Container
+    g->container = lv_obj_create(parent);
+    lv_obj_remove_style_all(g->container);
+    lv_obj_set_size(g->container, 220, 195);
+    lv_obj_set_pos(g->container, x, y);
+    lv_obj_clear_flag(g->container, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Hintergrund Arc
+    g->arc_bg = lv_arc_create(g->container);
+    lv_obj_set_size(g->arc_bg, 180, 180);
+    lv_obj_set_pos(g->arc_bg, 20, 20);
+    lv_arc_set_rotation(g->arc_bg, 180);
+    lv_arc_set_bg_angles(g->arc_bg, 0, 180);
+    lv_arc_set_value(g->arc_bg, 0);
+    lv_obj_remove_style(g->arc_bg, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(g->arc_bg, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(g->arc_bg, 14, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(g->arc_bg, COLOR_GAUGE_BG, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(g->arc_bg, false, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g->arc_bg, 0, LV_PART_INDICATOR);
+
+    // Farbiger Arc
+    g->arc_fill = lv_arc_create(g->container);
+    lv_obj_set_size(g->arc_fill, 180, 180);
+    lv_obj_set_pos(g->arc_fill, 20, 20);
+    lv_arc_set_rotation(g->arc_fill, 180);
+    lv_arc_set_bg_angles(g->arc_fill, 0, 180);
+    lv_arc_set_range(g->arc_fill, 0, 100);
+    lv_arc_set_value(g->arc_fill, 50);
+    lv_obj_remove_style(g->arc_fill, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(g->arc_fill, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(g->arc_fill, 0, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g->arc_fill, 14, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(g->arc_fill, color, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_rounded(g->arc_fill, false, LV_PART_INDICATOR);
+
+    // Skalenstriche
+    for (int i = 0; i < g->tick_count; i++) {
+        float ratio = (float)i / (g->tick_count - 1);
+        float angle_deg = 180.0f + ratio * 180.0f;
+        float angle_rad = angle_deg * (float)M_PI / 180.0f;
+
+        bool major = (i % 2 == 0);
+        int outer = 90;
+        int inner = major ? 76 : 81;
+        int width = major ? 2 : 1;
+
+        int x1 = g->cx + (int)(inner * cosf(angle_rad));
+        int y1 = g->cy + (int)(inner * sinf(angle_rad));
+        int x2 = g->cx + (int)(outer * cosf(angle_rad));
+        int y2 = g->cy + (int)(outer * sinf(angle_rad));
+
+        g->tick_points[i][0].x = x1;
+        g->tick_points[i][0].y = y1;
+        g->tick_points[i][1].x = x2;
+        g->tick_points[i][1].y = y2;
+
+        g->tick_lines[i] = lv_line_create(g->container);
+        lv_obj_set_style_line_width(g->tick_lines[i], width, 0);
+        lv_obj_set_style_line_color(g->tick_lines[i], COLOR_ANALOG_DGRAY, 0);
+        lv_line_set_points(g->tick_lines[i], g->tick_points[i], 2);
+    }
+
+    // Zeiger
+    g->needle = lv_line_create(g->container);
+    lv_obj_set_style_line_width(g->needle, 3, 0);
+    lv_obj_set_style_line_color(g->needle, COLOR_NEEDLE, 0);
+    lv_obj_set_style_line_rounded(g->needle, true, 0);
+    pts[0].x = g->cx;
+    pts[0].y = g->cy;
+    pts[1].x = g->cx - g->needle_len;
+    pts[1].y = g->cy;
+    lv_line_set_points(g->needle, pts, 2);
+
+    // Zeiger Mittelpunkt
+    g->needle_center = lv_obj_create(g->container);
+    lv_obj_remove_style_all(g->needle_center);
+    lv_obj_set_size(g->needle_center, 16, 16);
+    lv_obj_set_pos(g->needle_center, g->cx - 8, g->cy - 8);
+    lv_obj_set_style_radius(g->needle_center, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(g->needle_center, COLOR_NEEDLE, 0);
+    lv_obj_set_style_bg_opa(g->needle_center, LV_OPA_COVER, 0);
+
+    // Wert Label
+    g->value_label = lv_label_create(g->container);
+    lv_obj_set_style_text_font(g->value_label, FONT_28, 0);
+    lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
+    lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(g->value_label, 220);
+    lv_obj_set_pos(g->value_label, 0, 135);
+    lv_label_set_text(g->value_label, "--");
+
+    // Name Label
+    g->name_label = lv_label_create(g->container);
+    lv_obj_set_style_text_font(g->name_label, FONT_16, 0);
+    lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
+    lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(g->name_label, 220);
+    lv_obj_set_pos(g->name_label, 0, 165);
+    lv_label_set_text(g->name_label, name);
+}
+
+// ------------------------------------------------------------
+// Analog Screen erstellen
+// ------------------------------------------------------------
+static void create_screen3_analog() {
+    screens[UI_SCREEN_ANALOG] = lv_obj_create(NULL);
+    lv_obj_t* scr = screens[UI_SCREEN_ANALOG];
+    
+    // Dunkler Hintergrund
+    lv_obj_set_style_bg_color(scr, COLOR_ANALOG_BG, 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+    // Hauptcontainer mit goldenem Rand
+    lv_obj_t* main_cont = lv_obj_create(scr);
+    lv_obj_remove_style_all(main_cont);
+    lv_obj_set_size(main_cont, 480 - 8, 320 - 8);
+    lv_obj_center(main_cont);
+    lv_obj_set_style_border_width(main_cont, 4, 0);
+    lv_obj_set_style_border_color(main_cont, COLOR_ANALOG_BORDER, 0);
+    lv_obj_set_style_radius(main_cont, 12, 0);
+    lv_obj_set_style_bg_opa(main_cont, LV_OPA_TRANSP, 0);
+    lv_obj_clear_flag(main_cont, LV_OBJ_FLAG_SCROLLABLE);
+
+    // INSPECTAIR Branding
+    s3_lbl_brand = lv_label_create(main_cont);
+    lv_obj_set_style_text_font(s3_lbl_brand, FONT_12, 0);
+    lv_obj_set_style_text_color(s3_lbl_brand, COLOR_ANALOG_BORDER, 0);
+    lv_obj_set_style_text_letter_space(s3_lbl_brand, 6, 0);
+    lv_label_set_text(s3_lbl_brand, "INSPECTAIR");
+    lv_obj_align(s3_lbl_brand, LV_ALIGN_TOP_MID, 0, 8);
+
+    // Uhrzeit (Playfair Display Serif-Font)
+    s3_lbl_time = lv_label_create(main_cont);
+    lv_obj_set_style_text_font(s3_lbl_time, FONT_PLAYFAIR_48, 0);
+    lv_obj_set_style_text_color(s3_lbl_time, COLOR_ANALOG_BEIGE, 0);
+    lv_label_set_text(s3_lbl_time, "00:00");
+    lv_obj_align(s3_lbl_time, LV_ALIGN_TOP_MID, 0, 32);
+
+    // Datum (Playfair Display Serif-Font)
+    s3_lbl_date = lv_label_create(main_cont);
+    lv_obj_set_style_text_font(s3_lbl_date, FONT_PLAYFAIR_14, 0);
+    lv_obj_set_style_text_color(s3_lbl_date, COLOR_ANALOG_GRAY, 0);
+    lv_label_set_text(s3_lbl_date, "Di, 28. Jan");
+    lv_obj_align(s3_lbl_date, LV_ALIGN_TOP_MID, 0, 85);
+
+    // Gauges Layout: klein | GROSS | klein
+    int gauge_y_small = 178;
+    int gauge_y_big = 100;
+    int gap = 8;
+
+    // Container-Breite ist (480 - 8) = 472
+    int container_w = 480 - 8;
+    int total_w = 100 + gap + 220 + gap + 100;  // = 436
+    int start_x = (container_w - total_w) / 2;
+
+    // Temperatur (links, klein)
+    s3_create_small_gauge(main_cont, &s3_gauge_temp, start_x, gauge_y_small,
+                          10.0f, 35.0f, COLOR_TEMP_GAUGE, "°C", "Temperatur", s3_needle_pts_temp);
+
+    // CO2 (Mitte, groß)
+    s3_create_big_gauge(main_cont, &s3_gauge_co2, start_x + 100 + gap, gauge_y_big,
+                        400.0f, 2000.0f, COLOR_CO2_GAUGE, "ppm", "CO2", s3_needle_pts_co2);
+
+    // Feuchtigkeit (rechts, klein)
+    s3_create_small_gauge(main_cont, &s3_gauge_hum, start_x + 100 + gap + 220 + gap, gauge_y_small,
+                          0.0f, 100.0f, COLOR_HUM_GAUGE, "%", "Feuchte", s3_needle_pts_hum);
+
+    Serial.println("[UI] Screen 3 (Analog Cockpit) erstellt");
+}
+
+// ------------------------------------------------------------
+// Analog Screen Update
+// ------------------------------------------------------------
+static void update_screen3_time() {
+    if (!s3_lbl_time) return;
+    
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%02d:%02d", cached_hour, cached_min);
+    lv_label_set_text(s3_lbl_time, buf);
+    
+    if (s3_lbl_date) {
+        lv_label_set_text(s3_lbl_date, cached_date);
+    }
+}
+
+static void update_screen3_sensors() {
+    // Temperatur
+    s3_gauge_temp.current_value = cached_temp;
+    s3_update_gauge(&s3_gauge_temp, s3_needle_pts_temp);
+    
+    // CO2
+    s3_gauge_co2.current_value = (float)cached_co2;
+    s3_update_gauge(&s3_gauge_co2, s3_needle_pts_co2);
+    
+    // Feuchtigkeit
+    s3_gauge_hum.current_value = cached_hum;
+    s3_update_gauge(&s3_gauge_hum, s3_needle_pts_hum);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * SCREEN UPDATE HELPER
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -810,15 +1621,17 @@ void ui_init() {
     
     init_styles();
     
-    // Beide Screens erstellen
-    create_screen1();
-    create_screen2();
+    // Alle vier Screens erstellen
+    create_screen0_tree();   // Baum-Animation (Startbildschirm)
+    create_screen1();        // Übersicht (minimalistisch)
+    create_screen2();        // Detail (volle Infos)
+    create_screen3_analog(); // Analog Cockpit (Instrumente)
     
-    // Mit Screen 1 (Übersicht) starten
-    current_screen = UI_SCREEN_OVERVIEW;
+    // Mit Screen 0 (Baum-Animation) starten
+    current_screen = UI_SCREEN_TREE;
     lv_screen_load(screens[current_screen]);
     
-    Serial.println("[UI] Multi-Screen UI initialisiert, Start mit Übersicht");
+    Serial.println("[UI] Multi-Screen UI initialisiert, Start mit Baum-Animation");
 }
 
 void ui_nextScreen() {
@@ -859,24 +1672,35 @@ void ui_setScreen(UIScreen screen) {
     Serial.flush();
     
     // Aktuellen Screen mit gecachten Werten aktualisieren
-    if (screen == UI_SCREEN_OVERVIEW) {
+    if (screen == UI_SCREEN_TREE) {
+        Serial.println("[UI] Vor update_screen0_tree()...");
+        Serial.flush();
+        update_screen0_tree();
+    } else if (screen == UI_SCREEN_OVERVIEW) {
         Serial.println("[UI] Vor update_screen1_time()...");
         Serial.flush();
         update_screen1_time();
         Serial.println("[UI] Vor update_screen1_sensors()...");
         Serial.flush();
         update_screen1_sensors();
-    } else {
+    } else if (screen == UI_SCREEN_DETAIL) {
         Serial.println("[UI] Vor update_screen2_time()...");
         Serial.flush();
         update_screen2_time();
         Serial.println("[UI] Vor update_screen2_sensors()...");
         Serial.flush();
         update_screen2_sensors();
+    } else if (screen == UI_SCREEN_ANALOG) {
+        Serial.println("[UI] Vor update_screen3_time()...");
+        Serial.flush();
+        update_screen3_time();
+        Serial.println("[UI] Vor update_screen3_sensors()...");
+        Serial.flush();
+        update_screen3_sensors();
     }
     
-    Serial.printf("[UI] Wechsel zu Screen %d (%s) abgeschlossen\n", screen, 
-                  screen == UI_SCREEN_OVERVIEW ? "Übersicht" : "Detail");
+    const char* screen_names[] = {"Baum-Animation", "Übersicht", "Detail", "Analog Cockpit"};
+    Serial.printf("[UI] Wechsel zu Screen %d (%s) abgeschlossen\n", screen, screen_names[screen]);
     Serial.flush();
 }
 
@@ -890,9 +1714,10 @@ void ui_updateTime(int hour, int minute, int second) {
     cached_min = minute;
     cached_sec = second;
     
-    // Beide Screens aktualisieren (nur der aktive ist sichtbar)
+    // Alle Screens aktualisieren (nur der aktive ist sichtbar)
     update_screen1_time();
     update_screen2_time();
+    update_screen3_time();
 }
 
 void ui_updateDate(const char* date_str) {
@@ -902,6 +1727,7 @@ void ui_updateDate(const char* date_str) {
     
     if (s1_lbl_date) lv_label_set_text(s1_lbl_date, cached_date);
     if (s2_lbl_date) lv_label_set_text(s2_lbl_date, cached_date);
+    if (s3_lbl_date) lv_label_set_text(s3_lbl_date, cached_date);
 }
 
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
@@ -914,9 +1740,11 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     
     Serial.printf("[UI] Update: T=%.1f H=%.0f CO2=%d PM=%d VOC=%d\n", temp, hum, co2, pm25, voc);
     
-    // Beide Screens aktualisieren
+    // Alle Screens aktualisieren
+    update_screen0_tree();    // Tree-Screen ändert Farbe basierend auf Luftqualität
     update_screen1_sensors();
     update_screen2_sensors();
+    update_screen3_sensors(); // Analog Cockpit
 }
 
 void ui_updateSensors(const SensorReadings& readings) {

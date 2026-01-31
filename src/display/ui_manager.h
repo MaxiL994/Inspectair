@@ -30,9 +30,12 @@ LV_FONT_DECLARE(ui_font_48);
  * SCREEN TYPEN
  * ═══════════════════════════════════════════════════════════════════════════ */
 enum UIScreen {
-    UI_SCREEN_OVERVIEW = 0,  // Große AQI + 2 Kacheln
-    UI_SCREEN_DETAIL   = 1,  // Kleine AQI + 4 Kacheln
-    UI_SCREEN_COUNT    = 2   // Anzahl der Screens
+    UI_SCREEN_TREE     = 0,  // Baum-Animation (Startbildschirm)
+    UI_SCREEN_OVERVIEW = 1,  // Große AQI + 2 Kacheln (minimalistisch)
+    UI_SCREEN_DETAIL   = 2,  // Kleine AQI + 4 Kacheln (volle Infos)
+    UI_SCREEN_ANALOG   = 3,  // Analoge Cockpit-Instrumente
+    UI_SCREEN_BUBBLE   = 4,  // Dynamische Kreise (Modern Bubbles)
+    UI_SCREEN_COUNT    = 5   // Anzahl der Screens
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
