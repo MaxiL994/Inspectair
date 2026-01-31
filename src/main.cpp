@@ -75,7 +75,7 @@ const char* months[] = {"Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
                         "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"};
 
 /**
- * Formatiert das aktuelle Datum im Format "Di, 14. Jan"
+ * Formatiert das aktuelle Datum im Format "Di, 14. Jan 2026"
  */
 String getFormattedDateString() {
     struct tm timeinfo;
@@ -84,10 +84,11 @@ String getFormattedDateString() {
     }
     
     char buf[32];
-    snprintf(buf, sizeof(buf), "%s, %d. %s", 
+    snprintf(buf, sizeof(buf), "%s, %d. %s %d", 
              weekdays[timeinfo.tm_wday],
              timeinfo.tm_mday,
-             months[timeinfo.tm_mon]);
+             months[timeinfo.tm_mon],
+             timeinfo.tm_year + 1900);
     return String(buf);
 }
 

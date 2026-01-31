@@ -52,6 +52,18 @@ LV_FONT_DECLARE(playfair_48);
 #define FONT_PLAYFAIR_14  &playfair_14
 #define FONT_PLAYFAIR_48  &playfair_48
 
+// Orbitron fonts (Futuristic/Space, für Bubble-Screen)
+LV_FONT_DECLARE(orbitron_28);
+LV_FONT_DECLARE(orbitron_16);
+#define FONT_ORBITRON_28  &orbitron_28
+#define FONT_ORBITRON_16  &orbitron_16
+
+// Extended Montserrat fonts (mit µ, ³, ², °)
+LV_FONT_DECLARE(ui_font_12_ext);
+LV_FONT_DECLARE(ui_font_16_ext);
+#define FONT_12_EXT  &ui_font_12_ext
+#define FONT_16_EXT  &ui_font_16_ext
+
 // Texte mit Umlauten
 #define TXT_LUFTQUALITAET   "Luftqualität"
 #define TXT_SEHR_GUT        "Sehr gut"
@@ -206,7 +218,7 @@ static int cached_voc = 0;
 static int cached_hour = 0;
 static int cached_min = 0;
 static int cached_sec = 0;
-static char cached_date[20] = "Di, 28. Jan";
+static char cached_date[24] = "Di, 28. Jan 2026";
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * SCREEN 0: BAUM-ANIMATION (Startbildschirm)
@@ -1240,9 +1252,9 @@ static void s3_create_small_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y
     lv_obj_set_pos(g->value_label, 0, 72);
     lv_label_set_text(g->value_label, "--");
 
-    // Name Label
+    // Name Label (Playfair Serif für eleganten Look)
     g->name_label = lv_label_create(g->container);
-    lv_obj_set_style_text_font(g->name_label, FONT_12, 0);
+    lv_obj_set_style_text_font(g->name_label, FONT_PLAYFAIR_14, 0);
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
     lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->name_label, 100);
@@ -1360,9 +1372,9 @@ static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
     lv_obj_set_pos(g->value_label, 0, 135);
     lv_label_set_text(g->value_label, "--");
 
-    // Name Label
+    // Name Label (Playfair Serif für eleganten Look)
     g->name_label = lv_label_create(g->container);
-    lv_obj_set_style_text_font(g->name_label, FONT_16, 0);
+    lv_obj_set_style_text_font(g->name_label, FONT_PLAYFAIR_14, 0);
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
     lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->name_label, 220);
@@ -1613,6 +1625,319 @@ static void update_screen2_sensors() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * SCREEN 4: BUBBLE UI (Dynamische Kreise)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+// Farben für Bubble-Screen
+#define COLOR_BUBBLE_BG_DARK   lv_color_hex(0x0f0f23)  // Dunkelblau-Schwarz
+#define COLOR_BUBBLE_BG_LIGHT  lv_color_hex(0x1a1a3e)  // Dunkelblau
+#define COLOR_BUBBLE_TEXT_DIM  lv_color_hex(0x999999)  // 60% weiß
+#define COLOR_BUBBLE_TEXT_DIMMER lv_color_hex(0x666666)  // 40% weiß
+#define COLOR_BUBBLE_STAR      lv_color_hex(0x6496FF)  // Blau-Weiß Sterne
+
+// Bubble Layout
+#define BUBBLE_MIN_SIZE  80
+#define BUBBLE_MAX_SIZE  130
+
+// Bubble Struktur
+struct Bubble {
+    lv_obj_t* container;
+    lv_obj_t* lbl_value;
+    lv_obj_t* lbl_unit;
+    lv_obj_t* lbl_label;
+    int center_x;
+    int center_y;
+    int current_size;
+};
+
+// Screen 4 Elemente
+static lv_obj_t* s4_lbl_time = nullptr;
+static lv_obj_t* s4_lbl_date = nullptr;
+static Bubble s4_bubbles[5];
+static lv_style_t style_bubble_base;
+static bool style_bubble_initialized = false;
+
+// Bubble Größe basierend auf Wert berechnen
+static int s4_get_bubble_size(int type, float value) {
+    float min_val, max_val, good_min, good_max;
+
+    switch(type) {
+        case 0: // Temperatur
+            min_val = 10; max_val = 35; good_min = 18; good_max = 26;
+            break;
+        case 1: // Feuchte
+            min_val = 20; max_val = 80; good_min = 30; good_max = 60;
+            break;
+        case 2: // CO2
+            min_val = 400; max_val = 2000; good_min = 0; good_max = 800;
+            break;
+        case 3: // PM2.5
+            min_val = 0; max_val = 50; good_min = 0; good_max = 15;
+            break;
+        case 4: // VOC
+            min_val = 0; max_val = 1000; good_min = 0; good_max = 250;
+            break;
+        default:
+            return BUBBLE_MIN_SIZE;
+    }
+
+    if (value < min_val) value = min_val;
+    if (value > max_val) value = max_val;
+
+    float severity = 0.0f;
+
+    // Severity nur außerhalb des guten Bereichs
+    if (value < good_min) {
+        severity = (good_min - value) / (good_min - min_val);
+    } else if (value > good_max) {
+        severity = (value - good_max) / (max_val - good_max);
+    }
+    // Werte im guten Bereich → severity = 0 (kleine grüne Bubble)
+
+    if (severity < 0.0f) severity = 0.0f;
+    if (severity > 1.0f) severity = 1.0f;
+
+    // Größen-Offset pro Sensor-Typ (+ größer, - kleiner)
+    int size_offset = 0;
+    switch(type) {
+        case 1: size_offset = -8; break;  // Feuchte: kleiner
+        case 3: size_offset = 8; break;   // PM2.5: größer
+        case 4: size_offset = -8; break;  // VOC: kleiner
+    }
+
+    return (int)(BUBBLE_MIN_SIZE + severity * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + size_offset;
+}
+
+// Bubble Status berechnen (für Farbe)
+static Status s4_get_bubble_status(int type, float value) {
+    switch(type) {
+        case 0: return get_temp_status(value);
+        case 1: return get_hum_status(value);
+        case 2: return get_co2_status((int)value);
+        case 3: return get_pm25_status((int)value);
+        case 4: return get_voc_status((int)value);
+        default: return GOOD;
+    }
+}
+
+// Einzelnen Bubble aktualisieren
+static void s4_update_bubble(int idx, float value) {
+    if (!s4_bubbles[idx].container) return;
+    
+    Status status = s4_get_bubble_status(idx, value);
+    int new_size = s4_get_bubble_size(idx, value);
+
+    // Position neu berechnen (Mittelpunkt bleibt gleich)
+    int x = s4_bubbles[idx].center_x - new_size / 2;
+    int y = s4_bubbles[idx].center_y - new_size / 2;
+
+    lv_obj_set_size(s4_bubbles[idx].container, new_size, new_size);
+    lv_obj_set_pos(s4_bubbles[idx].container, x, y);
+
+    // Farbe basierend auf Status
+    lv_color_t status_color = get_status_color(status);
+    lv_obj_set_style_bg_color(s4_bubbles[idx].container, status_color, 0);
+    lv_obj_set_style_border_color(s4_bubbles[idx].container, status_color, 0);
+    lv_obj_set_style_shadow_color(s4_bubbles[idx].container, status_color, 0);
+
+    // Wert aktualisieren
+    char buf[16];
+    if (idx == 0) {
+        snprintf(buf, sizeof(buf), "%.1f", value);
+    } else {
+        snprintf(buf, sizeof(buf), "%d", (int)value);
+    }
+    lv_label_set_text(s4_bubbles[idx].lbl_value, buf);
+    lv_obj_set_style_text_color(s4_bubbles[idx].lbl_value, status_color, 0);
+
+    // Elemente neu zentrieren
+    lv_obj_align(s4_bubbles[idx].lbl_value, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_align(s4_bubbles[idx].lbl_unit, LV_ALIGN_CENTER, 0, 12);
+    lv_obj_align(s4_bubbles[idx].lbl_label, LV_ALIGN_CENTER, 0, 28);
+
+    s4_bubbles[idx].current_size = new_size;
+}
+
+// Sterne-Positionen (statisch)
+static const struct { int x; int y; int size; int opa; } s4_star_data[11] = {
+    {50,  45,  2, 180}, {420, 80,  3, 220}, {30,  180, 2, 150},
+    {460, 200, 2, 200}, {90,  280, 2, 160}, {380, 290, 3, 190},
+    {240, 100, 2, 170}, {240, 180, 2, 200}, {180, 145, 2, 140},
+    {300, 145, 2, 150}, {240, 260, 2, 160},
+};
+
+// Hintergrund mit Gradient und Sternen erstellen
+static void s4_create_background(lv_obj_t* parent) {
+    // Gradient Hintergrund
+    lv_obj_t* bg = lv_obj_create(parent);
+    lv_obj_remove_style_all(bg);
+    lv_obj_set_size(bg, 480, 320);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(bg, COLOR_BUBBLE_BG_DARK, 0);
+    lv_obj_set_style_bg_grad_color(bg, COLOR_BUBBLE_BG_LIGHT, 0);
+    lv_obj_set_style_bg_grad_dir(bg, LV_GRAD_DIR_VER, 0);
+    lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(bg, 0, 0);
+    lv_obj_move_to_index(bg, 0);
+
+    // Sterne
+    for (int i = 0; i < 11; i++) {
+        lv_obj_t* star = lv_obj_create(parent);
+        lv_obj_remove_style_all(star);
+        lv_obj_set_size(star, s4_star_data[i].size, s4_star_data[i].size);
+        lv_obj_set_pos(star, s4_star_data[i].x, s4_star_data[i].y);
+        lv_obj_set_style_radius(star, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(star, COLOR_BUBBLE_STAR, 0);
+        lv_obj_set_style_bg_opa(star, s4_star_data[i].opa, 0);
+        lv_obj_set_style_border_width(star, 0, 0);
+        lv_obj_clear_flag(star, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_clear_flag(star, LV_OBJ_FLAG_CLICKABLE);
+    }
+}
+
+// Legende erstellen
+static void s4_create_legend(lv_obj_t* parent) {
+    const char* labels[] = {"Gut", "Mittel", "Schlecht"};
+    lv_color_t colors[] = {COLOR_GOOD, COLOR_WARN, COLOR_BAD};
+    int x_positions[] = {480 - 235, 480 - 165, 480 - 80};
+
+    for (int i = 0; i < 3; i++) {
+        // Farbiger Punkt
+        lv_obj_t* dot = lv_obj_create(parent);
+        lv_obj_set_size(dot, 8, 8);
+        lv_obj_set_pos(dot, x_positions[i], 298 + 2);
+        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(dot, colors[i], 0);
+        lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(dot, 0, 0);
+        lv_obj_clear_flag(dot, LV_OBJ_FLAG_SCROLLABLE);
+
+        // Text
+        lv_obj_t* lbl = lv_label_create(parent);
+        lv_label_set_text(lbl, labels[i]);
+        lv_obj_set_style_text_font(lbl, FONT_12, 0);
+        lv_obj_set_style_text_color(lbl, COLOR_BUBBLE_TEXT_DIM, 0);
+        lv_obj_set_pos(lbl, x_positions[i] + 12, 298);
+    }
+}
+
+// Bubble Screen erstellen
+static void create_screen4_bubble() {
+    screens[UI_SCREEN_BUBBLE] = lv_obj_create(NULL);
+    lv_obj_t* scr = screens[UI_SCREEN_BUBBLE];
+
+    // Bubble Style initialisieren
+    if (!style_bubble_initialized) {
+        style_bubble_initialized = true;
+        lv_style_init(&style_bubble_base);
+        lv_style_set_bg_opa(&style_bubble_base, LV_OPA_20);
+        lv_style_set_radius(&style_bubble_base, LV_RADIUS_CIRCLE);
+        lv_style_set_border_width(&style_bubble_base, 3);
+        lv_style_set_border_opa(&style_bubble_base, LV_OPA_COVER);
+        lv_style_set_shadow_width(&style_bubble_base, 30);
+        lv_style_set_shadow_opa(&style_bubble_base, LV_OPA_40);
+        lv_style_set_shadow_spread(&style_bubble_base, 2);
+    }
+
+    s4_create_background(scr);
+
+    // Uhrzeit (oben mittig, Orbitron Space-Font)
+    s4_lbl_time = lv_label_create(scr);
+    lv_obj_set_style_text_font(s4_lbl_time, FONT_ORBITRON_28, 0);
+    lv_obj_set_style_text_color(s4_lbl_time, COLOR_CARD, 0);
+    lv_obj_set_style_text_letter_space(s4_lbl_time, 3, 0);
+    lv_label_set_text(s4_lbl_time, "00:00");
+    lv_obj_align(s4_lbl_time, LV_ALIGN_TOP_MID, 0, 22);
+
+    // Datum (unter Uhrzeit, Orbitron)
+    s4_lbl_date = lv_label_create(scr);
+    lv_obj_set_style_text_font(s4_lbl_date, FONT_ORBITRON_16, 0);
+    lv_obj_set_style_text_color(s4_lbl_date, COLOR_BUBBLE_TEXT_DIM, 0);
+    lv_obj_set_style_text_letter_space(s4_lbl_date, 1, 0);
+    lv_label_set_text(s4_lbl_date, "Di, 28. Jan 2026");
+    lv_obj_align_to(s4_lbl_date, s4_lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+
+    // Bubble-Positionen (asymmetrisch, gut verteilt über 480x320)
+    // Display: X=0-480, Y verfügbar ca. 60-280 (Header oben, Legende unten)
+    // Max Bubble 110px → Zentren mind. 55px vom Rand
+    const char* labels[] = {"Temp", "Feuchte", "CO2", "PM2.5", "VOC"};
+    const char* units[] = {"C", "%", "ppm", "ug/m3", "ppb"};
+    //                      Temp   Feuchte  CO2    PM2.5   VOC
+    int center_x[] = {      85,    395,     255,   110,    355};
+    int center_y[] = {      100,   110,     160,   245,    255};
+
+    for (int i = 0; i < 5; i++) {
+        s4_bubbles[i].center_x = center_x[i];
+        s4_bubbles[i].center_y = center_y[i];
+        s4_bubbles[i].current_size = BUBBLE_MIN_SIZE;
+
+        int initial_size = BUBBLE_MIN_SIZE;
+        int x = center_x[i] - initial_size / 2;
+        int y = center_y[i] - initial_size / 2;
+
+        // Kreis-Container
+        s4_bubbles[i].container = lv_obj_create(scr);
+        lv_obj_remove_style_all(s4_bubbles[i].container);
+        lv_obj_set_size(s4_bubbles[i].container, initial_size, initial_size);
+        lv_obj_set_pos(s4_bubbles[i].container, x, y);
+        lv_obj_add_style(s4_bubbles[i].container, &style_bubble_base, 0);
+        lv_obj_set_style_bg_color(s4_bubbles[i].container, COLOR_GOOD, 0);
+        lv_obj_set_style_border_color(s4_bubbles[i].container, COLOR_GOOD, 0);
+        lv_obj_set_style_shadow_color(s4_bubbles[i].container, COLOR_GOOD, 0);
+        lv_obj_clear_flag(s4_bubbles[i].container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_style_pad_all(s4_bubbles[i].container, 0, 0);
+
+        // Wert Label
+        s4_bubbles[i].lbl_value = lv_label_create(s4_bubbles[i].container);
+        lv_obj_set_style_text_font(s4_bubbles[i].lbl_value, FONT_28, 0);
+        lv_obj_set_style_text_color(s4_bubbles[i].lbl_value, COLOR_GOOD, 0);
+        lv_label_set_text(s4_bubbles[i].lbl_value, "--");
+        lv_obj_center(s4_bubbles[i].lbl_value);
+
+        // Einheit Label
+        s4_bubbles[i].lbl_unit = lv_label_create(s4_bubbles[i].container);
+        lv_obj_set_style_text_font(s4_bubbles[i].lbl_unit, FONT_12, 0);
+        lv_obj_set_style_text_color(s4_bubbles[i].lbl_unit, COLOR_BUBBLE_TEXT_DIM, 0);
+        lv_label_set_text(s4_bubbles[i].lbl_unit, units[i]);
+        lv_obj_align_to(s4_bubbles[i].lbl_unit, s4_bubbles[i].lbl_value, LV_ALIGN_OUT_BOTTOM_MID, 0, -2);
+
+        // Beschriftung
+        s4_bubbles[i].lbl_label = lv_label_create(s4_bubbles[i].container);
+        lv_obj_set_style_text_font(s4_bubbles[i].lbl_label, FONT_12, 0);
+        lv_obj_set_style_text_color(s4_bubbles[i].lbl_label, COLOR_BUBBLE_TEXT_DIMMER, 0);
+        lv_label_set_text(s4_bubbles[i].lbl_label, labels[i]);
+        lv_obj_align_to(s4_bubbles[i].lbl_label, s4_bubbles[i].lbl_unit, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+    }
+
+    // Keine Legende - Bubbles sind selbsterklärend
+
+    Serial.println("[UI] Screen 4 (Bubble) erstellt");
+}
+
+// Bubble Screen Zeit aktualisieren
+static void update_screen4_time() {
+    if (!s4_lbl_time) return;
+    
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%02d:%02d", cached_hour, cached_min);
+    lv_label_set_text(s4_lbl_time, buf);
+    
+    if (s4_lbl_date) {
+        lv_label_set_text(s4_lbl_date, cached_date);
+    }
+}
+
+// Bubble Screen Sensoren aktualisieren
+static void update_screen4_sensors() {
+    s4_update_bubble(0, cached_temp);
+    s4_update_bubble(1, cached_hum);
+    s4_update_bubble(2, (float)cached_co2);
+    s4_update_bubble(3, (float)cached_pm25);
+    s4_update_bubble(4, (float)cached_voc);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * PUBLIC API FUNKTIONEN
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1621,11 +1946,12 @@ void ui_init() {
     
     init_styles();
     
-    // Alle vier Screens erstellen
+    // Alle fünf Screens erstellen
     create_screen0_tree();   // Baum-Animation (Startbildschirm)
     create_screen1();        // Übersicht (minimalistisch)
     create_screen2();        // Detail (volle Infos)
     create_screen3_analog(); // Analog Cockpit (Instrumente)
+    create_screen4_bubble(); // Dynamische Kreise (Bubbles)
     
     // Mit Screen 0 (Baum-Animation) starten
     current_screen = UI_SCREEN_TREE;
@@ -1697,9 +2023,16 @@ void ui_setScreen(UIScreen screen) {
         Serial.println("[UI] Vor update_screen3_sensors()...");
         Serial.flush();
         update_screen3_sensors();
+    } else if (screen == UI_SCREEN_BUBBLE) {
+        Serial.println("[UI] Vor update_screen4_time()...");
+        Serial.flush();
+        update_screen4_time();
+        Serial.println("[UI] Vor update_screen4_sensors()...");
+        Serial.flush();
+        update_screen4_sensors();
     }
     
-    const char* screen_names[] = {"Baum-Animation", "Übersicht", "Detail", "Analog Cockpit"};
+    const char* screen_names[] = {"Baum-Animation", "Übersicht", "Detail", "Analog Cockpit", "Bubbles"};
     Serial.printf("[UI] Wechsel zu Screen %d (%s) abgeschlossen\n", screen, screen_names[screen]);
     Serial.flush();
 }
@@ -1718,6 +2051,7 @@ void ui_updateTime(int hour, int minute, int second) {
     update_screen1_time();
     update_screen2_time();
     update_screen3_time();
+    update_screen4_time();
 }
 
 void ui_updateDate(const char* date_str) {
@@ -1728,6 +2062,7 @@ void ui_updateDate(const char* date_str) {
     if (s1_lbl_date) lv_label_set_text(s1_lbl_date, cached_date);
     if (s2_lbl_date) lv_label_set_text(s2_lbl_date, cached_date);
     if (s3_lbl_date) lv_label_set_text(s3_lbl_date, cached_date);
+    if (s4_lbl_date) lv_label_set_text(s4_lbl_date, cached_date);
 }
 
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
@@ -1745,6 +2080,7 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     update_screen1_sensors();
     update_screen2_sensors();
     update_screen3_sensors(); // Analog Cockpit
+    update_screen4_sensors(); // Bubbles
 }
 
 void ui_updateSensors(const SensorReadings& readings) {
