@@ -5,6 +5,10 @@
  *
  * Display: 480x320 (ST7796S)
  * Framework: LVGL 9.x
+ * 
+ * Multi-Screen UI System:
+ * - Screen 1 (Übersicht): Große AQI rechts, 2 Kacheln Temp/Hum links
+ * - Screen 2 (Detail): Kleine AQI, 4 Kacheln mit allen Werten
  */
 
 #ifndef UI_MANAGER_H
@@ -23,30 +27,57 @@ LV_FONT_DECLARE(ui_font_28);
 LV_FONT_DECLARE(ui_font_48);
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * SCREEN TYPEN
+ * ═══════════════════════════════════════════════════════════════════════════ */
+enum UIScreen {
+    UI_SCREEN_OVERVIEW = 0,  // Große AQI + 2 Kacheln
+    UI_SCREEN_DETAIL   = 1,  // Kleine AQI + 4 Kacheln
+    UI_SCREEN_COUNT    = 2   // Anzahl der Screens
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * API FUNKTIONEN
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Initialisiert die LVGL UI
+ * Initialisiert alle LVGL UI Screens
  * Muss nach lvgl_init() aufgerufen werden
  */
 void ui_init(void);
 
 /**
- * Aktualisiert die Uhrzeit-Anzeige
+ * Wechselt zum nächsten Screen (zyklisch)
+ */
+void ui_nextScreen(void);
+
+/**
+ * Wechselt zu einem bestimmten Screen
+ * @param screen Der gewünschte Screen
+ */
+void ui_setScreen(UIScreen screen);
+
+/**
+ * Gibt den aktuellen Screen zurück
+ * @return Der aktuelle Screen
+ */
+UIScreen ui_getCurrentScreen(void);
+
+/**
+ * Aktualisiert die Uhrzeit-Anzeige (auf allen Screens)
  * @param hour Stunde (0-23)
  * @param minute Minute (0-59)
+ * @param second Sekunde (0-59)
  */
 void ui_updateTime(int hour, int minute, int second);
 
 /**
- * Aktualisiert das Datum
+ * Aktualisiert das Datum (auf allen Screens)
  * @param date_str Formatierter Datums-String (z.B. "Di, 14. Jan")
  */
 void ui_updateDate(const char* date_str);
 
 /**
- * Aktualisiert alle Sensorwerte
+ * Aktualisiert alle Sensorwerte (auf allen Screens)
  * @param temp Temperatur in °C
  * @param hum Luftfeuchtigkeit in %
  * @param co2 CO2 in ppm

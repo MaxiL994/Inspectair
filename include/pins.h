@@ -25,4 +25,8 @@
 #define PIN_RADAR_TX 6
 #define PIN_RADAR_OUT 15
 
+// UI Navigation Button (Active LOW mit internem Pullup)
+// GPIO 1 (frei)
+#define PIN_UI_BUTTON  1
+
 #endif

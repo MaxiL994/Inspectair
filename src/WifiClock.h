@@ -10,6 +10,7 @@ public:
     
     // Initialisiert WiFi und NTP
     void begin(const char* ssid, const char* password);
+    void begin(const char* ssid1, const char* password1, const char* ssid2, const char* password2);
     
     // Prüft Verbindung (optional im Loop aufrufen)
     void update();
@@ -23,4 +24,8 @@ public:
 private:
     const char* _ssid = nullptr;
     const char* _password = nullptr;
+    const char* _ssid2 = nullptr;
+    const char* _password2 = nullptr;
+
+    bool connectTo(const char* ssid, const char* password, int retries);
 };
