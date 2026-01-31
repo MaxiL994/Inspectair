@@ -123,22 +123,41 @@ bool sensors_radar_read(LD2410C_Data* data) {
     uint16_t moving_dist = radar.movingTargetDistance();
     uint16_t stationary_dist = radar.stationaryTargetDistance();
     
-    // Debug alle 5 Sekunden
-    static unsigned long lastDebug = 0;
-    if (millis() - lastDebug > 5000) {
-      lastDebug = millis();
-      Serial.printf("[RADAR] Moving: %dcm, Stationary: %dcm, Connected: %d\n", 
-                    moving_dist, stationary_dist, radar.isConnected());
-    }
-    
     // Minimum der beiden Distanzen nehmen
     uint16_t min_dist = moving_dist;
     if (stationary_dist > 0 && (min_dist == 0 || stationary_dist < min_dist)) {
       min_dist = stationary_dist;
     }
     
-    // Auslösen bei 10cm oder näher
-    data->presence = (min_dist > 0 && min_dist <= 10) ? 1 : 0;
+    // Erkennung: näher als 10cm
+    bool closeDetected = (min_dist > 0 && min_dist <= 10);
+    
+    // Debug: Sofort ausgeben wenn etwas näher als 10cm ist
+    static bool lastCloseState = false;
+    if (closeDetected && !lastCloseState) {
+      Serial.printf("[RADAR] >>> OBJEKT ERKANNT! Distanz: %d cm <<<\n", min_dist);
+    } else if (!closeDetected && lastCloseState) {
+      Serial.printf("[RADAR] Objekt entfernt (Distanz: %d cm)\n", min_dist);
+    }
+    lastCloseState = closeDetected;
+    
+    // Zusätzlich: Bei Nähe kontinuierlich ausgeben (alle 500ms)
+    static unsigned long lastCloseDebug = 0;
+    if (closeDetected && (millis() - lastCloseDebug > 500)) {
+      lastCloseDebug = millis();
+      Serial.printf("[RADAR] NAHE: %d cm (Moving: %d, Stationary: %d)\n", 
+                    min_dist, moving_dist, stationary_dist);
+    }
+    
+    // Normales Debug alle 5 Sekunden
+    static unsigned long lastDebug = 0;
+    if (millis() - lastDebug > 5000) {
+      lastDebug = millis();
+      Serial.printf("[RADAR] Status: %dcm | Moving: %dcm, Stationary: %dcm\n", 
+                    min_dist, moving_dist, stationary_dist);
+    }
+    
+    data->presence = closeDetected ? 1 : 0;
     data->motion = radar.movingTargetDetected() ? 1 : 0;
     data->distance = min_dist;
     
