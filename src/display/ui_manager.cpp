@@ -47,9 +47,17 @@ LV_IMAGE_DECLARE(img_leaf_red);
 #define FONT_48  &ui_font_48
 
 // Playfair Display fonts (Serif, für Uhrzeit/Branding im Analog-Screen)
+LV_FONT_DECLARE(playfair_12);
 LV_FONT_DECLARE(playfair_14);
+LV_FONT_DECLARE(playfair_20);
+LV_FONT_DECLARE(playfair_28);
+LV_FONT_DECLARE(playfair_32);
 LV_FONT_DECLARE(playfair_48);
+#define FONT_PLAYFAIR_12  &playfair_12
 #define FONT_PLAYFAIR_14  &playfair_14
+#define FONT_PLAYFAIR_20  &playfair_20
+#define FONT_PLAYFAIR_28  &playfair_28
+#define FONT_PLAYFAIR_32  &playfair_32
 #define FONT_PLAYFAIR_48  &playfair_48
 
 // Orbitron fonts (Futuristic/Space, für Bubble-Screen)
@@ -1243,13 +1251,13 @@ static void s3_create_small_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y
     lv_obj_set_style_bg_color(g->needle_center, COLOR_NEEDLE, 0);
     lv_obj_set_style_bg_opa(g->needle_center, LV_OPA_COVER, 0);
 
-    // Wert Label
+    // Wert Label (Playfair 20 mit ° Symbol)
     g->value_label = lv_label_create(g->container);
-    lv_obj_set_style_text_font(g->value_label, FONT_12, 0);
+    lv_obj_set_style_text_font(g->value_label, FONT_PLAYFAIR_20, 0);
     lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
     lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->value_label, 100);
-    lv_obj_set_pos(g->value_label, 0, 72);
+    lv_obj_set_pos(g->value_label, 0, 62);  // Mittig zwischen Gauge (cy=50) und Name
     lv_label_set_text(g->value_label, "--");
 
     // Name Label (Playfair Serif für eleganten Look)
@@ -1258,7 +1266,7 @@ static void s3_create_small_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
     lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->name_label, 100);
-    lv_obj_set_pos(g->name_label, 0, 86);
+    lv_obj_set_pos(g->name_label, 0, 84);  // Unter dem Wert
     lv_label_set_text(g->name_label, name);
 }
 
@@ -1363,13 +1371,13 @@ static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
     lv_obj_set_style_bg_color(g->needle_center, COLOR_NEEDLE, 0);
     lv_obj_set_style_bg_opa(g->needle_center, LV_OPA_COVER, 0);
 
-    // Wert Label
+    // Wert Label (Playfair 32 für große Werte)
     g->value_label = lv_label_create(g->container);
-    lv_obj_set_style_text_font(g->value_label, FONT_28, 0);
+    lv_obj_set_style_text_font(g->value_label, FONT_PLAYFAIR_32, 0);
     lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
     lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->value_label, 220);
-    lv_obj_set_pos(g->value_label, 0, 135);
+    lv_obj_set_pos(g->value_label, 0, 125);  // Mittig zwischen Gauge (cy=110) und Name
     lv_label_set_text(g->value_label, "--");
 
     // Name Label (Playfair Serif für eleganten Look)
@@ -1378,7 +1386,7 @@ static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
     lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->name_label, 220);
-    lv_obj_set_pos(g->name_label, 0, 165);
+    lv_obj_set_pos(g->name_label, 0, 162);  // Unter dem Wert
     lv_label_set_text(g->name_label, name);
 }
 
@@ -1636,7 +1644,7 @@ static void update_screen2_sensors() {
 #define COLOR_BUBBLE_STAR      lv_color_hex(0x6496FF)  // Blau-Weiß Sterne
 
 // Bubble Layout
-#define BUBBLE_MIN_SIZE  80
+#define BUBBLE_MIN_SIZE  95
 #define BUBBLE_MAX_SIZE  130
 
 // Bubble Struktur
