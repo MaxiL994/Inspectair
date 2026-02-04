@@ -1,3 +1,13 @@
+/**
+ * @file pms5003.h
+ * @brief Treiber für PMS5003 Feinstaub-Sensor (UART)
+ * @author Team InspectAir
+ * @date Januar 2026
+ * 
+ * Stellt Funktionen zur Initialisierung und zum kontinuierlichen
+ * Auslesen des PMS5003 Laser-Feinstaubsensors bereit.
+ */
+
 #ifndef SENSORS_PMS5003_H
 #define SENSORS_PMS5003_H
 

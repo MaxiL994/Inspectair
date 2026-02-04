@@ -1,3 +1,13 @@
+/**
+ * @file aht_sgp.h
+ * @brief Treiber für AHT20 (Temperatur/Feuchte) und SGP40 (VOC) I2C-Sensoren
+ * @author Team InspectAir
+ * @date Januar 2026
+ * 
+ * Stellt Funktionen zur Initialisierung und zum Auslesen der
+ * I2C-Sensoren AHT20 und SGP40 bereit.
+ */
+
 #ifndef SENSORS_AHT_SGP_H
 #define SENSORS_AHT_SGP_H
 

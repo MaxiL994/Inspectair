@@ -1,3 +1,13 @@
+/**
+ * @file mhz19c.h
+ * @brief Treiber für MH-Z19C CO2-Sensor (UART)
+ * @author Team InspectAir
+ * @date Januar 2026
+ * 
+ * Stellt Funktionen zur Initialisierung und zum Auslesen des
+ * MH-Z19C NDIR CO2-Sensors über UART bereit.
+ */
+
 #ifndef SENSORS_MHZ19C_H
 #define SENSORS_MHZ19C_H
 

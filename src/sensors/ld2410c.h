@@ -1,3 +1,13 @@
+/**
+ * @file ld2410c.h
+ * @brief Treiber für LD2410C Radar-Präsenzsensor (UART)
+ * @author Team InspectAir
+ * @date Januar 2026
+ * 
+ * Stellt Funktionen zur Initialisierung und zum Auslesen des
+ * LD2410C mmWave-Radar-Sensors für Präsenz- und Bewegungserkennung bereit.
+ */
+
 #ifndef SENSORS_LD2410_H
 #define SENSORS_LD2410_H
 
