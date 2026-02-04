@@ -76,20 +76,21 @@ const char* months[] = {"Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
 
 /**
  * Formatiert das aktuelle Datum im Format "Di, 14. Jan 2026"
+ * @param buf Ziel-Buffer für den formatierten String
+ * @param len Größe des Buffers
  */
-String getFormattedDateString() {
+void getFormattedDateString(char* buf, size_t len) {
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
-        return "--.--.----";
+        snprintf(buf, len, "--.--.----");
+        return;
     }
     
-    char buf[32];
-    snprintf(buf, sizeof(buf), "%s, %d. %s %d", 
+    snprintf(buf, len, "%s, %d. %s %d", 
              weekdays[timeinfo.tm_wday],
              timeinfo.tm_mday,
              months[timeinfo.tm_mon],
              timeinfo.tm_year + 1900);
-    return String(buf);
 }
 
 // ============================================
@@ -241,7 +242,7 @@ void setup() {
     Serial.println("[INFO] Display-Update: Klima alle 60s, Luft alle 12s");
     Serial.println("[INFO] Zeit-Update jede Sekunde (äquidistant)");
     #ifdef UI_BUTTON_ENABLED
-    Serial.println("[INFO] UI-Button aktiv auf GPIO " + String(PIN_UI_BUTTON));
+    Serial.printf("[INFO] UI-Button aktiv auf GPIO %d\n", PIN_UI_BUTTON);
     #else
     Serial.println("[INFO] UI-Button deaktiviert (UI_BUTTON_ENABLED nicht definiert)");
     #endif
@@ -275,9 +276,9 @@ void loop() {
         last_radar_ok = millis();
     }
     
-    // === UHRZEIT UPDATE (jede Sekunde, äquidistant) ===
-    if (millis() - lastTimeUpdate >= 1000) {
-        lastTimeUpdate += 1000;  // Feste Intervalle statt Drift
+    // === UHRZEIT UPDATE (500ms für flüssige Sekunden-Anzeige) ===
+    if (millis() - lastTimeUpdate >= 500) {
+        lastTimeUpdate = millis();  // Nicht äquidistant, da Sekunden-Display wichtiger
         
         struct tm timeinfo;
         if (getLocalTime(&timeinfo)) {
@@ -285,7 +286,9 @@ void loop() {
             ui_updateTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
             
             // Datum aktualisieren
-            ui_updateDate(getFormattedDateString().c_str());
+            char dateBuf[32];
+            getFormattedDateString(dateBuf, sizeof(dateBuf));
+            ui_updateDate(dateBuf);
         }
     }
     
@@ -376,6 +379,6 @@ void loop() {
         Serial.printf("[HISTORY]  Einträge: %d\n", sensorHistory.getEntryCount());
     }
     
-    // Kleine Pause für Stabilität
-    delay(5);
+    // CPU-Zeit für FreeRTOS Tasks freigeben
+    yield();
 }
