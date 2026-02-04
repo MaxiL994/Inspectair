@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" width="1200" height="1600">
+  <defs>
+    <style>
+      .title { font: bold 16px Arial; fill: #000; }
+      .section-title { font: bold 12px Arial; fill: #000; }
+      .label { font: 10px Arial; fill: #000; }
+      .pin { font: 9px monospace; fill: #000; }
+      .value { font: 9px Arial; fill: #000; }
+      .wire { stroke: #000; stroke-width: 1.2; fill: none; }
+      .wire-pwr { stroke: #c00; stroke-width: 1.2; fill: none; }
+      .wire-gnd { stroke: #000; stroke-width: 1.5; fill: none; }
+      .component { stroke: #000; stroke-width: 1.2; fill: none; }
+      .box { fill: #fff; stroke: #000; stroke-width: 1; }
+      .node { fill: #000; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="1600" fill="#fff"/>
+  
+  <!-- Border -->
+  <rect x="20" y="20" width="1160" height="1560" fill="none" stroke="#000" stroke-width="2"/>
+  
+  <!-- Title Block -->
+  <rect x="20" y="20" width="1160" height="50" fill="#f0f0f0" stroke="#000"/>
+  <text x="40" y="52" class="title">INSPECTAIR - Schaltplan</text>
+  <text x="500" y="52" class="label">Luftqualitätsmonitor | ESP32-S3 | DHBW MCT1</text>
+  <text x="1000" y="45" class="label">v6.0</text>
+  <text x="1000" y="60" class="label">Feb 2026</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 1: I²C BUS (AHT20 + SGP40) -->
+  <!-- ================================================================ -->
+  
+  <rect x="40" y="90" width="540" height="280" class="box"/>
+  <text x="60" y="115" class="section-title">1. I²C Bus - Temperatur, Feuchte, VOC</text>
+  
+  <!-- 3.3V Rail -->
+  <line x1="80" y1="150" x2="500" y2="150" class="wire-pwr"/>
+  <text x="85" y="145" class="pin">+3.3V</text>
+  
+  <!-- GND Rail -->
+  <line x1="80" y1="340" x2="500" y2="340" class="wire-gnd"/>
+  <text x="85" y="355" class="pin">GND</text>
+  <!-- GND Symbol -->
+  <line x1="280" y1="340" x2="280" y2="350" class="wire-gnd"/>
+  <line x1="270" y1="350" x2="290" y2="350" class="wire-gnd"/>
+  <line x1="274" y1="355" x2="286" y2="355" class="wire-gnd"/>
+  <line x1="278" y1="360" x2="282" y2="360" class="wire-gnd"/>
+  
+  <!-- AHT20 Box -->
+  <rect x="100" y="200" width="100" height="80" class="box"/>
+  <text x="120" y="220" class="label">AHT20</text>
+  <text x="110" y="240" class="pin">Temp+Hum</text>
+  <text x="110" y="255" class="pin">I²C 0x38</text>
+  <text x="110" y="275" class="pin">VCC GND SDA SCL</text>
+  
+  <!-- AHT20 connections -->
+  <line x1="115" y1="200" x2="115" y2="150" class="wire-pwr"/>
+  <circle cx="115" cy="150" r="2" class="node"/>
+  <line x1="135" y1="280" x2="135" y2="340" class="wire-gnd"/>
+  <circle cx="135" cy="340" r="2" class="node"/>
+  <line x1="155" y1="280" x2="155" y2="310" class="wire"/>
+  <line x1="175" y1="280" x2="175" y2="310" class="wire"/>
+  
+  <!-- SGP40 Box -->
+  <rect x="250" y="200" width="100" height="80" class="box"/>
+  <text x="275" y="220" class="label">SGP40</text>
+  <text x="265" y="240" class="pin">VOC Sensor</text>
+  <text x="265" y="255" class="pin">I²C 0x59</text>
+  <text x="260" y="275" class="pin">VCC GND SDA SCL</text>
+  
+  <!-- SGP40 connections -->
+  <line x1="265" y1="200" x2="265" y2="150" class="wire-pwr"/>
+  <circle cx="265" cy="150" r="2" class="node"/>
+  <line x1="285" y1="280" x2="285" y2="340" class="wire-gnd"/>
+  <circle cx="285" cy="340" r="2" class="node"/>
+  <line x1="305" y1="280" x2="305" y2="310" class="wire"/>
+  <line x1="325" y1="280" x2="325" y2="310" class="wire"/>
+  
+  <!-- I2C Bus Lines -->
+  <line x1="155" y1="310" x2="450" y2="310" class="wire"/>
+  <text x="460" y="314" class="pin">SDA → GPIO8</text>
+  <circle cx="305" cy="310" r="2" class="node"/>
+  
+  <line x1="175" y1="310" x2="175" y2="320" class="wire"/>
+  <line x1="175" y1="320" x2="450" y2="320" class="wire"/>
+  <text x="460" y="324" class="pin">SCL → GPIO9</text>
+  <circle cx="325" cy="320" r="2" class="node"/>
+  
+  <!-- Pull-up Resistors -->
+  <!-- R1 (SDA) -->
+  <line x1="400" y1="310" x2="400" y2="290" class="wire"/>
+  <line x1="400" y1="290" x2="395" y2="285" class="component"/>
+  <line x1="395" y1="285" x2="405" y2="275" class="component"/>
+  <line x1="405" y1="275" x2="395" y2="265" class="component"/>
+  <line x1="395" y1="265" x2="405" y2="255" class="component"/>
+  <line x1="405" y1="255" x2="400" y2="250" class="component"/>
+  <line x1="400" y1="250" x2="400" y2="150" class="wire-pwr"/>
+  <circle cx="400" cy="150" r="2" class="node"/>
+  <circle cx="400" cy="310" r="2" class="node"/>
+  <text x="408" y="275" class="value">4.7kΩ</text>
+  
+  <!-- R2 (SCL) -->
+  <line x1="440" y1="320" x2="440" y2="290" class="wire"/>
+  <line x1="440" y1="290" x2="435" y2="285" class="component"/>
+  <line x1="435" y1="285" x2="445" y2="275" class="component"/>
+  <line x1="445" y1="275" x2="435" y2="265" class="component"/>
+  <line x1="435" y1="265" x2="445" y2="255" class="component"/>
+  <line x1="445" y1="255" x2="440" y2="250" class="component"/>
+  <line x1="440" y1="250" x2="440" y2="150" class="wire-pwr"/>
+  <circle cx="440" cy="150" r="2" class="node"/>
+  <circle cx="440" cy="320" r="2" class="node"/>
+  <text x="448" y="275" class="value">4.7kΩ</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 2: MH-Z19C CO2 Sensor -->
+  <!-- ================================================================ -->
+  
+  <rect x="600" y="90" width="560" height="280" class="box"/>
+  <text x="620" y="115" class="section-title">2. MH-Z19C - CO₂ Sensor (UART)</text>
+  
+  <!-- 5V Rail -->
+  <line x1="640" y1="150" x2="1060" y2="150" class="wire-pwr"/>
+  <text x="645" y="145" class="pin">+5V</text>
+  
+  <!-- GND Rail -->
+  <line x1="640" y1="340" x2="1060" y2="340" class="wire-gnd"/>
+  <text x="645" y="355" class="pin">GND</text>
+  <line x1="850" y1="340" x2="850" y2="350" class="wire-gnd"/>
+  <line x1="840" y1="350" x2="860" y2="350" class="wire-gnd"/>
+  <line x1="844" y1="355" x2="856" y2="355" class="wire-gnd"/>
+  <line x1="848" y1="360" x2="852" y2="360" class="wire-gnd"/>
+  
+  <!-- MH-Z19C Box -->
+  <rect x="680" y="200" width="120" height="90" class="box"/>
+  <text x="705" y="225" class="label">MH-Z19C</text>
+  <text x="695" y="245" class="pin">CO₂ Sensor</text>
+  <text x="695" y="260" class="pin">UART 9600</text>
+  <text x="690" y="280" class="pin">VCC GND TX RX</text>
+  
+  <!-- Capacitor (220µF) -->
+  <line x1="700" y1="200" x2="700" y2="180" class="wire"/>
+  <line x1="700" y1="180" x2="850" y2="180" class="wire"/>
+  <line x1="850" y1="180" x2="850" y2="165" class="wire"/>
+  <!-- Capacitor symbol -->
+  <line x1="840" y1="165" x2="860" y2="165" class="component" stroke-width="2"/>
+  <line x1="840" y1="160" x2="860" y2="160" class="component" stroke-width="2"/>
+  <line x1="850" y1="160" x2="850" y2="150" class="wire-pwr"/>
+  <circle cx="850" cy="150" r="2" class="node"/>
+  <text x="865" y="165" class="value">220µF</text>
+  <text x="865" y="178" class="value">25V</text>
+  
+  <!-- Capacitor GND -->
+  <line x1="850" y1="165" x2="850" y2="340" class="wire-gnd"/>
+  <circle cx="850" cy="340" r="2" class="node"/>
+  
+  <!-- MH-Z19C GND -->
+  <line x1="720" y1="290" x2="720" y2="340" class="wire-gnd"/>
+  <circle cx="720" cy="340" r="2" class="node"/>
+  
+  <!-- UART connections -->
+  <line x1="760" y1="290" x2="760" y2="310" class="wire"/>
+  <line x1="760" y1="310" x2="1060" y2="310" class="wire"/>
+  <text x="1000" y="305" class="pin">TX → GPIO16</text>
+  
+  <line x1="780" y1="290" x2="780" y2="320" class="wire"/>
+  <line x1="780" y1="320" x2="1060" y2="320" class="wire"/>
+  <text x="1000" y="335" class="pin">RX ← GPIO15</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 3: PMS5003 Feinstaub -->
+  <!-- ================================================================ -->
+  
+  <rect x="40" y="390" width="540" height="280" class="box"/>
+  <text x="60" y="415" class="section-title">3. PMS5003 - Feinstaub Sensor (UART)</text>
+  
+  <!-- 5V Rail -->
+  <line x1="80" y1="450" x2="500" y2="450" class="wire-pwr"/>
+  <text x="85" y="445" class="pin">+5V</text>
+  
+  <!-- GND Rail -->
+  <line x1="80" y1="640" x2="500" y2="640" class="wire-gnd"/>
+  <text x="85" y="655" class="pin">GND</text>
+  <line x1="280" y1="640" x2="280" y2="650" class="wire-gnd"/>
+  <line x1="270" y1="650" x2="290" y2="650" class="wire-gnd"/>
+  <line x1="274" y1="655" x2="286" y2="655" class="wire-gnd"/>
+  <line x1="278" y1="660" x2="282" y2="660" class="wire-gnd"/>
+  
+  <!-- PMS5003 Box -->
+  <rect x="120" y="500" width="120" height="90" class="box"/>
+  <text x="145" y="525" class="label">PMS5003</text>
+  <text x="135" y="545" class="pin">PM1.0/2.5/10</text>
+  <text x="135" y="560" class="pin">UART 9600</text>
+  <text x="130" y="580" class="pin">VCC GND TX RX</text>
+  
+  <!-- PMS5003 Power -->
+  <line x1="140" y1="500" x2="140" y2="450" class="wire-pwr"/>
+  <circle cx="140" cy="450" r="2" class="node"/>
+  
+  <!-- PMS5003 GND -->
+  <line x1="165" y1="590" x2="165" y2="640" class="wire-gnd"/>
+  <circle cx="165" cy="640" r="2" class="node"/>
+  
+  <!-- UART connections -->
+  <line x1="205" y1="590" x2="205" y2="610" class="wire"/>
+  <line x1="205" y1="610" x2="500" y2="610" class="wire"/>
+  <text x="440" y="605" class="pin">TX → GPIO17</text>
+  
+  <line x1="225" y1="590" x2="225" y2="620" class="wire"/>
+  <line x1="225" y1="620" x2="500" y2="620" class="wire"/>
+  <text x="440" y="635" class="pin">RX ← GPIO18</text>
+  
+  <text x="130" y="605" class="value" style="font-style:italic;">Molex 1.25mm</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 4: LD2410C Radar + Level Shifter -->
+  <!-- ================================================================ -->
+  
+  <rect x="600" y="390" width="560" height="280" class="box"/>
+  <text x="620" y="415" class="section-title">4. LD2410C - Präsenzradar (UART) + Level Shifter</text>
+  
+  <!-- 5V Rail -->
+  <line x1="640" y1="450" x2="1060" y2="450" class="wire-pwr"/>
+  <text x="645" y="445" class="pin">+5V</text>
+  
+  <!-- 3.3V Rail -->
+  <line x1="640" y1="470" x2="1060" y2="470" class="wire-pwr" stroke-dasharray="4,2"/>
+  <text x="645" y="485" class="pin">+3.3V</text>
+  
+  <!-- GND Rail -->
+  <line x1="640" y1="640" x2="1060" y2="640" class="wire-gnd"/>
+  <text x="645" y="655" class="pin">GND</text>
+  <line x1="850" y1="640" x2="850" y2="650" class="wire-gnd"/>
+  <line x1="840" y1="650" x2="860" y2="650" class="wire-gnd"/>
+  <line x1="844" y1="655" x2="856" y2="655" class="wire-gnd"/>
+  <line x1="848" y1="660" x2="852" y2="660" class="wire-gnd"/>
+  
+  <!-- LD2410C Box -->
+  <rect x="680" y="510" width="120" height="90" class="box"/>
+  <text x="705" y="535" class="label">LD2410C</text>
+  <text x="695" y="555" class="pin">24GHz Radar</text>
+  <text x="695" y="570" class="pin">UART 256000</text>
+  <text x="690" y="590" class="pin">VCC GND TX RX</text>
+  
+  <!-- Capacitor (220µF) for Radar -->
+  <line x1="700" y1="510" x2="700" y2="490" class="wire"/>
+  <line x1="700" y1="490" x2="780" y2="490" class="wire"/>
+  <line x1="780" y1="490" x2="780" y2="465" class="wire"/>
+  <line x1="770" y1="465" x2="790" y2="465" class="component" stroke-width="2"/>
+  <line x1="770" y1="460" x2="790" y2="460" class="component" stroke-width="2"/>
+  <line x1="780" y1="460" x2="780" y2="450" class="wire-pwr"/>
+  <circle cx="780" cy="450" r="2" class="node"/>
+  <text x="795" y="465" class="value">220µF</text>
+  
+  <!-- Capacitor GND -->
+  <line x1="780" y1="465" x2="780" y2="640" class="wire-gnd"/>
+  <circle cx="780" cy="640" r="2" class="node"/>
+  
+  <!-- LD2410C GND -->
+  <line x1="720" y1="600" x2="720" y2="640" class="wire-gnd"/>
+  <circle cx="720" cy="640" r="2" class="node"/>
+  
+  <!-- Level Shifter Box -->
+  <rect x="880" y="520" width="100" height="70" class="box" stroke-dasharray="4,2"/>
+  <text x="890" y="542" class="label">Level Shifter</text>
+  <text x="890" y="560" class="pin">HV=5V  LV=3.3V</text>
+  <text x="895" y="580" class="pin">Bidirektional</text>
+  
+  <!-- Level Shifter power -->
+  <line x1="900" y1="520" x2="900" y2="450" class="wire-pwr"/>
+  <circle cx="900" cy="450" r="2" class="node"/>
+  <line x1="960" y1="520" x2="960" y2="470" class="wire-pwr" stroke-dasharray="4,2"/>
+  <circle cx="960" cy="470" r="2" class="node"/>
+  
+  <!-- TX through Level Shifter -->
+  <line x1="760" y1="600" x2="760" y2="555" class="wire"/>
+  <line x1="760" y1="555" x2="880" y2="555" class="wire"/>
+  <text x="815" y="550" class="value">5V!</text>
+  <line x1="980" y1="555" x2="1060" y2="555" class="wire"/>
+  <text x="1000" y="550" class="pin">→ GPIO6</text>
+  
+  <!-- RX direct (3.3V OK) -->
+  <line x1="780" y1="600" x2="780" y2="610" class="wire"/>
+  <line x1="780" y1="610" x2="1060" y2="610" class="wire"/>
+  <text x="1000" y="625" class="pin">← GPIO7</text>
+  <text x="850" y="625" class="value">(3.3V OK)</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 5: Display ST7796S (SPI) -->
+  <!-- ================================================================ -->
+  
+  <rect x="40" y="690" width="540" height="280" class="box"/>
+  <text x="60" y="715" class="section-title">5. ST7796S - Display 4" TFT (SPI)</text>
+  
+  <!-- 3.3V Rail -->
+  <line x1="80" y1="750" x2="500" y2="750" class="wire-pwr" stroke-dasharray="4,2"/>
+  <text x="85" y="745" class="pin">+3.3V</text>
+  
+  <!-- GND Rail -->
+  <line x1="80" y1="940" x2="500" y2="940" class="wire-gnd"/>
+  <text x="85" y="955" class="pin">GND</text>
+  <line x1="280" y1="940" x2="280" y2="950" class="wire-gnd"/>
+  <line x1="270" y1="950" x2="290" y2="950" class="wire-gnd"/>
+  <line x1="274" y1="955" x2="286" y2="955" class="wire-gnd"/>
+  <line x1="278" y1="960" x2="282" y2="960" class="wire-gnd"/>
+  
+  <!-- Display Box -->
+  <rect x="100" y="790" width="140" height="110" class="box"/>
+  <text x="125" y="815" class="label">ST7796S</text>
+  <text x="115" y="835" class="pin">4" TFT 480×320</text>
+  <text x="115" y="855" class="pin">SPI Interface</text>
+  <text x="110" y="880" class="pin">VCC GND RST</text>
+  <text x="110" y="895" class="pin">MOSI SCK DC CS</text>
+  
+  <!-- Display Power -->
+  <line x1="120" y1="790" x2="120" y2="750" class="wire-pwr" stroke-dasharray="4,2"/>
+  <circle cx="120" cy="750" r="2" class="node"/>
+  
+  <!-- Display GND -->
+  <line x1="150" y1="900" x2="150" y2="940" class="wire-gnd"/>
+  <circle cx="150" cy="940" r="2" class="node"/>
+  
+  <!-- SPI connections -->
+  <line x1="180" y1="900" x2="180" y2="910" class="wire"/>
+  <line x1="180" y1="910" x2="500" y2="910" class="wire"/>
+  <text x="440" y="905" class="pin">RST ← GPIO10</text>
+  
+  <line x1="120" y1="900" x2="120" y2="920" class="wire"/>
+  <line x1="120" y1="920" x2="500" y2="920" class="wire"/>
+  <text x="430" y="935" class="pin">MOSI ← GPIO11</text>
+  
+  <text x="300" y="870" class="pin">SCK ← GPIO12</text>
+  <text x="300" y="885" class="pin">DC  ← GPIO13</text>
+  <text x="300" y="900" class="pin">CS  ← GPIO14</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 6: Backlight PWM mit BS170 -->
+  <!-- ================================================================ -->
+  
+  <rect x="600" y="690" width="560" height="280" class="box"/>
+  <text x="620" y="715" class="section-title">6. Backlight PWM - BS170 MOSFET</text>
+  
+  <!-- GND Rail -->
+  <line x1="640" y1="940" x2="1060" y2="940" class="wire-gnd"/>
+  <text x="645" y="955" class="pin">GND</text>
+  <line x1="850" y1="940" x2="850" y2="950" class="wire-gnd"/>
+  <line x1="840" y1="950" x2="860" y2="950" class="wire-gnd"/>
+  <line x1="844" y1="955" x2="856" y2="955" class="wire-gnd"/>
+  <line x1="848" y1="960" x2="852" y2="960" class="wire-gnd"/>
+  
+  <!-- GPIO21 Input -->
+  <text x="660" y="820" class="pin">GPIO21 (PWM)</text>
+  <line x1="750" y1="815" x2="780" y2="815" class="wire"/>
+  
+  <!-- Resistor 1kΩ -->
+  <line x1="780" y1="815" x2="785" y2="810" class="component"/>
+  <line x1="785" y1="810" x2="795" y2="820" class="component"/>
+  <line x1="795" y1="820" x2="805" y2="810" class="component"/>
+  <line x1="805" y1="810" x2="815" y2="820" class="component"/>
+  <line x1="815" y1="820" x2="825" y2="810" class="component"/>
+  <line x1="825" y1="810" x2="830" y2="815" class="component"/>
+  <text x="790" y="805" class="value">1kΩ</text>
+  
+  <!-- MOSFET BS170 Symbol -->
+  <line x1="830" y1="815" x2="860" y2="815" class="wire"/>
+  <!-- Gate line -->
+  <line x1="860" y1="815" x2="860" y2="850" class="component"/>
+  <line x1="860" y1="850" x2="870" y2="850" class="component"/>
+  <!-- Channel -->
+  <line x1="870" y1="780" x2="870" y2="920" class="component" stroke-width="2"/>
+  <!-- Drain -->
+  <line x1="875" y1="790" x2="875" y2="810" class="component"/>
+  <line x1="875" y1="800" x2="920" y2="800" class="wire"/>
+  <text x="925" y="805" class="pin">D → BL+ (Display)</text>
+  <!-- Source -->
+  <line x1="875" y1="890" x2="875" y2="910" class="component"/>
+  <line x1="875" y1="900" x2="920" y2="900" class="wire"/>
+  <line x1="920" y1="900" x2="920" y2="940" class="wire-gnd"/>
+  <circle cx="920" cy="940" r="2" class="node"/>
+  <text x="925" y="905" class="pin">S → GND</text>
+  <!-- Arrow -->
+  <line x1="875" y1="850" x2="885" y2="850" class="component"/>
+  <line x1="882" y1="847" x2="885" y2="850" class="component"/>
+  <line x1="882" y1="853" x2="885" y2="850" class="component"/>
+  
+  <text x="890" y="850" class="label">BS170</text>
+  <text x="890" y="865" class="value">N-MOSFET</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 7: ESP32-S3 Pin Summary -->
+  <!-- ================================================================ -->
+  
+  <rect x="40" y="990" width="1120" height="200" class="box"/>
+  <text x="60" y="1015" class="section-title">7. ESP32-S3-WROOM N8R8 - Pin-Belegung</text>
+  
+  <!-- ESP32 Box -->
+  <rect x="400" y="1040" width="360" height="130" fill="#e3f2fd" stroke="#1565c0" stroke-width="2" rx="5"/>
+  <text x="500" y="1070" class="label" style="font-size:12px;">ESP32-S3-WROOM N8R8</text>
+  <text x="530" y="1090" class="value">(Waveshare DevKit)</text>
+  
+  <!-- Left pins -->
+  <text x="80" y="1070" class="pin">GPIO6  ← Radar RX (via Shifter)</text>
+  <text x="80" y="1090" class="pin">GPIO7  → Radar TX</text>
+  <text x="80" y="1110" class="pin">GPIO8  ↔ I²C SDA</text>
+  <text x="80" y="1130" class="pin">GPIO9  ↔ I²C SCL</text>
+  <text x="80" y="1150" class="pin">GPIO15 → CO2 TX</text>
+  <text x="80" y="1170" class="pin">GPIO16 ← CO2 RX</text>
+  
+  <!-- Right pins -->
+  <text x="800" y="1070" class="pin">GPIO10 → TFT RST</text>
+  <text x="800" y="1090" class="pin">GPIO11 → TFT MOSI</text>
+  <text x="800" y="1110" class="pin">GPIO12 → TFT SCK</text>
+  <text x="800" y="1130" class="pin">GPIO13 → TFT DC</text>
+  <text x="800" y="1150" class="pin">GPIO14 → TFT CS</text>
+  <text x="800" y="1170" class="pin">GPIO21 → Backlight PWM</text>
+  
+  <!-- Middle pins -->
+  <text x="420" y="1120" class="pin">GPIO17 ← PMS RX</text>
+  <text x="420" y="1140" class="pin">GPIO18 → PMS TX</text>
+  <text x="560" y="1120" class="pin" style="fill:#c00;">5V IN (USB-C)</text>
+  <text x="560" y="1140" class="pin" style="fill:#c00;">3.3V OUT</text>
+  <text x="560" y="1160" class="pin">GND</text>
+  
+  <!-- ================================================================ -->
+  <!-- SECTION 8: Kritische Hinweise -->
+  <!-- ================================================================ -->
+  
+  <rect x="40" y="1210" width="1120" height="180" fill="#ffebee" stroke="#c00" stroke-width="2"/>
+  <text x="60" y="1235" class="section-title" style="fill:#c00;">⚠ KRITISCHE HINWEISE</text>
+  
+  <text x="60" y="1265" class="label">1. Level Shifter für LD2410C TX (PFLICHT!):</text>
+  <text x="80" y="1285" class="value">Der Radar sendet mit 5V Pegel. ESP32-S3 GPIOs sind NICHT 5V-tolerant (max 3.3V)!</text>
+  <text x="80" y="1300" class="value">→ Bidirektionalen Level Shifter zwischen Radar TX und GPIO6 verwenden.</text>
+  
+  <text x="60" y="1330" class="label">2. Stützkondensatoren 220µF 25V (PFLICHT!):</text>
+  <text x="80" y="1350" class="value">An VCC von MH-Z19C und LD2410C anbringen. Verhindert Spannungseinbrüche bei Stromspitzen.</text>
+  
+  <text x="60" y="1380" class="label">3. I²C Pull-up Widerstände 4.7kΩ:</text>
+  <text x="80" y="1400" class="value">SDA und SCL jeweils über 4.7kΩ nach 3.3V ziehen.</text>
+  
+  <!-- ================================================================ -->
+  <!-- FOOTER -->
+  <!-- ================================================================ -->
+  
+  <rect x="20" y="1540" width="1160" height="40" fill="#f0f0f0" stroke="#000"/>
+  <text x="40" y="1565" class="label">InspectAir_Schaltplan_v6.svg | DHBW Ravensburg MCT1 | Team: Jannis Messer, Maximilian Liebl, Cedric Stroh | Februar 2026</text>
+  <text x="1050" y="1565" class="label">Blatt 1/1</text>
+  
+</svg>

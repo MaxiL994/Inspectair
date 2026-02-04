@@ -1,0 +1,80 @@
+**INSPECTAIR**
+
+Risk & Opportunities Analysis
+
+1\. Risiken
+
+  -------- ---------------------- ----------------------- ------------ --------------------
+  **ID**   **Risiko**             **Auswirkung**          **Stufe**    **Mitigation**
+
+  **R1**   Systemabsturz durch    System instabil,        **HOCH**     220µF
+           Stromspitzen           unzuverlässig                        Stützkondensatoren
+                                                                       an CO2 + Radar
+
+  **R2**   ESP32 Zerstörung durch Hardware-Totalschaden   **HOCH**     Level Shifter für
+           5V                                                          LD2410C TX zwingend!
+
+  **R3**   Zeitplan-Verzögerung   Features gestrichen     **MITTEL**   Puffer eingeplant,
+                                                                       Deep Sleep optional
+
+  **R4**   Sensor-Ausfall         Unvollständige          **MITTEL**   Fehlertolerantes
+                                  Messwerte                            Design, ok-Flags
+
+  **R5**   I2C-Adresskonflikt     Sensoren nicht          NIEDRIG      Unterschiedliche
+                                  ansprechbar                          Adressen (0x38,
+                                                                       0x59)
+
+  **R6**   Display-Lesbarkeit     Schlechte UX            NIEDRIG      Große Schrift,
+                                                                       Farbkontrast, 2
+                                                                       UI-Modi
+  -------- ---------------------- ----------------------- ------------ --------------------
+
+2\. Opportunities
+
+  -------- ------------------- ---------------------------- -----------------------
+  **ID**   **Opportunity**     **Nutzen**                   **Umsetzung**
+
+  **O1**   WiFi-Anbindung      Datenlogging, Smart Home     ESP32 hat WiFi,
+                               Integration                  Erweiterung möglich
+
+  **O2**   Batteriebetrieb     Mobiler Einsatz              Deep Sleep macht das
+                                                            möglich
+
+  **O3**   Mehrere UI-Themes   Personalisierung             LVGL-Architektur
+                                                            erlaubt einfache
+                                                            Erweiterung
+
+  **O4**   Alarm-Funktion      Akustische Warnung bei       Buzzer an freiem GPIO
+                               kritischen Werten            
+
+  **O5**   SD-Karten-Logging   Langzeit-Datenaufzeichnung   SPI-Slot vorhanden
+  -------- ------------------- ---------------------------- -----------------------
+
+3\. Kosten
+
+  ------------------------------ --------------- ------------ --------------
+  **Komponente**                 **Quelle**      **Preis**    **Anz.**
+
+  ESP32-S3 DevKit (Waveshare)    AliExpress      \~15€        1
+
+  ST7796S 4\" Display            AliExpress      \~12€        1
+
+  MH-Z19C CO2-Sensor             AliExpress      \~18€        1
+
+  PMS5003 Feinstaubsensor        AliExpress      \~15€        1
+
+  SGP40 VOC-Sensor               AliExpress      \~8€         1
+
+  AHT20 Temp/Feuchte             AliExpress      \~3€         1
+
+  LD2410C Radar                  AliExpress      \~5€         1
+
+  Level Shifter, MOSFET,         Lokal/Online    \~10€        \-
+  Kondensatoren, etc.                                         
+
+  Holzgehäuse + Material         Baumarkt        \~15€        1
+
+  **GESAMT**                                     **\~100€**   
+  ------------------------------ --------------- ------------ --------------
+
+*--- Ende des Dokuments ---*

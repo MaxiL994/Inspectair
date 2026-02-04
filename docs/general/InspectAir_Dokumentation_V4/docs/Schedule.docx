@@ -1,0 +1,109 @@
+**INSPECTAIR**
+
+Project Schedule
+
+Zeitplan und Meilensteine
+
+  ---------------------- ------------------------------------------------
+  **Projektstart**       November 2025
+
+  **Abgabe**             13\. März 2026
+
+  **Präsentation**       März 2026 (TBD)
+
+  **Team**               Maxi, Jannis, Cedric
+  ---------------------- ------------------------------------------------
+
+1\. Meilensteine
+
+  --------- ---------------- ------------------------------ --------------
+  **MS**    **Datum**        **Meilenstein**                **Status**
+
+  **M1**    Nov 2025         Pitch-Präsentation             ✓ Erledigt
+
+  **M2**    Dez 2025         Hardware beschafft &           ✓ Erledigt
+                             Einzeltests                    
+
+  **M3**    Jan 2026         Hardware-Integration komplett  ⏳ In Arbeit
+
+  **M4**    Feb 2026         Software fertig (beide UIs)    ○ Offen
+
+  **M5**    Feb 2026         Gehäuse fertig                 ○ Offen
+
+  **M6**    Mär 2026         Testing & Dokumentation        ○ Offen
+
+  **M7**    13.03.2026       ABGABE                         ○ Deadline
+  --------- ---------------- ------------------------------ --------------
+
+2\. Detailplan
+
+Phase 1: Hardware (Dez 2025 - Jan 2026)
+
+  ------------------------------------- -------------------- --------------
+  **Aufgabe**                           **Verantwortlich**   **Status**
+
+  Bauteile bestellen                    Maxi                 ✓
+
+  Einzeltests Sensoren                  Alle                 ✓
+
+  Display-Test                          Jannis               ✓
+
+  Level Shifter + Kondensatoren         Cedric               ⏳
+  einbauen                                                   
+
+  MOSFET Backlight-Schaltung            Maxi                 ○
+
+  Komplett-Verkabelung                  Alle                 ○
+  ------------------------------------- -------------------- --------------
+
+Phase 2: Software (Jan - Feb 2026)
+
+  ------------------------------------- -------------------- --------------
+  **Aufgabe**                           **Verantwortlich**   **Status**
+
+  Sensor-Modul implementieren           Maxi                 ○
+
+  Display-Modul (LovyanGFX + LVGL)      Jannis               ○
+
+  Clean-UI Design & Implementierung     Jannis               ○
+
+  Detailed-UI Design & Implementierung  Cedric               ○
+
+  Button-Handler (UI-Wechsel)           Maxi                 ○
+
+  Radar-Integration (Dimming/Wake)      Cedric               ○
+
+  Deep Sleep Implementierung (optional) Maxi                 ○
+  ------------------------------------- -------------------- --------------
+
+Phase 3: Gehäuse (Feb 2026)
+
+  ------------------------------------- -------------------- --------------
+  **Aufgabe**                           **Verantwortlich**   **Status**
+
+  Holzbox beschaffen/bauen              Cedric               ○
+
+  Display-Ausschnitt sägen              Cedric               ○
+
+  Lüftungsschlitze für Sensoren         Cedric               ○
+
+  Komponenten einbauen & befestigen     Alle                 ○
+  ------------------------------------- -------------------- --------------
+
+Phase 4: Test & Doku (Mär 2026)
+
+  ------------------------------------- -------------------- --------------
+  **Aufgabe**                           **Verantwortlich**   **Status**
+
+  Integrationstests durchführen         Alle                 ○
+
+  Testprotokolle ausfüllen              Maxi                 ○
+
+  Dokumentation finalisieren            Alle                 ○
+
+  Code-Review & Cleanup                 Maxi                 ○
+
+  Präsentation vorbereiten              Alle                 ○
+  ------------------------------------- -------------------- --------------
+
+*--- Ende des Dokuments ---*

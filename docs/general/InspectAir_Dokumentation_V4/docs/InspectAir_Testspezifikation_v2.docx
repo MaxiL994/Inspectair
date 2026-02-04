@@ -1,0 +1,499 @@
+**INSPECTAIR**
+
+Testspezifikation v2.0
+
+DHBW Ravensburg \| Mikrocomputertechnik 1 \| Team: Maxi, Jannis, Cedric
+
+Version 2.0 - Januar 2026
+
+Übersicht
+
+Diese Testspezifikation enthält **17 Testfälle**, die alle Features des
+InspectAir-Systems abdecken.
+
+  ------------------------------ ------------ --------------- -----------------
+  **Kategorie**                  **Anzahl**   **Bestanden**   **Aufwand**
+
+  Einzeltests Sensoren           6            6 ✓             erledigt
+
+                                 2            1 🔄            \~30 Min
+
+                                 1            1 🔄            \~15 Min
+
+  UI-Tests (2 UIs, Button,       4            0               \~45 Min
+  Konsistenz)                                                 
+
+  Power Management (Dimming,     3            0               \~30 Min
+  Sleep)                                                      
+
+  Systemtest                     1            0               \~30 Min
+
+  **GESAMT**                     **17**       **6/17**        **\~2.5 Stunden**
+  ------------------------------ ------------ --------------- -----------------
+
+Getestete Features
+
+  ----------------------------------- -----------------------------------
+  **Feature**                         **Relevante Tests**
+
+  **BS170 MOSFET Backlight-Dimming**  TC-07, TC-14, TC-15
+
+  **Stützkondensatoren (220µF         TC-08, TC-09
+  (25V))**                            
+
+  **2 verschiedene UIs (Clean +       TC-10, TC-11, TC-12, TC-13
+  Detailed)**                         
+
+  **Radar → Display aufwecken**       TC-15, TC-16, TC-17
+
+  **Display dimmen nach Timeout**     TC-14, TC-17
+
+  **ESP32 Light Sleep Modus**         TC-16
+  ----------------------------------- -----------------------------------
+
+Teil 1: Einzeltests Sensoren (bestanden)
+
+Diese Tests wurden bereits bei der Komponentenbeschaffung durchgeführt.
+
+  -------------------- -------------------------------------------------------
+  **TC-01**            **Einzeltest: Display ST7796S ✓**
+
+  **Beschreibung**     SPI-Kommunikation und Farbdarstellung des
+                       4-Zoll-Displays.
+
+  **Vorbedingung**     Display verkabelt: CS→GPIO14, DC→GPIO13, MOSI→GPIO11,
+                       CLK→GPIO12, RST→GPIO10.
+
+  **Testschritte**     1\. Testfirmware flashen 2. RGB-Vollbildfarben prüfen
+                       (Rot, Grün, Blau) 3. Text-Rendering testen
+
+  **Pass-Kriterium**   Display zeigt alle Farben ohne Artefakte. Text scharf
+                       lesbar.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-02**            **Einzeltest: AHT20 (Temp/Feuchte) ✓**
+
+  **Beschreibung**     I2C-Kommunikation und plausible Messwerte.
+
+  **Vorbedingung**     AHT20 an I2C: SDA→GPIO8, SCL→GPIO9. Pull-ups 4.7kΩ.
+
+  **Testschritte**     1\. I2C-Scan (Adresse 0x38) 2. Temperatur und Feuchte
+                       auslesen
+
+  **Pass-Kriterium**   Werte: 15-30°C, 30-70% rH.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-03**            **Einzeltest: SGP40 (VOC) ✓**
+
+  **Beschreibung**     I2C-Kommunikation und VOC-Rohwerte.
+
+  **Vorbedingung**     SGP40 an I2C parallel zu AHT20. Adresse 0x59.
+
+  **Testschritte**     1\. I2C-Scan (Adresse 0x59) 2. SRAW-Wert nach 60s
+                       Aufwärmzeit lesen
+
+  **Pass-Kriterium**   SRAW: 15000-35000. Selbsttest OK.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-04**            **Einzeltest: MH-Z19C (CO2) ✓**
+
+  **Beschreibung**     UART-Kommunikation und CO2-Messung.
+
+  **Vorbedingung**     MH-Z19C: TX→GPIO16, RX→GPIO15. VCC→5V. Stützkondensator
+                       220µF (25V) am VCC!
+
+  **Testschritte**     1\. UART 9600 Baud initialisieren 2. 3 Min Aufwärmzeit
+                       3. CO2-Wert bei Frischluft messen
+
+  **Pass-Kriterium**   CO2: 350-600 ppm bei Frischluft. Keine Timeouts.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-05**            **Einzeltest: PMS5003 (Feinstaub) ✓**
+
+  **Beschreibung**     UART-Kommunikation und PM-Werte.
+
+  **Vorbedingung**     PMS5003: TX→GPIO18, RX→GPIO17. VCC→5V.
+
+  **Testschritte**     1\. UART 9600 Baud 2. Auf Datenframes warten 3.
+                       PM2.5-Wert prüfen
+
+  **Pass-Kriterium**   Gültige Frames mit korrekter Checksum. PM2.5: 0-100
+                       µg/m³.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-06**            **Einzeltest: LD2410C (Radar) ✓**
+
+  **Beschreibung**     UART + Level Shifter, Präsenzerkennung.
+
+  **Vorbedingung**     LD2410C über Level Shifter: TX→GPIO6, RX→GPIO7,
+                       OUT→GPIO15. Stützkondensator 220µF (25V)!
+
+  **Testschritte**     1\. Level Shifter TX-Ausgang messen (MUSS 3.3V sein!)
+                       2. UART 256000 Baud 3. Präsenz bei Annäherung testen
+
+  **Pass-Kriterium**   TX-Pegel ≤3.3V. OUT-Pin schaltet bei Bewegung.
+
+  **Ergebnis**         ☑ PASS ☐ FAIL Datum: Jan 2026 Tester: Team
+  -------------------- -------------------------------------------------------
+
+Teil 2: Hardware-Tests
+
+MOSFET-Steuerung und Kondensator-Stabilisierung.
+
+  -------------------- -------------------------------------------------------
+  **TC-07**            **Hardware: BS170 MOSFET Backlight-Steuerung**
+
+  **Beschreibung**     Testet die PWM-Dimmung des Display-Backlights über den
+                       BS170 MOSFET.
+
+  **Vorbedingung**     BS170 MOSFET: Gate→GPIO21 (über 1kΩ), Drain→Display
+                       BL-, Source→GND.
+
+  **Testschritte**     1\. PWM-Kanal auf GPIO21 konfigurieren (5kHz) 2. Duty
+                       0% setzen → Display komplett dunkel 3. Duty 50% setzen
+                       → halbe Helligkeit 4. Duty 100% setzen → volle
+                       Helligkeit 5. Rampe 0→100% in 1s (Fade-In Effekt)
+
+  **Pass-Kriterium**   Helligkeit stufenlos regelbar. Kein Flackern. Smooth
+                       Fade möglich.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+                       **Hardware: Stützkondensatoren Stabilität 🔄**
+
+  **Beschreibung**     Prüft, ob die 220µF (25V) Kondensatoren am CO2-Sensor
+                       und Radar Stromspitzen puffern und Abstürze verhindern.
+
+  **Vorbedingung**     220µF (25V) Elkos an VCC/GND von MH-Z19C und LD2410C.
+                       Alle Sensoren aktiv.
+
+  **Testschritte**     1\. System OHNE Kondensatoren starten → Absturz
+                       provozieren 2. Kondensatoren einlöten 3. System 10
+                       Minuten laufen lassen 4. Spannung am 5V-Rail mit
+                       Oszilloskop/Multimeter beobachten
+
+  **Pass-Kriterium**   MIT Kondensatoren: Keine Abstürze, 5V-Rail stabil
+                       (4.8-5.2V). OHNE: Dokumentierter Absturz.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+Teil 3: Integrationstest
+
+  -------------------- -------------------------------------------------------
+  **TC-09**            **Integration: Alle Sensoren gleichzeitig 🔄**
+
+  **Beschreibung**     Prüft, ob alle 5 Sensoren + Radar parallel
+                       funktionieren ohne Konflikte.
+
+  **Vorbedingung**     Alle Sensoren verkabelt. Stützkondensatoren
+                       installiert. Firmware mit allen Treibern.
+
+  **Testschritte**     1\. System starten 2. Serial-Log auf Init-Meldungen
+                       prüfen (alle \[OK\]) 3. 5 Minuten alle Werte loggen 4.
+                       Auf I2C/UART-Fehler oder Timeouts prüfen
+
+  **Pass-Kriterium**   Alle Sensoren initialisiert. Fehlerrate \<1% über 5
+                       Minuten.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+Teil 4: UI-Tests
+
+Tests für beide User Interfaces und die Umschaltung.
+
+  -------------------- -------------------------------------------------------
+  **TC-10**            **UI: Clean-Interface Darstellung**
+
+  **Beschreibung**     Testet das einfache, übersichtliche UI mit allen
+                       Messwerten.
+
+  **Vorbedingung**     Display und alle Sensoren funktional. Clean-UI
+                       implementiert.
+
+  **Testschritte**     1\. System starten (Standard: Clean-UI) 2. Alle 6 Werte
+                       prüfen: CO2, PM2.5, VOC, Temp, Feuchte, Präsenz 3.
+                       Farbcodierung prüfen (Grün/Gelb/Rot je nach Grenzwert)
+                       4. Lesbarkeit aus 1m Entfernung
+
+  **Pass-Kriterium**   Alle Werte sichtbar und korrekt. Farben entsprechen
+                       Grenzwerten. Gut lesbar.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-11**            **UI: Detailed-Interface Darstellung**
+
+  **Beschreibung**     Testet das detaillierte/futuristische UI mit
+                       erweiterten Informationen.
+
+  **Vorbedingung**     Detailed-UI implementiert.
+
+  **Testschritte**     1\. Zu Detailed-UI wechseln 2. Alle Werte + Zusatzinfos
+                       prüfen (z.B. Trends, Graphen) 3. Farbcodierung prüfen
+                       4. Lesbarkeit prüfen
+
+  **Pass-Kriterium**   Alle Werte korrekt. Zusatzinfos sinnvoll. Design
+                       konsistent.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-12**            **UI: Button-Wechsel zwischen UIs**
+
+  **Beschreibung**     Testet den Wechsel zwischen Clean-UI und Detailed-UI
+                       per Button.
+
+  **Vorbedingung**     Beide UIs implementiert. Button an GPIO0.
+
+  **Testschritte**     1\. System im Clean-UI starten 2. Button drücken →
+                       Wechsel zu Detailed-UI 3. Erneut drücken → zurück zu
+                       Clean-UI 4. 10x schnell hintereinander drücken
+                       (Stresstest)
+
+  **Pass-Kriterium**   Jeder Druck = genau 1 Wechsel. Kein Prellen. Übergang
+                       \<300ms. Kein Absturz bei Schnelldrücken.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-13**            **UI: Messwerte-Konsistenz beide UIs**
+
+  **Beschreibung**     Prüft, ob beide UIs identische Messwerte anzeigen.
+
+  **Vorbedingung**     Beide UIs funktional.
+
+  **Testschritte**     1\. Im Clean-UI alle Werte notieren 2. Sofort zu
+                       Detailed-UI wechseln 3. Werte vergleichen 4. 5x
+                       wiederholen zu verschiedenen Zeiten
+
+  **Pass-Kriterium**   Werte in beiden UIs identisch (Abweichung \<1% durch
+                       Timing).
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+Teil 5: Power Management
+
+Display-Dimming, Aufwecken per Radar und Light Sleep.
+
+  -------------------- -------------------------------------------------------
+  **TC-14**            **Power: Display-Dimming nach Timeout**
+
+  **Beschreibung**     Display dimmt automatisch nach konfigurierter Zeit ohne
+                       Präsenz.
+
+  **Vorbedingung**     DIM_TIMEOUT = 60s. Radar aktiv. MOSFET-Steuerung
+                       funktional.
+
+  **Testschritte**     1\. Präsenz auslösen (Person vor Sensor) 2.
+                       Display-Helligkeit prüfen (100%) 3. Raum verlassen /
+                       keine Bewegung 4. 65 Sekunden warten 5. Helligkeit
+                       prüfen (sollte gedimmt sein \~15%)
+
+  **Pass-Kriterium**   Dimming erfolgt nach 60s ±5s. Helligkeit sinkt sichtbar
+                       auf Dim-Level.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-15**            **Power: Display-Aufwecken per Radar**
+
+  **Beschreibung**     Gedimmtes Display wacht bei Präsenzerkennung sofort
+                       auf.
+
+  **Vorbedingung**     Display im Dim-Modus. Radar aktiv.
+
+  **Testschritte**     1\. Display dimmen lassen (keine Bewegung 60s) 2.
+                       Person nähert sich dem Sensor (\<2m) 3. Reaktionszeit
+                       messen (Stoppuhr) 4. Helligkeit nach Aufwecken prüfen
+
+  **Pass-Kriterium**   Aufwecken innerhalb 500ms. Helligkeit = 100%.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+  -------------------- -------------------------------------------------------
+  **TC-16**            **Power: ESP32 Light Sleep Modus**
+
+  **Beschreibung**     ESP32 geht nach längerer Inaktivität in Light Sleep und
+                       wacht per Radar auf.
+
+  **Vorbedingung**     Light Sleep implementiert. SLEEP_TIMEOUT konfiguriert
+                       (z.B. 5 Min ohne Präsenz).
+
+  **Testschritte**     1\. System normal laufen lassen 2. Keine Präsenz für
+                       SLEEP_TIMEOUT 3. Stromaufnahme messen (sollte \~0,8mA
+                       im Light Sleep) 4. Präsenz auslösen 5. Aufwachzeit
+                       messen 6. Prüfen ob alle Sensoren wieder funktionieren
+
+  **Pass-Kriterium**   Light Sleep erreicht (\~0,8mA). Aufwachen \~2ms. Alle
+                       Sensoren nach Wake OK.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+Teil 6: Systemtest
+
+Abschließender Test aller Features im Zusammenspiel.
+
+  -------------------- -------------------------------------------------------
+  **TC-17**            **System: Komplett-Szenario Alltagsbetrieb**
+
+  **Beschreibung**     Simuliert einen typischen Nutzungstag mit allen
+                       Features.
+
+  **Vorbedingung**     Komplett aufgebautes System. Alle Features
+                       implementiert.
+
+  **Testschritte**     1\. System einschalten → Clean-UI, volle Helligkeit 2.
+                       Werte ablesen (alle plausibel?) 3. Button drücken →
+                       Detailed-UI 4. Raum verlassen → nach 60s dimmt Display
+                       5. Raum betreten → Display wacht auf 6. 30 Min laufen
+                       lassen 7. Werte erneut prüfen
+
+  **Pass-Kriterium**   Alle Funktionen arbeiten zusammen. Keine Abstürze.
+                       Werte konsistent.
+
+  **Ergebnis**         ☐ PASS ☐ FAIL Datum: \_\_\_\_\_\_\_\_ Tester:
+                       \_\_\_\_\_\_\_\_
+  -------------------- -------------------------------------------------------
+
+Testprotokoll
+
+  -------- ------------------------------- ------------ ----------- -------------
+  **ID**   **Testname**                    **Status**   **Datum**   **Tester**
+
+  TC-01    Einzeltest: Display ST7796S     ✓ PASS       Jan 2026    Team
+
+  TC-02    Einzeltest: AHT20               ✓ PASS       Jan 2026    Team
+           (Temp/Feuchte)                                           
+
+  TC-03    Einzeltest: SGP40 (VOC)         ✓ PASS       Jan 2026    Team
+
+  TC-04    Einzeltest: MH-Z19C (CO2)       ✓ PASS       Jan 2026    Team
+
+  TC-05    Einzeltest: PMS5003 (Feinstaub) ✓ PASS       Jan 2026    Team
+
+  TC-06    Einzeltest: LD2410C (Radar)     ✓ PASS       Jan 2026    Team
+
+  TC-07    Hardware: BS170 MOSFET          ☐                        
+           Backlight-Steuerung                                      
+
+           Hardware: Stützkondensatoren    🔄 IN ARBEIT             
+           Stabilität 🔄                                            
+
+  TC-09    Integration: Alle Sensoren      🔄 IN ARBEIT             
+           gleichzeitig 🔄                                          
+
+  TC-10    UI: Clean-Interface Darstellung ☐                        
+
+  TC-11    UI: Detailed-Interface          ☐                        
+           Darstellung                                              
+
+  TC-12    UI: Button-Wechsel zwischen UIs ☐                        
+
+  TC-13    UI: Messwerte-Konsistenz beide  ☐                        
+           UIs                                                      
+
+  TC-14    Power: Display-Dimming nach     ☐                        
+           Timeout                                                  
+
+  TC-15    Power: Display-Aufwecken per    ☐                        
+           Radar                                                    
+
+  TC-16    Power: ESP32 Light Sleep Modus  ☐                        
+
+  TC-17    System: Komplett-Szenario       ☐                        
+           Alltagsbetrieb                                           
+  -------- ------------------------------- ------------ ----------- -------------
+
+Zusammenfassung
+
+  ----------------------------------- -----------------------------------
+  **Tests bestanden**                 \_\_\_\_ / 17
+
+  **Tests nicht bestanden**           \_\_\_\_ / 17
+
+  **Gesamtergebnis**                  ☐ BESTANDEN ☐ NICHT BESTANDEN
+  ----------------------------------- -----------------------------------
+
+**Anmerkungen:**
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+Unterschrift: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ Datum:
+\_\_\_\_\_\_\_\_\_\_\_
+
+Anhang A: Grenzwerte
+
+  ----------------- ----------------- ----------------- -----------------
+  **Parameter**     **Gut (Grün)**    **Mäßig (Gelb)**  **Schlecht
+                                                        (Rot)**
+
+  **CO2**           \< 800 ppm        800-1000 ppm      \> 1500 ppm
+
+  **PM2.5**         \< 12 µg/m³       12-35 µg/m³       \> 55 µg/m³
+
+  **VOC Index**     \< 100            100-150           \> 200
+  ----------------- ----------------- ----------------- -----------------
+
+Anhang B: Timeout-Konfiguration
+
+  ----------------------------------- -----------------------------------
+  **Parameter**                       **Wert**
+
+  **DIM_TIMEOUT (Display dimmen)**    60 Sekunden ohne Präsenz
+
+  **SLEEP_TIMEOUT (Light Sleep)**     5 Minuten ohne Präsenz (optional)
+
+  **DIM_BRIGHTNESS**                  15% (PWM Duty \~38/255)
+
+  **WAKE_BRIGHTNESS**                 100% (PWM Duty 255/255)
+  ----------------------------------- -----------------------------------
+
+Anhang C: Kritische Hardware-Hinweise
+
+**⚠️ Stützkondensatoren (220µF (25V)):** ZWINGEND erforderlich an
+VCC/GND von MH-Z19C und LD2410C! Ohne diese stürzt das System bei
+Stromspitzen ab.
+
+**⚠️ Level Shifter (LD2410C):** TX-Ausgang des Radar-Sensors MUSS über
+Level Shifter laufen. Direkte 5V-Signale zerstören den ESP32!
+
+**⚠️ BS170 MOSFET:** Gate-Widerstand 1kΩ zwischen GPIO21 und Gate.
+Logic-Level MOSFET, schaltet bei 3.3V durch.

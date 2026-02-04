@@ -1,0 +1,318 @@
+**INSPECTAIR**
+
+Design Description
+
+System- und Software-Architektur
+
+  ---------------------- ------------------------------------------------
+  **Projekt**            InspectAir - Luftqualitätssensor
+
+  **Version**            1.0
+
+  **Datum**              Januar 2026
+
+  **Autoren**            Maxi, Jannis, Cedric
+  ---------------------- ------------------------------------------------
+
+1\. Projektbeschreibung
+
+1.1 Überblick
+
+InspectAir ist ein Luftqualitätsmonitor für Innenräume. Das System
+erfasst kontinuierlich relevante Luftqualitätsparameter und stellt diese
+auf einem 4-Zoll-TFT-Display dar. Durch Farbcodierung können kritische
+Werte auf einen Blick erkannt werden.
+
+1.2 Kernfunktionen
+
+Das System bietet folgende Hauptfunktionen:
+
+• Messung von CO2, Feinstaub (PM1.0/PM2.5/PM10), VOC, Temperatur und
+Luftfeuchtigkeit
+
+• Echtzeit-Anzeige aller Messwerte auf 4-Zoll-Display
+
+• Ampel-Farbcodierung (Grün/Gelb/Rot) nach WHO/UBA-Grenzwerten
+
+• Zwei wählbare UI-Designs (Clean und Detailed)
+
+• Präsenzerkennung via 24GHz-Radar für automatisches Display-Management
+
+• Energiesparmodi: Display-Dimming und Deep Sleep
+
+1.3 Zielgruppe
+
+Das Gerät richtet sich an Privatpersonen und Büros, die ihre
+Raumluftqualität überwachen möchten. Typische Einsatzorte sind
+Wohnzimmer, Schlafzimmer, Büros und Klassenzimmer.
+
+2\. System-Architektur
+
+2.1 Hardware-Blockdiagramm
+
+Das System besteht aus folgenden Hardware-Blöcken:
+
+┌─────────────────────────────────────────────────────────────────┐
+
+│ INSPECTAIR SYSTEM │
+
+├─────────────────────────────────────────────────────────────────┤
+
+│ │
+
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
+
+│ │ AHT20 │ │ SGP40 │ │ MH-Z19C │ │ PMS5003 │ │
+
+│ │Temp/Hum │ │ VOC │ │ CO2 │ │Feinstaub│ │
+
+│ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ │
+
+│ │I2C │I2C │UART │UART │
+
+│ └──────┬──────┘ │ │ │
+
+│ │ │ │ │
+
+│ ┌───────┴────────────────────┴─────────────┴───┐ │
+
+│ │ │ │
+
+│ │ ESP32-S3-WROOM N8R8 │ │
+
+│ │ (Waveshare) │ │
+
+│ │ │ │
+
+│ └───────┬──────────────────┬──────────────┬───┘ │
+
+│ │SPI │GPIO │UART │
+
+│ ┌───────┴───────┐ ┌──────┴──────┐ ┌────┴────┐ │
+
+│ │ ST7796S │ │ BS170 │ │ LD2410C │ │
+
+│ │ 4\" TFT │ │ MOSFET │ │ Radar │ │
+
+│ │ Display │ │ Backlight │ │ (Level │ │
+
+│ └───────────────┘ └─────────────┘ │ Shifter)│ │
+
+│ └─────────┘ │
+
+└─────────────────────────────────────────────────────────────────┘
+
+2.2 Schnittstellen-Übersicht
+
+  ---------------- --------------- -------------- ---------------- ------------------
+  **Komponente**   **Interface**   **Spannung**   **ESP32 Pins**   **Besonderheit**
+
+  **ST7796S        SPI             3.3V           10,11,12,13,14   480x320 Pixel
+  Display**                                                        
+
+  **AHT20**        I2C (0x38)      3.3V           8 (SDA), 9 (SCL) Pull-ups 4.7kΩ
+
+  **SGP40**        I2C (0x59)      3.3V           8 (SDA), 9 (SCL) Parallel zu AHT20
+
+  **MH-Z19C**      UART 9600       5V             15 (TX), 16 (RX) 220µF Stützkond.!
+
+  **PMS5003**      UART 9600       5V             17 (RX), 18 (TX) Molex-Stecker
+
+  **LD2410C**      UART 256000     5V             6 (RX), 7 (TX),  Level Shifter +
+                                                  15               220µF!
+
+  **BS170 MOSFET** PWM             3.3V Gate      21               1kΩ
+                                                                   Gate-Widerstand
+
+  **Button**       GPIO            3.3V           0 (Boot-Button)  Interner Pull-up
+  ---------------- --------------- -------------- ---------------- ------------------
+
+2.3 Kritische Hardware-Design-Entscheidungen
+
+2.3.1 Stützkondensatoren (220µF 25V)
+
+**Problem:** MH-Z19C und LD2410C verursachen Stromspitzen beim
+Messvorgang, die zu Spannungseinbrüchen und Systemabstürzen führen.
+
+**Lösung:** 220µF Elkos (25V) direkt an VCC/GND beider Sensoren puffern
+die Stromspitzen ab.
+
+2.3.2 Level Shifter für LD2410C
+
+**Problem:** Der LD2410C sendet TX-Signale mit 5V-Pegel, die ESP32-GPIOs
+sind nur 3.3V-tolerant.
+
+**Lösung:** Bidirektionaler Level Shifter zwischen Radar-TX und
+ESP32-RX. Die RX-Richtung (ESP→Radar) kann direkt erfolgen, da der Radar
+3.3V akzeptiert.
+
+2.3.3 BS170 MOSFET für Backlight
+
+**Problem:** Das Display-Backlight benötigt mehr Strom als ein GPIO
+liefern kann, und PWM-Dimming ist gewünscht.
+
+**Lösung:** BS170 N-Kanal MOSFET als Low-Side-Switch. Logic-Level-MOSFET
+schaltet bei 3.3V durch. Gate über 1kΩ an GPIO21 für PWM-Steuerung.
+
+3\. Software-Architektur
+
+3.1 Schichtenmodell
+
+Die Software folgt einem dreischichtigen Architekturmodell:
+
+┌─────────────────────────────────────────────────────────┐
+
+│ APPLICATION LAYER (main.cpp) │
+
+│ - State Machine (Active, Dimmed, Sleep) │
+
+│ - Event Handling (Button, Presence) │
+
+│ - Timing Control │
+
+├─────────────────────────────────────────────────────────┤
+
+│ SERVICE LAYER │
+
+│ ┌─────────────────┐ ┌─────────────────┐ │
+
+│ │ sensors.cpp │ │ display.cpp │ │
+
+│ │ - SensorData │ │ - UI Modes │ │
+
+│ │ - AirQuality │ │ - Brightness │ │
+
+│ └─────────────────┘ └─────────────────┘ │
+
+├─────────────────────────────────────────────────────────┤
+
+│ DRIVER LAYER (Libraries) │
+
+│ LovyanGFX \| LVGL \| Sensirion \| MH-Z19 \| PMS \| ld2410 │
+
+└─────────────────────────────────────────────────────────┘
+
+3.2 Verzeichnisstruktur
+
+**inspectair/**
+
+├── platformio.ini \# PlatformIO Konfiguration
+
+├── src/
+
+│ ├── main.cpp \# Hauptprogramm, State Machine
+
+│ ├── config.h \# Pin-Definitionen, Grenzwerte
+
+│ ├── sensors/
+
+│ │ ├── sensors.h \# SensorData Struct, API
+
+│ │ └── sensors.cpp \# Sensor-Initialisierung, Auslesen
+
+│ └── display/
+
+│ ├── display.h \# Display API
+
+│ └── display.cpp \# LVGL UI, Brightness Control
+
+└── lib/ \# Externe Libraries
+
+3.3 Datenstrukturen
+
+3.3.1 SensorData Struct
+
+typedef struct {
+
+// Temperatur & Feuchtigkeit (AHT20)
+
+float temperature; // °C
+
+float humidity; // % rH
+
+bool aht20_ok;
+
+// VOC (SGP40)
+
+int32_t voc_index; // 0-500
+
+bool sgp40_ok;
+
+// CO2 (MH-Z19C)
+
+int co2_ppm; // 400-5000 ppm
+
+bool mhz19_ok;
+
+// Feinstaub (PMS5003)
+
+uint16_t pm1_0, pm2_5, pm10; // µg/m³
+
+bool pms_ok;
+
+// Präsenz (LD2410C)
+
+bool presence;
+
+bool radar_ok;
+
+} SensorData;
+
+3.4 State Machine
+
+Das System verwendet eine einfache State Machine für das Power
+Management:
+
+┌───────────────┐
+
+│ ACTIVE │◄──────────────────┐
+
+│ (100% BL) │ │
+
+└───────┬───────┘ │ Präsenz
+
+│ 60s keine Präsenz │ erkannt
+
+▼ │
+
+┌───────────────┐ │
+
+│ DIMMED │───────────────────┘
+
+│ (15% BL) │
+
+└───────┬───────┘
+
+│ 5min keine Präsenz (optional)
+
+▼
+
+┌───────────────┐
+
+│ DEEP SLEEP │ ◄── Radar weckt per Interrupt
+
+└───────────────┘
+
+3.5 Verwendete Libraries
+
+  ------------------ ------------------ ---------------------------------
+  **Library**        **Version**        **Verwendung**
+
+  **LovyanGFX**      1.1.x              Display-Treiber für ST7796S
+
+  **LVGL**           8.3.x              UI-Framework für beide Interfaces
+
+  **Sensirion Core** 0.6.x              SGP40 VOC-Sensor Treiber
+
+  **Sensirion VOC**  4.2.x              VOC Index Algorithmus
+
+  **Adafruit AHTX0** 2.0.x              AHT20 Temperatur/Feuchte
+
+  **MH-Z19**         1.5.x              CO2-Sensor Treiber
+
+  **PMS Library**    1.1.x              Feinstaub-Sensor Treiber
+
+  **ld2410**         0.1.x              Radar-Sensor Treiber
+  ------------------ ------------------ ---------------------------------
+
+*--- Ende des Dokuments ---*

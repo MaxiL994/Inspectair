@@ -1,0 +1,233 @@
+**INSPECTAIR**
+
+Requirements Specification
+
+Luftqualitätssensor mit ESP32-S3
+
+  ---------------------- ------------------------------------------------
+  **Projekt**            InspectAir - Luftqualitätssensor
+
+  **Version**            1.0
+
+  **Datum**              Januar 2026
+
+  **Autoren**            Maxi, Jannis, Cedric
+
+  **Modul**              Mikrocomputertechnik 1 - DHBW Ravensburg
+
+  **Dozent**             Thomas Stingl (Airbus)
+  ---------------------- ------------------------------------------------
+
+1\. Einleitung
+
+1.1 Zweck
+
+Dieses Dokument spezifiziert die Anforderungen an das InspectAir-System,
+einen Luftqualitätssensor für den Innenraumbereich. Es dient als
+Grundlage für Design, Implementierung und Test.
+
+1.2 Scope
+
+InspectAir ist ein ESP32-S3-basiertes Embedded System zur Überwachung
+der Raumluftqualität. Das System misst CO2, Feinstaub, VOC, Temperatur
+und Luftfeuchtigkeit und zeigt die Werte auf einem 4-Zoll-Display an.
+
+1.3 Definitionen
+
+  ------------------ ----------------------------------------------------
+  **Begriff**        **Definition**
+
+  **CO2**            Kohlendioxid - Indikator für Raumluftqualität
+
+  **PM2.5**          Feinstaub mit Partikeldurchmesser \<2.5µm
+
+  **VOC**            Volatile Organic Compounds - flüchtige organische
+                     Verbindungen
+
+  **UART**           Universal Asynchronous Receiver/Transmitter -
+                     serielle Schnittstelle
+
+  **I2C**            Inter-Integrated Circuit - serieller Datenbus
+
+  **SPI**            Serial Peripheral Interface - synchroner Datenbus
+
+  **Light Sleep**    Energiesparmodus des ESP32 mit reduzierter
+                     Stromaufnahme (\~0,8mA), RAM bleibt erhalten
+  ------------------ ----------------------------------------------------
+
+2\. Funktionale Anforderungen
+
+Die folgenden Anforderungen beschreiben, **was** das System tun soll.
+
+  --------------- --------------------- ---------------------- ------------------------ ----------
+  **ID**          **Name**              **Beschreibung**       **Akzeptanzkriterium**   **Prio**
+
+  **REQ-F-001**   CO2-Messung           Das System muss die    Messbereich 400-5000     Muss
+                                        CO2-Konzentration in   ppm, Genauigkeit ±50 ppm 
+                                        ppm messen.                                     
+
+  **REQ-F-002**   Feinstaub-Messung     Das System muss        Messbereich 0-500 µg/m³, Muss
+                                        Feinstaubwerte (PM1.0, Auflösung 1 µg/m³        
+                                        PM2.5, PM10) messen.                            
+
+  **REQ-F-003**   VOC-Messung           Das System muss        VOC-Index 0-500          Muss
+                                        flüchtige organische                            
+                                        Verbindungen als Index                          
+                                        messen.                                         
+
+  **REQ-F-004**   Temperatur-Messung    Das System muss die    Messbereich 0-50°C,      Muss
+                                        Umgebungstemperatur    Genauigkeit ±0.5°C       
+                                        messen.                                         
+
+  **REQ-F-005**   Luftfeuchte-Messung   Das System muss die    Messbereich 0-100% rH,   Muss
+                                        relative               Genauigkeit ±3%          
+                                        Luftfeuchtigkeit                                
+                                        messen.                                         
+
+  **REQ-F-006**   Präsenzerkennung      Das System muss        Erkennungsreichweite bis Muss
+                                        Personen im Raum       2m, Reaktionszeit        
+                                        erkennen.              \<500ms                  
+
+  **REQ-F-007**   Display-Anzeige       Das System muss alle   Alle 6 Werte             Muss
+                                        Messwerte auf einem    gleichzeitig sichtbar,   
+                                        Display darstellen.    lesbar aus 1m Entfernung 
+
+  **REQ-F-008**   Farbcodierung         Das System muss        Grün/Gelb/Rot-Ampel für  Muss
+                                        Messwerte farblich     CO2, PM2.5, VOC          
+                                        nach Grenzwerten                                
+                                        kategorisieren.                                 
+
+  **REQ-F-009**   UI-Wechsel            Der Benutzer muss      Button-Druck wechselt    Muss
+                                        zwischen zwei          zwischen Clean-UI und    
+                                        UI-Designs wechseln    Detailed-UI              
+                                        können.                                         
+
+  **REQ-F-010**   Display-Dimming       Das Display muss nach  Dimmen nach 60s ohne     Soll
+                                        Inaktivität            Präsenz auf 15%          
+                                        automatisch dimmen.    Helligkeit               
+
+  **REQ-F-011**   Display-Aufwecken     Das Display muss bei   Aufwecken innerhalb      Soll
+                                        Präsenzerkennung       500ms nach               
+                                        aufwachen.             Präsenzerkennung         
+
+  **REQ-F-012**   Light Sleep           Das System soll bei    Light Sleep nach 5 Min,  Kann
+                                        langer Inaktivität in  Aufwachen durch Radar    
+                                        Stromsparmodus gehen.                           
+  --------------- --------------------- ---------------------- ------------------------ ----------
+
+3\. Nicht-Funktionale Anforderungen
+
+Die folgenden Anforderungen beschreiben, **wie gut** das System
+funktionieren soll.
+
+  ---------------- ----------------- ---------------------- ------------------------ ----------
+  **ID**           **Name**          **Beschreibung**       **Akzeptanzkriterium**   **Prio**
+
+  **REQ-NF-001**   Update-Rate       Die Messwerte müssen   Sensor-Update alle 2     Muss
+                                     regelmäßig             Sekunden                 
+                                     aktualisiert werden.                            
+
+  **REQ-NF-002**   Reaktionszeit UI  Die Benutzeroberfläche UI-Refresh 10 Hz,        Muss
+                                     muss flüssig           Button-Reaktion \<200ms  
+                                     reagieren.                                      
+
+  **REQ-NF-003**   Dauerbetrieb      Das System muss für    Keine Abstürze oder      Muss
+                                     24/7-Dauerbetrieb      Memory Leaks über 24h    
+                                     geeignet sein.                                  
+
+  **REQ-NF-004**   Stromversorgung   Das System muss über   USB 5V, max. 1A          Muss
+                                     USB betrieben werden   Stromaufnahme            
+                                     können.                                         
+
+  **REQ-NF-005**   Gehäuse           Das System soll in     Lufteinlässe für         Soll
+                                     einem Holzgehäuse      Sensoren,                
+                                     untergebracht werden.  Display-Ausschnitt       
+
+  **REQ-NF-006**   Wartbarkeit       Der Code soll modular  Mind. 80% der Funktionen Soll
+                                     und dokumentiert sein. mit Doxygen              
+                                                            dokumentiert, max. 3     
+                                                            Module-Dependencies      
+  ---------------- ----------------- ---------------------- ------------------------ ----------
+
+4\. Hardware-Anforderungen
+
+Die folgenden Anforderungen spezifizieren die verwendeten
+Hardwarekomponenten.
+
+  ---------------- --------------------- -------------------------- ------------------------
+  **ID**           **Komponente**        **Beschreibung**           **Akzeptanzkriterium**
+
+  **REQ-HW-001**   Mikrocontroller       ESP32-S3-WROOM N8R8 DevKit Dual-Core, WiFi/BLE,
+                                         (Waveshare)                ausreichend GPIOs
+
+  **REQ-HW-002**   Display               4-Zoll TFT-Display mit     480x320 Pixel,
+                                         ST7796S Controller         SPI-Interface
+
+  **REQ-HW-003**   CO2-Sensor            MH-Z19C NDIR CO2-Sensor    UART 9600 Baud, 5V
+                                                                    Versorgung
+
+  **REQ-HW-004**   Feinstaubsensor       PMS5003                    UART 9600 Baud, 5V
+                                         Laser-Partikelsensor       Versorgung
+
+  **REQ-HW-005**   VOC-Sensor            SGP40 MOX VOC-Sensor       I2C 0x59, 3.3V
+
+  **REQ-HW-006**   Temp/Feuchte-Sensor   AHT20 Temperatur- und      I2C 0x38, 3.3V
+                                         Feuchtigkeitssensor        
+
+  **REQ-HW-007**   Radar-Sensor          LD2410C 24GHz mmWave Radar UART 256000 Baud, Level
+                                                                    Shifter erforderlich!
+
+  **REQ-HW-008**   Level Shifter         Bidirektionaler Level      5V↔3.3V Wandlung für
+                                         Shifter für Radar          UART TX
+
+  **REQ-HW-009**   Stützkondensatoren    Elkos zur Pufferung von    220µF 25V an MH-Z19C und
+                                         Stromspitzen               LD2410C VCC
+
+  **REQ-HW-010**   MOSFET                BS170 N-Kanal MOSFET für   Logic-Level, Gate über
+                                         Backlight-PWM              1kΩ an GPIO21
+
+  **REQ-HW-011**   Button                Taster für UI-Wechsel      GPIO0 (Boot-Button) mit
+                                                                    Pull-up
+  ---------------- --------------------- -------------------------- ------------------------
+
+5\. Grenzwert-Definition
+
+Die Farbcodierung der Messwerte basiert auf folgenden Grenzwerten:
+
+  ----------------- ----------------- ----------------- -----------------
+  **Parameter**     **Gut (Grün)**    **Mäßig (Gelb)**  **Schlecht
+                                                        (Rot)**
+
+  **CO2**           \< 800 ppm        800 - 1000 ppm    \> 1500 ppm
+
+  **PM2.5**         \< 12 µg/m³       12 - 35 µg/m³     \> 55 µg/m³
+
+  **VOC Index**     \< 100            100 - 150         \> 200
+
+  **Temperatur**    18 - 26°C         15-18 / 26-28°C   \< 15 / \> 28°C
+
+  **Luftfeuchte**   40 - 60%          30-40 / 60-70%    \< 30 / \> 70%
+  ----------------- ----------------- ----------------- -----------------
+
+6\. Requirements Traceability
+
+Jede Anforderung wird durch entsprechende Testfälle verifiziert:
+
+  ----------------- ------------------------------ -------------------------
+  **Requirement**   **Beschreibung**               **Testfall**
+
+  **REQ-F-001**     CO2-Messung                    TC-04, TC-09
+
+  **REQ-F-007**     Display-Anzeige                TC-01, TC-08, TC-10,
+                                                   TC-11
+
+  **REQ-F-009**     UI-Wechsel                     TC-12
+
+  **REQ-F-010**     Display-Dimming                TC-07, TC-14
+
+  **REQ-F-011**     Display-Aufwecken              TC-15
+
+  **REQ-HW-009**    Stützkondensatoren             TC-08
+  ----------------- ------------------------------ -------------------------
+
+*--- Ende des Dokuments ---*

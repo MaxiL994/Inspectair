@@ -1,0 +1,177 @@
+**INSPECTAIR**
+
+Pin-Belegung & Bauteilliste
+
+Waveshare ESP32-S3-WROOM N8R8 DevKit
+
+1\. GPIO Pin-Belegung
+
+  ------------ ---------------- ------------------ --------------------------
+  **GPIO**     **Funktion**     **Komponente**     **Hinweis**
+
+  **GPIO0**    Button           UI-Wechsel Taster  Boot-Button, interner
+                                                   Pull-up
+
+  **GPIO6**    RADAR_RX         LD2410C TX         ⚠️ Über Level Shifter!
+                                                   (5V→3.3V)
+
+  **GPIO7**    RADAR_TX         LD2410C RX         Direkt (3.3V OK für
+                                                   Sensor)
+
+  **GPIO8**    I2C_SDA          AHT20 + SGP40      4.7kΩ Pull-up nach 3.3V!
+
+  **GPIO9**    I2C_SCL          AHT20 + SGP40      4.7kΩ Pull-up nach 3.3V!
+
+  **GPIO10**   TFT_RST          ST7796S Reset      Display Reset Pin
+
+  **GPIO11**   TFT_MOSI         ST7796S MOSI       SPI Daten zum Display
+
+  **GPIO12**   TFT_SCLK         ST7796S CLK        SPI Clock
+
+  **GPIO13**   TFT_DC           ST7796S DC         Data/Command Select
+
+  **GPIO14**   TFT_CS           ST7796S CS         Chip Select
+
+  **GPIO15**   CO2_TX /         MH-Z19C RX /       ESP sendet an CO2, Radar
+               RADAR_OUT        LD2410C OUT        Presence Pin
+
+  **GPIO16**   CO2_RX           MH-Z19C TX         ESP empfängt von CO2
+
+  **GPIO17**   PMS_RX           PMS5003 TX         ESP empfängt von Feinstaub
+
+  **GPIO18**   PMS_TX           PMS5003 RX         ESP sendet an Feinstaub
+
+  **GPIO21**   TFT_BL           BS170 MOSFET Gate  PWM 5kHz, über 1kΩ
+                                                   Widerstand!
+  ------------ ---------------- ------------------ --------------------------
+
+2\. Sensor-Verbindungen Detail
+
+2.1 Display ST7796S (SPI)
+
+  --------------- --------------- --------------- -------------------------
+  **Display Pin** **ESP32 Pin**   **Spannung**    **Funktion**
+
+  VCC             3.3V            3.3V            Stromversorgung
+
+  GND             GND             \-              Masse
+
+  CS              GPIO14          3.3V            Chip Select
+
+  DC              GPIO13          3.3V            Data/Command
+
+  RST             GPIO10          3.3V            Reset
+
+  MOSI            GPIO11          3.3V            SPI Data
+
+  SCK             GPIO12          3.3V            SPI Clock
+
+  BL+             3.3V/5V         \-              Backlight Anode
+
+  BL-             → BS170 Drain   \-              Über MOSFET nach GND!
+  --------------- --------------- --------------- -------------------------
+
+2.2 I2C Sensoren (AHT20 + SGP40)
+
+  --------------- --------------- --------------- ----------- --------------
+  **Sensor**      **I2C Adresse** **VCC**         **SDA**     **SCL**
+
+  **AHT20**       0x38            3.3V            GPIO8       GPIO9
+
+  **SGP40**       0x59            3.3V            GPIO8       GPIO9
+  --------------- --------------- --------------- ----------- --------------
+
+**⚠️ WICHTIG: 4.7kΩ Pull-up Widerstände von SDA und SCL nach 3.3V!**
+
+2.3 UART Sensoren
+
+  ------------- ----------- ----------- ------------ ------------ ----------------
+  **Sensor**    **Baud**    **VCC**     **TX→ESP**   **RX←ESP**   **Besonderes**
+
+  **MH-Z19C     9600        5V          GPIO16       GPIO15       220µF Elko!
+  (CO2)**                                                         
+
+  **PMS5003**   9600        5V          GPIO18       GPIO17       Molex Stecker
+
+  **LD2410C     256000      5V          GPIO6 (LS!)  GPIO7        Level Shifter +
+  (Radar)**                                                       220µF!
+  ------------- ----------- ----------- ------------ ------------ ----------------
+
+3\. Bauteilliste (BOM)
+
+3.1 Hauptkomponenten
+
+  -------- ---------------------- ------------------ --------- ----------------------
+  **\#**   **Komponente**         **Typ/Modell**     **Preis   **Quelle**
+                                                     ca.**     
+
+  1        Mikrocontroller        ESP32-S3-WROOM     \~15€     AliExpress/Waveshare
+                                  N8R8 DevKit                  
+
+  2        Display                4\" TFT ST7796S    \~12€     AliExpress
+                                  480x320                      
+
+  3        CO2-Sensor             MH-Z19C NDIR       \~18€     AliExpress
+
+  4        Feinstaubsensor        PMS5003 Plantower  \~15€     AliExpress
+
+  5        VOC-Sensor             SGP40 Sensirion    \~8€      AliExpress/Mouser
+
+  6        Temp/Feuchte-Sensor    AHT20              \~3€      AliExpress
+
+  7        Radar-Sensor           LD2410C 24GHz HLK  \~5€      AliExpress
+  -------- ---------------------- ------------------ --------- ----------------------
+
+3.2 Zusatzkomponenten (Pflicht!)
+
+  -------- ---------------------- ------------------ ------------------------
+  **\#**   **Komponente**         **Wert/Typ**       **Verwendung**
+
+  1        Stützkondensator       220µF 25V Elko     An MH-Z19C VCC/GND
+
+  2        Stützkondensator       220µF 25V Elko     An LD2410C VCC/GND
+
+  3        Level Shifter          Bidirektional      LD2410C TX → ESP32 GPIO6
+                                  5V↔3.3V            
+
+  4        MOSFET                 BS170 N-Kanal      Display Backlight PWM
+                                  (TO-92)            
+
+  5        Widerstand             1kΩ 1/4W           MOSFET
+                                                     Gate-Vorwiderstand
+
+  6        Pull-up Widerstand     4.7kΩ 1/4W (2      I2C SDA + SCL nach 3.3V
+                                  Stück)             
+
+  7        Taster                 6x6mm Microtaster  UI-Wechsel (optional,
+                                                     Boot-Button nutzbar)
+  -------- ---------------------- ------------------ ------------------------
+
+3.3 Verbindungsmaterial
+
+• Dupont-Kabel Female-Female 10cm und 20cm
+
+• Breadboard 830 Kontakte
+
+• Molex 1.25mm Adapterkabel (für PMS5003)
+
+• USB-C Kabel (Stromversorgung)
+
+4\. Kritische Hinweise
+
+**⚠️ LEVEL SHIFTER PFLICHT:**
+
+Der LD2410C sendet TX-Signale mit 5V-Pegel. Der ESP32 verträgt maximal
+3.3V! Ohne Level Shifter wird der ESP32 zerstört.
+
+**⚠️ STÜTZKONDENSATOREN PFLICHT:**
+
+MH-Z19C und LD2410C verursachen Stromspitzen, die zu Spannungseinbrüchen
+führen. 220µF Elkos direkt an VCC/GND der Sensoren löten!
+
+**⚠️ I2C PULL-UPS:**
+
+4.7kΩ Widerstände von SDA und SCL nach 3.3V. Manche Breakout-Boards
+haben diese bereits, prüfen!
+
+*--- Ende des Dokuments ---*
