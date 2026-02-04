@@ -14,6 +14,7 @@
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
+#include "colors.h"  // Für einheitliche Grenzwerte
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * EMOJI BILDER (LVGL 9 kompatibel)
@@ -99,37 +100,37 @@ LV_FONT_DECLARE(ui_font_16_ext);
 #define COLOR_RING_BG   lv_color_hex(0xEEEEEE)
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * STATUS HELPER (shared)
+ * STATUS HELPER (shared) - Grenzwerte aus colors.h
  * ═══════════════════════════════════════════════════════════════════════════ */
 enum Status { GOOD = 0, WARN = 1, BAD = 2 };
 
 static Status get_temp_status(float t) {
-    if (t >= 18 && t <= 26) return GOOD;
-    if (t >= 15 && t <= 30) return WARN;
+    if (t >= LIMIT_TEMP_GOOD_MIN && t <= LIMIT_TEMP_GOOD_MAX) return GOOD;
+    if (t >= LIMIT_TEMP_WARN_MIN && t <= LIMIT_TEMP_WARN_MAX) return WARN;
     return BAD;
 }
 
 static Status get_hum_status(float h) {
-    if (h >= 30 && h <= 60) return GOOD;
-    if (h >= 20 && h <= 70) return WARN;
+    if (h >= LIMIT_HUM_GOOD_MIN && h <= LIMIT_HUM_GOOD_MAX) return GOOD;
+    if (h >= LIMIT_HUM_WARN_MIN && h <= LIMIT_HUM_WARN_MAX) return WARN;
     return BAD;
 }
 
 static Status get_co2_status(int c) {
-    if (c <= 1000) return GOOD;
-    if (c <= 1500) return WARN;
+    if (c < LIMIT_CO2_GOOD) return GOOD;
+    if (c < LIMIT_CO2_BAD) return WARN;
     return BAD;
 }
 
 static Status get_pm25_status(int p) {
-    if (p <= 15) return GOOD;
-    if (p <= 25) return WARN;
+    if (p <= LIMIT_PM25_GOOD) return GOOD;
+    if (p <= LIMIT_PM25_BAD) return WARN;
     return BAD;
 }
 
 static Status get_voc_status(int voc) {
-    if (voc <= 150) return GOOD;
-    if (voc <= 250) return WARN;
+    if (voc <= LIMIT_VOC_GOOD) return GOOD;
+    if (voc <= LIMIT_VOC_BAD) return WARN;
     return BAD;
 }
 
@@ -1927,8 +1928,8 @@ static void create_screen4_bubble() {
 static void update_screen4_time() {
     if (!s4_lbl_time) return;
     
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%02d:%02d", cached_hour, cached_min);
+    char buf[12];
+    snprintf(buf, sizeof(buf), "%02d:%02d:%02d", cached_hour, cached_min, cached_sec);
     lv_label_set_text(s4_lbl_time, buf);
     
     if (s4_lbl_date) {
