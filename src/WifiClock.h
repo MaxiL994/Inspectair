@@ -1,8 +1,8 @@
 /**
  * @file WifiClock.h
- * @brief WiFi-Verbindung und NTP-Zeitsynchronisation
+ * @brief WiFi connection and NTP time synchronization
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  */
 
 #pragma once
@@ -12,44 +12,44 @@
 #include "time.h"
 
 /**
- * @brief Klasse für WiFi-Verbindung und NTP-Zeitsynchronisation
+ * @brief Class for WiFi connection and NTP time synchronization
  */
 class WifiClock {
 public:
     WifiClock();
     
     /**
-     * @brief Initialisiert WiFi und NTP mit einem Netzwerk
-     * @param ssid WLAN-Name
-     * @param password WLAN-Passwort
+     * @brief Initializes WiFi and NTP with one network
+     * @param ssid WiFi name
+     * @param password WiFi password
      */
     void begin(const char* ssid, const char* password);
     
     /**
-     * @brief Initialisiert WiFi und NTP mit Fallback-Netzwerk
-     * @param ssid1 Primäres WLAN
-     * @param password1 Primäres Passwort
-     * @param ssid2 Fallback WLAN
-     * @param password2 Fallback Passwort
+     * @brief Initializes WiFi and NTP with fallback network
+     * @param ssid1 Primary WiFi
+     * @param password1 Primary password
+     * @param ssid2 Fallback WiFi
+     * @param password2 Fallback password
      */
     void begin(const char* ssid1, const char* password1, const char* ssid2, const char* password2);
     
     /**
-     * @brief Prüft Verbindung und reconnected bei Bedarf
+     * @brief Checks connection and reconnects if needed
      */
     void update();
     
     /**
-     * @brief Schreibt formatierte Uhrzeit in Buffer (z.B. "14:05")
-     * @param buf Ziel-Buffer
-     * @param len Buffer-Größe
+     * @brief Writes formatted time to buffer (e.g. "14:05")
+     * @param buf Target buffer
+     * @param len Buffer size
      */
     void getFormattedTime(char* buf, size_t len);
     
     /**
-     * @brief Schreibt formatiertes Datum in Buffer (z.B. "25.01.2026")
-     * @param buf Ziel-Buffer
-     * @param len Buffer-Größe
+     * @brief Writes formatted date to buffer (e.g. "25.01.2026")
+     * @param buf Target buffer
+     * @param len Buffer size
      */
     void getFormattedDate(char* buf, size_t len);
 

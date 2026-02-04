@@ -5,19 +5,19 @@
 #include <Adafruit_SGP40.h>
 
 // ============================================
-// I2C SENSOREN IMPLEMENTATION
+// I2C SENSORS IMPLEMENTATION
 // ============================================
 
 static Adafruit_AHTX0 aht;
 static Adafruit_SGP40 sgp;
 
 bool sensors_i2c_init(void) {
-  // I2C Bus initialisieren
+  // Initialize I2C bus
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   delay(500);
   
-  // I2C Scanner - finde alle Adressen auf dem Bus
-  Serial.println("    I2C Scanner - gefundene Adressen:");
+  // I2C scanner - find all addresses on the bus
+  Serial.println("    I2C Scanner - found addresses:");
   int count = 0;
   for (int addr = 0x01; addr < 0x7F; addr++) {
     Wire.beginTransmission(addr);
@@ -27,24 +27,24 @@ bool sensors_i2c_init(void) {
       if (count % 8 == 0) Serial.println();
     }
   }
-  if (count == 0) Serial.println("      Keine Geräte gefunden!");
+  if (count == 0) Serial.println("      No devices found!");
   Serial.println("\n");
 
-  // AHT20 initialisieren (Standard-Adresse 0x38)
+  // Initialize AHT20 (default address 0x38)
   bool ahtOK = aht.begin();
-  Serial.printf("  AHT20 (0x38): %s\n", ahtOK ? "OK" : "FEHLER");
+  Serial.printf("  AHT20 (0x38): %s\n", ahtOK ? "OK" : "ERROR");
   if (ahtOK) {
-    Serial.println("    AHT20 Sensor-Info:");
+    Serial.println("    AHT20 sensor info:");
     sensors_event_t humidity, temp;
     aht.getEvent(&humidity, &temp);
-    Serial.printf("    Test-Messung: T=%.1f°C, H=%.0f%%\n", temp.temperature, humidity.relative_humidity);
+    Serial.printf("    Test measurement: T=%.1f°C, H=%.0f%%\n", temp.temperature, humidity.relative_humidity);
   }
 
-  // SGP40 initialisieren (Standard-Adresse 0x59)
+  // Initialize SGP40 (default address 0x59)
   bool sgpOK = sgp.begin();
-  Serial.printf("  SGP40 (0x59): %s\n", sgpOK ? "OK" : "FEHLER");
+  Serial.printf("  SGP40 (0x59): %s\n", sgpOK ? "OK" : "ERROR");
   if (sgpOK) {
-    Serial.println("    SGP40 Sensor bereit");
+    Serial.println("    SGP40 sensor ready");
   }
 
   return ahtOK && sgpOK;
@@ -65,22 +65,22 @@ bool sensors_aht20_read(AHT20_Data* data) {
 bool sensors_sgp40_read(float temperature, float humidity, SGP40_Data* data) {
   if (!data) return false;
 
-  // Validiere Input-Parameter
+  // Validate input parameters
   if (temperature < -40 || temperature > 85) {
-    Serial.printf("    [SGP40] Ungültige Temperatur: %.1f°C\n", temperature);
+    Serial.printf("    [SGP40] Invalid temperature: %.1f°C\n", temperature);
     return false;
   }
   if (humidity < 0 || humidity > 100) {
-    Serial.printf("    [SGP40] Ungültige Luftfeuchtigkeit: %.0f%%\n", humidity);
+    Serial.printf("    [SGP40] Invalid humidity: %.0f%%\n", humidity);
     return false;
   }
 
   int32_t vocIndex = sgp.measureVocIndex(temperature, humidity);
   data->voc_index = vocIndex;
   
-  // Debug: zeige VOC-Wert
+  // Debug: show VOC value
   if (vocIndex <= 0) {
-    Serial.printf("    [SGP40] VOC-Index: %ld (Initialisierung...)\n", vocIndex);
+    Serial.printf("    [SGP40] VOC index: %ld (initializing...)\n", vocIndex);
   }
 
   return vocIndex > 0;

@@ -1,11 +1,11 @@
 /**
  * @file mhz19c.h
- * @brief Treiber für MH-Z19C CO2-Sensor (UART)
+ * @brief Driver for MH-Z19C CO2 sensor (UART)
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  * 
- * Stellt Funktionen zur Initialisierung und zum Auslesen des
- * MH-Z19C NDIR CO2-Sensors über UART bereit.
+ * Provides functions for initialization and reading of
+ * the MH-Z19C NDIR CO2 sensor via UART.
  */
 
 #ifndef SENSORS_MHZ19C_H
@@ -18,15 +18,15 @@
 // ============================================
 
 /**
- * Initialisiert MH-Z19C Sensor
- * @return true bei erfolgreicher Initialisierung
+ * Initializes MH-Z19C sensor
+ * @return true on successful initialization
  */
 bool sensors_mhz19_init(void);
 
 /**
- * Liest CO2-Konzentration
- * @param data Zeiger auf MHZ19C_Data Struktur
- * @return true bei erfolgreicher Messung
+ * Reads CO2 concentration
+ * @param data Pointer to MHZ19C_Data structure
+ * @return true on successful measurement
  */
 bool sensors_mhz19_read(MHZ19C_Data* data);
 

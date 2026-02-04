@@ -1,11 +1,11 @@
 /**
  * @file aht_sgp.h
- * @brief Treiber für AHT20 (Temperatur/Feuchte) und SGP40 (VOC) I2C-Sensoren
+ * @brief Driver for AHT20 (temperature/humidity) and SGP40 (VOC) I2C sensors
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  * 
- * Stellt Funktionen zur Initialisierung und zum Auslesen der
- * I2C-Sensoren AHT20 und SGP40 bereit.
+ * Provides functions for initialization and reading of
+ * the I2C sensors AHT20 and SGP40.
  */
 
 #ifndef SENSORS_AHT_SGP_H
@@ -14,28 +14,28 @@
 #include "../include/sensor_types.h"
 
 // ============================================
-// I2C SENSOREN - AHT20 & SGP40
+// I2C SENSORS - AHT20 & SGP40
 // ============================================
 
 /**
- * Initialisiert AHT20 und SGP40 Sensoren
- * @return true wenn beide erfolgreich initialisiert
+ * Initializes AHT20 and SGP40 sensors
+ * @return true if both initialized successfully
  */
 bool sensors_i2c_init(void);
 
 /**
- * Liest AHT20 Temperatur und Luftfeuchtigkeit
- * @param data Zeiger auf AHT20_Data Struktur
- * @return true bei erfolgreicher Messung
+ * Reads AHT20 temperature and humidity
+ * @param data Pointer to AHT20_Data structure
+ * @return true on successful measurement
  */
 bool sensors_aht20_read(AHT20_Data* data);
 
 /**
- * Liest SGP40 VOC-Index
- * @param temperature Aktuelle Temperatur für Kalibrierung
- * @param humidity Aktuelle Luftfeuchtigkeit für Kalibrierung
- * @param data Zeiger auf SGP40_Data Struktur
- * @return true bei erfolgreicher Messung
+ * Reads SGP40 VOC index
+ * @param temperature Current temperature for calibration
+ * @param humidity Current humidity for calibration
+ * @param data Pointer to SGP40_Data structure
+ * @return true on successful measurement
  */
 bool sensors_sgp40_read(float temperature, float humidity, SGP40_Data* data);
 

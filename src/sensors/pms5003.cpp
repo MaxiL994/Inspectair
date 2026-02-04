@@ -4,10 +4,10 @@
 #include <PMS.h>
 
 // ============================================
-// PMS5003 FEINSTAUB SENSOR IMPLEMENTATION
+// PMS5003 PARTICULATE SENSOR IMPLEMENTATION
 // ============================================
 
-static HardwareSerial SerialPMS(1); // UART1 für PMS5003
+static HardwareSerial SerialPMS(1); // UART1 for PMS5003
 static PMS pms(SerialPMS);
 static PMS::DATA pmsData;
 

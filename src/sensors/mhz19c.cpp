@@ -1,22 +1,22 @@
 #include "mhz19c.h"
 #include "../include/pins.h"
-#include <SoftwareSerial.h>  // Software Serial für CO2 (UART2 wird vom Radar benutzt)
+#include <SoftwareSerial.h>  // Software Serial for CO2 (UART2 used by radar)
 #include <MHZ19.h>
 
 // ============================================
 // MH-Z19C CO2 SENSOR IMPLEMENTATION
 // ============================================
-// Verwendet SoftwareSerial weil:
+// Uses SoftwareSerial because:
 // - UART0 = USB Serial (Monitor)
-// - UART1 = PMS5003 (Feinstaub)
+// - UART1 = PMS5003 (Particulate)
 // - UART2 = LD2410C (Radar)
-// CO2 Sensor läuft mit 9600 Baud, das ist langsam genug für SoftwareSerial
+// CO2 sensor runs at 9600 baud, slow enough for SoftwareSerial
 
 static SoftwareSerial SerialCO2;
 static MHZ19 myMHZ19;
 
 bool sensors_mhz19_init(void) {
-  Serial.printf("    [MHZ19C] Initialisiere SoftwareSerial auf RX=%d, TX=%d (9600 Baud)...\n", 
+  Serial.printf("    [MHZ19C] Initializing SoftwareSerial on RX=%d, TX=%d (9600 baud)...\n", 
                 PIN_CO2_RX, PIN_CO2_TX);
   SerialCO2.begin(9600, SWSERIAL_8N1, PIN_CO2_RX, PIN_CO2_TX, false);
   delay(1000);
@@ -24,14 +24,14 @@ bool sensors_mhz19_init(void) {
   myMHZ19.begin(SerialCO2);
   myMHZ19.autoCalibration(false);
   
-  // Teste ob der Sensor antwortet
+  // Test if sensor responds
   int32_t testCO2 = myMHZ19.getCO2();
-  Serial.printf("    [MHZ19C] Test-Lesung: %d ppm\n", testCO2);
+  Serial.printf("    [MHZ19C] Test reading: %d ppm\n", testCO2);
   
   if (testCO2 > 0) {
     Serial.println("  MH-Z19C: OK");
   } else {
-    Serial.println("  MH-Z19C: WARNUNG - Keine Antwort (Aufwärmzeit ~3min)");
+    Serial.println("  MH-Z19C: WARNING - No response (warmup time ~3min)");
   }
   return true;
 }

@@ -1,12 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * INSPECTAIR - SENSOR HISTORY (24h Speicherung)
+ * INSPECTAIR - SENSOR HISTORY (24h Storage)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Speichert aggregierte Minutenwerte der letzten 24 Stunden.
- * Nutzt ESP32 Preferences (NVS) für persistente Speicherung.
+ * Stores aggregated per-minute values for the last 24 hours.
+ * Uses ESP32 Preferences (NVS) for persistent storage.
  *
- * Speicherverbrauch: ~35KB für 24h (1440 Minuten * 24 Bytes pro Eintrag)
+ * Memory usage: ~35KB for 24h (1440 minutes * 24 bytes per entry)
  */
 
 #ifndef SENSOR_HISTORY_H
@@ -17,39 +17,39 @@
 #include "sensor_types.h"
 
 // ═══════════════════════════════════════════════════════════════════════════
-// KONFIGURATION
+// CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-#define HISTORY_ENTRIES         1440    // 24h * 60 Minuten
-#define HISTORY_SAVE_INTERVAL   60000   // Alle 60 Sekunden speichern
-#define HISTORY_PERSIST_INTERVAL 300000 // Alle 5 Minuten in Flash schreiben
+#define HISTORY_ENTRIES         1440    // 24h * 60 minutes
+#define HISTORY_SAVE_INTERVAL   60000   // Save every 60 seconds
+#define HISTORY_PERSIST_INTERVAL 300000 // Write to flash every 5 minutes
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DATENSTRUKTUR FÜR EINEN HISTORIEN-EINTRAG
+// DATA STRUCTURE FOR A HISTORY ENTRY
 // ═══════════════════════════════════════════════════════════════════════════
 
 struct HistoryEntry {
-    uint32_t timestamp;     // Unix-Timestamp oder millis()
-    int16_t temp_x10;       // Temperatur * 10 (für 0.1° Auflösung)
-    uint8_t humidity;       // Luftfeuchtigkeit (0-100%)
+    uint32_t timestamp;     // Unix timestamp or millis()
+    int16_t temp_x10;       // Temperature * 10 (for 0.1° resolution)
+    uint8_t humidity;       // Humidity (0-100%)
     uint16_t co2;           // CO2 in ppm
     uint16_t pm25;          // PM2.5 in µg/m³
-    uint16_t voc;           // VOC Index
-    uint8_t reserved;       // Padding für Alignment
+    uint16_t voc;           // VOC index
+    uint8_t reserved;       // Padding for alignment
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SENSOR HISTORY KLASSE
+// SENSOR HISTORY CLASS
 // ═══════════════════════════════════════════════════════════════════════════
 
 class SensorHistory {
 private:
-    // Ringpuffer für 24h Historie
+    // Ring buffer for 24h history
     HistoryEntry* history = nullptr;
     int head = 0;
     int count = 0;
     
-    // Akkumulatoren für Minutenmittelwert
+    // Accumulators for per-minute average
     float tempSum = 0;
     float humSum = 0;
     int32_t co2Sum = 0;
@@ -61,60 +61,60 @@ private:
     unsigned long lastSave = 0;
     unsigned long lastPersist = 0;
     
-    // Preferences für Flash-Speicherung
+    // Preferences for flash storage
     Preferences prefs;
     bool initialized = false;
 
-    // Interner Speicher-Helper
+    // Internal storage helper
     void saveToFlash();
     void loadFromFlash();
 
 public:
     /**
-     * Initialisiert die Historie und lädt gespeicherte Daten
+     * Initializes history and loads stored data
      */
     bool begin();
     
     /**
-     * Beendet und gibt Speicher frei
+     * Cleans up and frees memory
      */
     void end();
     
     /**
-     * Fügt einen neuen Messwert hinzu (wird akkumuliert)
+     * Adds a new measurement (will be accumulated)
      */
     void addMeasurement(float temp, float hum, int32_t co2, int32_t voc, int32_t pm25);
     
     /**
-     * Muss regelmäßig aufgerufen werden (in loop)
-     * Speichert Minutenwerte und persistiert periodisch
+     * Must be called regularly (in loop)
+     * Saves per-minute values and persists periodically
      */
     void update();
     
     /**
-     * Gibt die Anzahl der gespeicherten Einträge zurück
+     * Returns the number of stored entries
      */
     int getEntryCount() const { return count; }
     
     /**
-     * Gibt einen Historien-Eintrag zurück
-     * @param index 0 = ältester, count-1 = neuester
+     * Returns a history entry
+     * @param index 0 = oldest, count-1 = newest
      */
     bool getEntry(int index, HistoryEntry& entry) const;
     
     /**
-     * Gibt den neuesten Eintrag zurück
+     * Returns the latest entry
      */
     bool getLatestEntry(HistoryEntry& entry) const;
     
     /**
-     * Berechnet Durchschnitt über die letzten N Minuten
+     * Calculates average over the last N minutes
      */
     bool getAverage(int minutes, float& temp, float& hum, 
                     int32_t& co2, int32_t& voc, int32_t& pm25) const;
     
     /**
-     * Berechnet Min/Max über die letzten N Minuten
+     * Calculates min/max over the last N minutes
      */
     bool getMinMax(int minutes, 
                    float& tempMin, float& tempMax,
@@ -122,18 +122,18 @@ public:
                    int32_t& co2Min, int32_t& co2Max) const;
     
     /**
-     * Löscht alle gespeicherten Daten
+     * Clears all stored data
      */
     void clear();
     
     /**
-     * Debug-Ausgabe
+     * Debug output
      */
     void printStatus();
     void printLastHours(int hours);
 };
 
-// Globale Instanz
+// Global instance
 extern SensorHistory sensorHistory;
 
 #endif // SENSOR_HISTORY_H

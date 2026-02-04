@@ -7,50 +7,50 @@
 // LD2410C RADAR SENSOR IMPLEMENTATION
 // ============================================
 
-static HardwareSerial SerialRadar(2); // UART2 für Radar
+static HardwareSerial SerialRadar(2); // UART2 for radar
 static ld2410 radar;
-static bool useOutPin = false;  // Fallback auf OUT Pin wenn UART nicht geht
+static bool useOutPin = false;  // Fallback to OUT pin if UART fails
 
-// Teste verschiedene Baudraten
+// Test different baud rates
 static const uint32_t BAUD_RATES[] = {256000, 115200, 9600};
 static const int NUM_BAUDS = 3;
 
 bool sensors_radar_init(void) {
   Serial.printf("    [LD2410C] Pins: RX=%d, TX=%d, OUT=%d\n", PIN_RADAR_RX, PIN_RADAR_TX, PIN_RADAR_OUT);
   
-  // Konfiguriere OUT Pin als Fallback
+  // Configure OUT pin as fallback
   pinMode(PIN_RADAR_OUT, INPUT);
   
-  // Teste verschiedene Baudraten
+  // Test different baud rates
   for (int b = 0; b < NUM_BAUDS; b++) {
     uint32_t baud = BAUD_RATES[b];
-    Serial.printf("    [LD2410C] Teste %d Baud...", baud);
+    Serial.printf("    [LD2410C] Testing %d baud...", baud);
     
     SerialRadar.end();
     delay(100);
     SerialRadar.begin(baud, SERIAL_8N1, PIN_RADAR_RX, PIN_RADAR_TX);
     delay(500);
     
-    // Leere Buffer
+    // Clear buffer
     while (SerialRadar.available()) SerialRadar.read();
     delay(200);
     
-    // Warte auf Daten
+    // Wait for data
     int bytesAvailable = 0;
     for (int i = 0; i < 10; i++) {
       delay(100);
       bytesAvailable = SerialRadar.available();
       if (bytesAvailable > 0) {
-        Serial.printf(" %d Bytes empfangen!\n", bytesAvailable);
+        Serial.printf(" %d bytes received!\n", bytesAvailable);
         
-        // Zeige erste Bytes (Hex)
-        Serial.print("    [LD2410C] Daten: ");
+        // Show first bytes (hex)
+        Serial.print("    [LD2410C] Data: ");
         for (int j = 0; j < min(bytesAvailable, 16); j++) {
           Serial.printf("%02X ", SerialRadar.read());
         }
         Serial.println();
         
-        // Initialisiere mit dieser Baudrate
+        // Initialize with this baud rate
         SerialRadar.end();
         delay(100);
         SerialRadar.begin(baud, SERIAL_8N1, PIN_RADAR_RX, PIN_RADAR_TX);
@@ -58,49 +58,49 @@ bool sensors_radar_init(void) {
         
         radar.begin(SerialRadar);
         useOutPin = false;
-        Serial.printf("  LD2410C: OK mit UART %d Baud\n", baud);
+        Serial.printf("  LD2410C: OK with UART %d baud\n", baud);
         return true;
       }
     }
-    Serial.println(" keine Daten");
+    Serial.println(" no data");
   }
   
-  // UART funktioniert nicht - teste OUT Pin
-  Serial.println("    [LD2410C] UART fehlgeschlagen, teste OUT Pin...");
+  // UART failed - test OUT pin
+  Serial.println("    [LD2410C] UART failed, testing OUT pin...");
   
-  // Prüfe ob OUT Pin reagiert (sollte LOW oder HIGH sein)
+  // Check if OUT pin responds (should be LOW or HIGH)
   int outState = digitalRead(PIN_RADAR_OUT);
-  Serial.printf("    [LD2410C] OUT Pin (GPIO %d) Status: %s\n", 
-                PIN_RADAR_OUT, outState ? "HIGH (Bewegung)" : "LOW (keine Bewegung)");
+  Serial.printf("    [LD2410C] OUT pin (GPIO %d) status: %s\n", 
+                PIN_RADAR_OUT, outState ? "HIGH (motion)" : "LOW (no motion)");
   
   useOutPin = true;
-  Serial.println("  LD2410C: Nutze OUT Pin Modus (nur Bewegungserkennung, keine Distanz)");
+  Serial.println("  LD2410C: Using OUT pin mode (motion detection only, no distance)");
   return true;
 }
 
 bool sensors_radar_read(LD2410C_Data* data) {
   if (!data) return false;
 
-  // OUT Pin Modus (Fallback wenn UART nicht funktioniert)
+  // OUT pin mode (fallback when UART fails)
   if (useOutPin) {
     static unsigned long lastOutDebug = 0;
     int outState = digitalRead(PIN_RADAR_OUT);
     
     data->presence = outState ? 1 : 0;
     data->motion = outState ? 1 : 0;
-    data->distance = outState ? 50 : 0;  // Dummy-Distanz
+    data->distance = outState ? 50 : 0;  // Dummy distance
     
-    // Debug alle 5 Sekunden
+    // Debug every 5 seconds
     if (millis() - lastOutDebug > 5000) {
       lastOutDebug = millis();
-      Serial.printf("[RADAR-OUT] GPIO %d = %s\n", PIN_RADAR_OUT, outState ? "HIGH (Bewegung!)" : "LOW");
+      Serial.printf("[RADAR-OUT] GPIO %d = %s\n", PIN_RADAR_OUT, outState ? "HIGH (motion!)" : "LOW");
     }
     
     return true;
   }
 
-  // UART Modus
-  // Debug: Zeige alle 10 Sekunden ob rohe Bytes ankommen
+  // UART mode
+  // Debug: show every 10 seconds if raw bytes arrive
   static unsigned long lastRawCheck = 0;
   if (millis() - lastRawCheck > 10000) {
     lastRawCheck = millis();
@@ -119,37 +119,37 @@ bool sensors_radar_read(LD2410C_Data* data) {
   radar.read(); // Standard read
   
   if (radar.isConnected()) {
-    // Lese Distanz (in cm)
+    // Read distance (in cm)
     uint16_t moving_dist = radar.movingTargetDistance();
     uint16_t stationary_dist = radar.stationaryTargetDistance();
     
-    // Minimum der beiden Distanzen nehmen
+    // Take minimum of both distances
     uint16_t min_dist = moving_dist;
     if (stationary_dist > 0 && (min_dist == 0 || stationary_dist < min_dist)) {
       min_dist = stationary_dist;
     }
     
-    // Erkennung: näher als 10cm
+    // Detection: closer than 10cm
     bool closeDetected = (min_dist > 0 && min_dist <= 10);
     
-    // Debug: Sofort ausgeben wenn etwas näher als 10cm ist
+    // Debug: output immediately when something closer than 10cm
     static bool lastCloseState = false;
     if (closeDetected && !lastCloseState) {
-      Serial.printf("[RADAR] >>> OBJEKT ERKANNT! Distanz: %d cm <<<\n", min_dist);
+      Serial.printf("[RADAR] >>> OBJECT DETECTED! Distance: %d cm <<<\n", min_dist);
     } else if (!closeDetected && lastCloseState) {
-      Serial.printf("[RADAR] Objekt entfernt (Distanz: %d cm)\n", min_dist);
+      Serial.printf("[RADAR] Object moved away (distance: %d cm)\n", min_dist);
     }
     lastCloseState = closeDetected;
     
-    // Zusätzlich: Bei Nähe kontinuierlich ausgeben (alle 500ms)
+    // Additionally: output continuously when close (every 500ms)
     static unsigned long lastCloseDebug = 0;
     if (closeDetected && (millis() - lastCloseDebug > 500)) {
       lastCloseDebug = millis();
-      Serial.printf("[RADAR] NAHE: %d cm (Moving: %d, Stationary: %d)\n", 
+      Serial.printf("[RADAR] CLOSE: %d cm (Moving: %d, Stationary: %d)\n", 
                     min_dist, moving_dist, stationary_dist);
     }
     
-    // Normales Debug alle 5 Sekunden
+    // Standard debug every 5 seconds
     static unsigned long lastDebug = 0;
     if (millis() - lastDebug > 5000) {
       lastDebug = millis();
@@ -166,7 +166,7 @@ bool sensors_radar_read(LD2410C_Data* data) {
     static unsigned long lastWarn = 0;
     if (millis() - lastWarn > 10000) {
       lastWarn = millis();
-      Serial.println("[RADAR] UART nicht verbunden, nutze OUT Pin");
+      Serial.println("[RADAR] UART not connected, using OUT pin");
     }
   }
 

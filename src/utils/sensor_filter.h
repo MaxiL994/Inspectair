@@ -3,12 +3,12 @@
  * INSPECTAIR - SENSOR FILTER & SMOOTHING
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Gleitender Mittelwert (Moving Average) für alle Sensorwerte.
- * Trennung von Messung, Filterung und Anzeige.
+ * Moving average filter for all sensor values.
+ * Separates measurement, filtering and display logic.
  *
- * Konfiguration:
- * - Temperatur/Feuchte: Träge (Update alle 60s)
- * - CO2/VOC/PM: Volatil (Glättung über 30-60s, Update alle 10-15s)
+ * Configuration:
+ * - Temperature/Humidity: Sluggish (update every 60s)
+ * - CO2/VOC/PM: Volatile (smoothing over 30-60s, update every 10-15s)
  */
 
 #ifndef SENSOR_FILTER_H
@@ -18,23 +18,23 @@
 #include "sensor_types.h"
 
 // ═══════════════════════════════════════════════════════════════════════════
-// KONFIGURATION - Anpassbar je nach Bedarf
+// CONFIGURATION - Adjustable as needed
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Messintervalle (in Millisekunden)
-#define MEASURE_INTERVAL_CLIMATE    10000   // Temp/Feuchte: alle 10 Sekunden messen
-#define MEASURE_INTERVAL_AIR        3000    // CO2/VOC/PM: alle 3 Sekunden messen
+// Measurement intervals (in milliseconds)
+#define MEASURE_INTERVAL_CLIMATE    10000   // Temp/Humidity: measure every 10 seconds
+#define MEASURE_INTERVAL_AIR        3000    // CO2/VOC/PM: measure every 3 seconds
 
-// Anzeige-Update-Intervalle (in Millisekunden)
-#define DISPLAY_INTERVAL_CLIMATE    60000   // Temp/Feuchte: alle 60 Sekunden anzeigen
-#define DISPLAY_INTERVAL_AIR        12000   // CO2/VOC/PM: alle 12 Sekunden anzeigen
+// Display update intervals (in milliseconds)
+#define DISPLAY_INTERVAL_CLIMATE    60000   // Temp/Humidity: display every 60 seconds
+#define DISPLAY_INTERVAL_AIR        12000   // CO2/VOC/PM: display every 12 seconds
 
-// Ringpuffer-Größen für Moving Average
-#define BUFFER_SIZE_CLIMATE         6       // 6 Messungen * 10s = 60s Fenster
-#define BUFFER_SIZE_AIR             20      // 20 Messungen * 3s = 60s Fenster
+// Ring buffer sizes for moving average
+#define BUFFER_SIZE_CLIMATE         6       // 6 measurements * 10s = 60s window
+#define BUFFER_SIZE_AIR             20      // 20 measurements * 3s = 60s window
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RINGPUFFER-TEMPLATE FÜR GLEITENDEN MITTELWERT
+// RING BUFFER TEMPLATE FOR MOVING AVERAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
 template<typename T, int SIZE>
@@ -56,19 +56,19 @@ public:
     }
 
     void add(T value) {
-        // Alten Wert vom Summe abziehen (wenn Puffer voll)
+        // Subtract old value from sum (if buffer is full)
         if (count == SIZE) {
             sum -= buffer[head];
         }
         
-        // Neuen Wert speichern
+        // Store new value
         buffer[head] = value;
         sum += value;
         
-        // Head weiterbewegen
+        // Move head forward
         head = (head + 1) % SIZE;
         
-        // Count erhöhen (max SIZE)
+        // Increase count (max SIZE)
         if (count < SIZE) {
             count++;
         }
@@ -79,7 +79,7 @@ public:
         return sum / count;
     }
 
-    // Für float-Typen
+    // For float types
     float getAverageFloat() const {
         if (count == 0) return 0.0f;
         return (float)sum / (float)count;
@@ -101,60 +101,60 @@ public:
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SENSOR FILTER KLASSE
+// SENSOR FILTER CLASS
 // ═══════════════════════════════════════════════════════════════════════════
 
 class SensorFilter {
 private:
-    // Ringpuffer für Klimawerte (träge)
+    // Ring buffers for climate values (sluggish)
     RingBuffer<float, BUFFER_SIZE_CLIMATE> tempBuffer;
     RingBuffer<float, BUFFER_SIZE_CLIMATE> humBuffer;
     
-    // Ringpuffer für Luftqualität (volatil)
+    // Ring buffers for air quality (volatile)
     RingBuffer<int32_t, BUFFER_SIZE_AIR> co2Buffer;
     RingBuffer<int32_t, BUFFER_SIZE_AIR> vocBuffer;
     RingBuffer<int32_t, BUFFER_SIZE_AIR> pm25Buffer;
     
-    // Timing für Messungen
+    // Timing for measurements
     unsigned long lastClimateMeasure = 0;
     unsigned long lastAirMeasure = 0;
     
-    // Timing für Display-Updates
+    // Timing for display updates
     unsigned long lastClimateDisplay = 0;
     unsigned long lastAirDisplay = 0;
     
-    // Letzte angezeigte (geglättete) Werte
+    // Last displayed (smoothed) values
     float displayTemp = 0;
     float displayHum = 0;
     int32_t displayCO2 = 0;
     int32_t displayVOC = 0;
     int32_t displayPM25 = 0;
     
-    // Flags für Display-Update-Benachrichtigung
+    // Flags for display update notification
     bool climateNeedsUpdate = false;
     bool airNeedsUpdate = false;
 
 public:
     /**
-     * Initialisiert den Filter
+     * Initializes the filter
      */
     void begin();
     
     /**
-     * Fügt neue Rohmesswerte hinzu
-     * Wird intern je nach Intervall gefiltert
+     * Adds new raw measurements
+     * Internally filtered based on interval
      */
     void addClimateMeasurement(float temp, float humidity);
     void addAirMeasurement(int32_t co2, int32_t voc, int32_t pm25);
     
     /**
-     * Prüft ob ein Display-Update nötig ist
+     * Checks if a display update is needed
      */
     bool shouldUpdateClimateDisplay();
     bool shouldUpdateAirDisplay();
     
     /**
-     * Gibt die geglätteten Werte für die Anzeige zurück
+     * Returns smoothed values for display
      */
     float getSmoothedTemp() const { return displayTemp; }
     float getSmoothedHum() const { return displayHum; }
@@ -163,7 +163,7 @@ public:
     int32_t getSmoothedPM25() const { return displayPM25; }
     
     /**
-     * Gibt die aktuellen Rohwerte zurück (für Debugging)
+     * Returns current raw values (for debugging)
      */
     float getRawTemp() const { return tempBuffer.getLatest(); }
     float getRawHum() const { return humBuffer.getLatest(); }
@@ -172,17 +172,17 @@ public:
     int32_t getRawPM25() const { return pm25Buffer.getLatest(); }
     
     /**
-     * Füllt eine SensorReadings-Struktur mit geglätteten Werten
+     * Fills a SensorReadings struct with smoothed values
      */
     void fillSmoothedReadings(SensorReadings& readings);
     
     /**
-     * Debug-Ausgabe
+     * Debug output
      */
     void printStatus();
 };
 
-// Globale Instanz
+// Global instance
 extern SensorFilter sensorFilter;
 
 #endif // SENSOR_FILTER_H

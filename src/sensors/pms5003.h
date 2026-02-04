@@ -1,11 +1,11 @@
 /**
  * @file pms5003.h
- * @brief Treiber für PMS5003 Feinstaub-Sensor (UART)
+ * @brief Driver for PMS5003 particulate sensor (UART)
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  * 
- * Stellt Funktionen zur Initialisierung und zum kontinuierlichen
- * Auslesen des PMS5003 Laser-Feinstaubsensors bereit.
+ * Provides functions for initialization and continuous
+ * reading of the PMS5003 laser particulate sensor.
  */
 
 #ifndef SENSORS_PMS5003_H
@@ -14,19 +14,19 @@
 #include "../include/sensor_types.h"
 
 // ============================================
-// PMS5003 FEINSTAUB SENSOR
+// PMS5003 PARTICULATE SENSOR
 // ============================================
 
 /**
- * Initialisiert PMS5003 Sensor
- * @return true bei erfolgreicher Initialisierung
+ * Initializes PMS5003 sensor
+ * @return true on successful initialization
  */
 bool sensors_pms_init(void);
 
 /**
- * Liest Feinstaubdaten (kontinuierlich)
- * @param data Zeiger auf PMS5003_Data Struktur
- * @return true wenn neue Daten verfügbar
+ * Reads particulate data (continuous)
+ * @param data Pointer to PMS5003_Data structure
+ * @return true when new data is available
  */
 bool sensors_pms_read(PMS5003_Data* data);
 

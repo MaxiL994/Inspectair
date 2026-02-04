@@ -7,8 +7,8 @@
  * Framework: LVGL 9.x
  * 
  * Multi-Screen UI System:
- * - Screen 1 (Übersicht): Große AQI rechts, 2 Kacheln Temp/Hum links
- * - Screen 2 (Detail): Kleine AQI, 4 Kacheln mit allen Werten
+ * - Screen 1 (Overview): Large AQI right, 2 tiles Temp/Hum left
+ * - Screen 2 (Detail): Small AQI, 4 tiles with all values
  */
 
 #ifndef UI_MANAGER_H
@@ -18,7 +18,7 @@
 #include "sensor_types.h"
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * FONT DEKLARATIONEN (Custom Fonts mit Umlauten)
+ * FONT DECLARATIONS (Custom fonts with umlauts)
  * ═══════════════════════════════════════════════════════════════════════════ */
 LV_FONT_DECLARE(ui_font_12);
 LV_FONT_DECLARE(ui_font_16);
@@ -27,70 +27,70 @@ LV_FONT_DECLARE(ui_font_28);
 LV_FONT_DECLARE(ui_font_48);
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN TYPEN
+ * SCREEN TYPES
  * ═══════════════════════════════════════════════════════════════════════════ */
 enum UIScreen {
-    UI_SCREEN_TREE     = 0,  // Baum-Animation (Startbildschirm)
-    UI_SCREEN_OVERVIEW = 1,  // Große AQI + 2 Kacheln (minimalistisch)
-    UI_SCREEN_DETAIL   = 2,  // Kleine AQI + 4 Kacheln (volle Infos)
-    UI_SCREEN_ANALOG   = 3,  // Analoge Cockpit-Instrumente
-    UI_SCREEN_BUBBLE   = 4,  // Dynamische Kreise (Modern Bubbles)
-    UI_SCREEN_COUNT    = 5   // Anzahl der Screens
+    UI_SCREEN_TREE     = 0,  // Tree animation (start screen)
+    UI_SCREEN_OVERVIEW = 1,  // Large AQI + 2 tiles (minimalist)
+    UI_SCREEN_DETAIL   = 2,  // Small AQI + 4 tiles (full info)
+    UI_SCREEN_ANALOG   = 3,  // Analog cockpit gauges
+    UI_SCREEN_BUBBLE   = 4,  // Dynamic circles (modern bubbles)
+    UI_SCREEN_COUNT    = 5   // Number of screens
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * API FUNKTIONEN
+ * API FUNCTIONS
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Initialisiert alle LVGL UI Screens
- * Muss nach lvgl_init() aufgerufen werden
+ * Initializes all LVGL UI screens
+ * Must be called after lvgl_init()
  */
 void ui_init(void);
 
 /**
- * Wechselt zum nächsten Screen (zyklisch)
+ * Switches to the next screen (cyclic)
  */
 void ui_nextScreen(void);
 
 /**
- * Wechselt zu einem bestimmten Screen
- * @param screen Der gewünschte Screen
+ * Switches to a specific screen
+ * @param screen The desired screen
  */
 void ui_setScreen(UIScreen screen);
 
 /**
- * Gibt den aktuellen Screen zurück
- * @return Der aktuelle Screen
+ * Returns the current screen
+ * @return The current screen
  */
 UIScreen ui_getCurrentScreen(void);
 
 /**
- * Aktualisiert die Uhrzeit-Anzeige (auf allen Screens)
- * @param hour Stunde (0-23)
+ * Updates the time display (on all screens)
+ * @param hour Hour (0-23)
  * @param minute Minute (0-59)
- * @param second Sekunde (0-59)
+ * @param second Second (0-59)
  */
 void ui_updateTime(int hour, int minute, int second);
 
 /**
- * Aktualisiert das Datum (auf allen Screens)
- * @param date_str Formatierter Datums-String (z.B. "Di, 14. Jan")
+ * Updates the date (on all screens)
+ * @param date_str Formatted date string (e.g. "Di, 14. Jan")
  */
 void ui_updateDate(const char* date_str);
 
 /**
- * Aktualisiert alle Sensorwerte (auf allen Screens)
- * @param temp Temperatur in °C
- * @param hum Luftfeuchtigkeit in %
+ * Updates all sensor values (on all screens)
+ * @param temp Temperature in °C
+ * @param hum Humidity in %
  * @param co2 CO2 in ppm
  * @param pm25 PM2.5 in µg/m³
- * @param voc VOC Index (0-500)
+ * @param voc VOC index (0-500)
  */
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc);
 
 /**
- * Aktualisiert alle Sensorwerte aus SensorReadings-Struktur
+ * Updates all sensor values from SensorReadings structure
  */
 void ui_updateSensors(const SensorReadings& readings);
 

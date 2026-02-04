@@ -1,11 +1,11 @@
 /**
  * @file ld2410c.h
- * @brief Treiber für LD2410C Radar-Präsenzsensor (UART)
+ * @brief Driver for LD2410C radar presence sensor (UART)
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  * 
- * Stellt Funktionen zur Initialisierung und zum Auslesen des
- * LD2410C mmWave-Radar-Sensors für Präsenz- und Bewegungserkennung bereit.
+ * Provides functions for initialization and reading of
+ * the LD2410C mmWave radar sensor for presence and motion detection.
  */
 
 #ifndef SENSORS_LD2410_H
@@ -18,15 +18,15 @@
 // ============================================
 
 /**
- * Initialisiert LD2410C Radar-Sensor
- * @return true bei erfolgreicher Initialisierung
+ * Initializes LD2410C radar sensor
+ * @return true on successful initialization
  */
 bool sensors_radar_init(void);
 
 /**
- * Liest Radar-Daten (Präsenz und Bewegung)
- * @param data Zeiger auf LD2410C_Data Struktur
- * @return true bei erfolgreicher Messung
+ * Reads radar data (presence and motion)
+ * @param data Pointer to LD2410C_Data structure
+ * @return true on successful measurement
  */
 bool sensors_radar_read(LD2410C_Data* data);
 

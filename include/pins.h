@@ -1,14 +1,14 @@
 /**
  * @file pins.h
- * @brief Pin-Definitionen für das InspectAir-Projekt (ESP32-S3)
+ * @brief Pin definitions for the InspectAir project (ESP32-S3)
  * @author Team InspectAir
- * @date Januar 2026
+ * @date January 2026
  * 
- * Enthält alle GPIO-Zuordnungen für:
+ * Contains all GPIO assignments for:
  * - Display (ST7796S via SPI)
- * - I2C-Sensoren (AHT20, SGP40)
- * - UART-Sensoren (PMS5003, MH-Z19C, LD2410C)
- * - UI-Navigation
+ * - I2C sensors (AHT20, SGP40)
+ * - UART sensors (PMS5003, MH-Z19C, LD2410C)
+ * - UI navigation
  */
 
 #ifndef PINS_H
@@ -19,8 +19,8 @@
 // ============================================
 // DISPLAY ST7796S (SPI)
 // ============================================
-/** @name Display-Pins (SPI)
- *  ST7796S 480x320 Display über SPI-Bus
+/** @name Display pins (SPI)
+ *  ST7796S 480x320 display via SPI bus
  *  @{
  */
 #define PIN_TFT_MOSI 11  /**< SPI Master Out Slave In */
@@ -33,10 +33,10 @@
 /** @} */
 
 // ============================================
-// I2C SENSOREN (AHT20, SGP40)
+// I2C SENSORS (AHT20, SGP40)
 // ============================================
-/** @name I2C-Pins
- *  Für AHT20 (Temp/Feuchte) und SGP40 (VOC)
+/** @name I2C pins
+ *  For AHT20 (temp/humidity) and SGP40 (VOC)
  *  @{
  */
 #define PIN_I2C_SDA  8   /**< I2C Data */
@@ -44,29 +44,29 @@
 /** @} */
 
 // ============================================
-// UART SENSOREN
+// UART SENSORS
 // ============================================
-/** @name UART-Pins für Sensoren
- *  PMS5003 (Feinstaub), MH-Z19C (CO2), LD2410C (Radar)
+/** @name UART pins for sensors
+ *  PMS5003 (particulate), MH-Z19C (CO2), LD2410C (radar)
  *  @{
  */
-#define PIN_PMS_RX   16  /**< PMS5003 RX (ESP empfängt) */
-#define PIN_PMS_TX   17  /**< PMS5003 TX (ESP sendet) */
+#define PIN_PMS_RX   16  /**< PMS5003 RX (ESP receives) */
+#define PIN_PMS_TX   17  /**< PMS5003 TX (ESP sends) */
 #define PIN_CO2_RX   4   /**< MH-Z19C RX */
 #define PIN_CO2_TX   5   /**< MH-Z19C TX */
 #define PIN_RADAR_RX 7   /**< LD2410C RX */
 #define PIN_RADAR_TX 6   /**< LD2410C TX */
-#define PIN_RADAR_OUT 15 /**< LD2410C OUT (Digital-Ausgang) */
+#define PIN_RADAR_OUT 15 /**< LD2410C OUT (digital output) */
 /** @} */
 
 // ============================================
 // UI NAVIGATION
 // ============================================
-/** @name UI-Steuerung
- *  Button für Screen-Wechsel
+/** @name UI control
+ *  Button for screen switching
  *  @{
  */
-#define PIN_UI_BUTTON  1  /**< UI-Button (Active LOW, interner Pullup) */
+#define PIN_UI_BUTTON  1  /**< UI button (active LOW, internal pullup) */
 /** @} */
 
 #endif

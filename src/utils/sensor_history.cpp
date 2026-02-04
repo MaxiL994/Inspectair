@@ -1,31 +1,31 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * INSPECTAIR - SENSOR HISTORY (24h Speicherung)
+ * INSPECTAIR - SENSOR HISTORY (24h Storage)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 #include "sensor_history.h"
 #include <time.h>
 
-// Globale Instanz
+// Global instance
 SensorHistory sensorHistory;
 
 bool SensorHistory::begin() {
-    // Speicher allozieren (nur einmal!)
+    // Allocate memory (only once!)
     if (history == nullptr) {
         history = new HistoryEntry[HISTORY_ENTRIES];
         if (history == nullptr) {
-            Serial.println("[HISTORY] FEHLER: Konnte Speicher nicht allozieren!");
+            Serial.println("[HISTORY] ERROR: Could not allocate memory!");
             return false;
         }
-        // Speicher initialisieren
+        // Initialize memory
         memset(history, 0, sizeof(HistoryEntry) * HISTORY_ENTRIES);
     }
     
     head = 0;
     count = 0;
     
-    // Akkumulatoren zurücksetzen
+    // Reset accumulators
     tempSum = 0;
     humSum = 0;
     co2Sum = 0;
@@ -33,27 +33,27 @@ bool SensorHistory::begin() {
     pm25Sum = 0;
     sampleCount = 0;
     
-    // Timing initialisieren
+    // Initialize timing
     lastSave = millis();
     lastPersist = millis();
     
-    // Versuche gespeicherte Daten zu laden
+    // Try to load stored data
     loadFromFlash();
     
     initialized = true;
     
-    Serial.println("[HISTORY] Sensor-Historie initialisiert");
-    Serial.printf("          Speicher: %d Einträge à %d Bytes = %d KB\n",
+    Serial.println("[HISTORY] Sensor history initialized");
+    Serial.printf("          Memory: %d entries of %d bytes = %d KB\n",
                   HISTORY_ENTRIES, sizeof(HistoryEntry),
                   (HISTORY_ENTRIES * sizeof(HistoryEntry)) / 1024);
-    Serial.printf("          Geladene Einträge: %d\n", count);
+    Serial.printf("          Loaded entries: %d\n", count);
     
     return true;
 }
 
 void SensorHistory::end() {
     if (history != nullptr) {
-        // Vor Beenden noch speichern
+        // Save before ending
         saveToFlash();
         delete[] history;
         history = nullptr;
@@ -64,7 +64,7 @@ void SensorHistory::end() {
 void SensorHistory::addMeasurement(float temp, float hum, int32_t co2, int32_t voc, int32_t pm25) {
     if (!initialized) return;
     
-    // Werte akkumulieren für Minutenmittelwert
+    // Accumulate values for per-minute average
     tempSum += temp;
     humSum += hum;
     co2Sum += co2;
@@ -78,13 +78,13 @@ void SensorHistory::update() {
     
     unsigned long now = millis();
     
-    // Alle 60 Sekunden Minutenwert speichern
+    // Save per-minute value every 60 seconds
     if (now - lastSave >= HISTORY_SAVE_INTERVAL && sampleCount > 0) {
         lastSave = now;
         
-        // Mittelwert berechnen
+        // Calculate average
         HistoryEntry entry;
-        entry.timestamp = now / 1000;  // Sekunden seit Boot (oder Unix-Time wenn verfügbar)
+        entry.timestamp = now / 1000;  // Seconds since boot (or Unix time if available)
         entry.temp_x10 = (int16_t)((tempSum / sampleCount) * 10);
         entry.humidity = (uint8_t)(humSum / sampleCount);
         entry.co2 = (uint16_t)(co2Sum / sampleCount);
@@ -92,21 +92,21 @@ void SensorHistory::update() {
         entry.pm25 = (uint16_t)(pm25Sum / sampleCount);
         entry.reserved = 0;
         
-        // Unix-Timestamp verwenden wenn verfügbar
+        // Use Unix timestamp if available
         struct tm timeinfo;
         if (getLocalTime(&timeinfo)) {
             time_t t = mktime(&timeinfo);
             entry.timestamp = (uint32_t)t;
         }
         
-        // In Ringpuffer speichern
+        // Store in ring buffer
         history[head] = entry;
         head = (head + 1) % HISTORY_ENTRIES;
         if (count < HISTORY_ENTRIES) {
             count++;
         }
         
-        // Akkumulatoren zurücksetzen
+        // Reset accumulators
         tempSum = 0;
         humSum = 0;
         co2Sum = 0;
@@ -115,11 +115,11 @@ void SensorHistory::update() {
         sampleCount = 0;
         
         // Debug (optional)
-        // Serial.printf("[HISTORY] Minutenwert gespeichert: T=%.1f H=%d CO2=%d (%d Einträge)\n",
+        // Serial.printf("[HISTORY] Per-minute value saved: T=%.1f H=%d CO2=%d (%d entries)\n",
         //               entry.temp_x10 / 10.0f, entry.humidity, entry.co2, count);
     }
     
-    // Alle 5 Minuten in Flash persistieren
+    // Persist to flash every 5 minutes
     if (now - lastPersist >= HISTORY_PERSIST_INTERVAL) {
         lastPersist = now;
         saveToFlash();
@@ -131,16 +131,16 @@ void SensorHistory::saveToFlash() {
     
     prefs.begin("sensorhist", false);
     
-    // Metadata speichern
+    // Save metadata
     prefs.putInt("head", head);
     prefs.putInt("count", count);
     
-    // Nur die neuesten 60 Einträge (1h) im Flash speichern
-    // (Vollständige 24h würde zu viel Flash-Wear verursachen)
+    // Only save the latest 60 entries (1h) to flash
+    // (Full 24h would cause too much flash wear)
     int saveCount = min(count, 60);
     int startIdx = (head - saveCount + HISTORY_ENTRIES) % HISTORY_ENTRIES;
     
-    // Als Blob speichern
+    // Save as blob
     HistoryEntry tempBuffer[60];
     for (int i = 0; i < saveCount; i++) {
         int idx = (startIdx + i) % HISTORY_ENTRIES;
@@ -152,7 +152,7 @@ void SensorHistory::saveToFlash() {
     
     prefs.end();
     
-    // Serial.printf("[HISTORY] %d Einträge in Flash gespeichert\n", saveCount);
+    // Serial.printf("[HISTORY] %d entries saved to flash\n", saveCount);
 }
 
 void SensorHistory::loadFromFlash() {
@@ -164,14 +164,14 @@ void SensorHistory::loadFromFlash() {
         size_t readBytes = prefs.getBytes("data", tempBuffer, savedCount * sizeof(HistoryEntry));
         
         if (readBytes == savedCount * sizeof(HistoryEntry)) {
-            // Daten in Ringpuffer laden
+            // Load data into ring buffer
             for (int i = 0; i < savedCount; i++) {
                 history[i] = tempBuffer[i];
             }
             head = savedCount % HISTORY_ENTRIES;
             count = savedCount;
             
-            Serial.printf("[HISTORY] %d Einträge aus Flash geladen\n", savedCount);
+            Serial.printf("[HISTORY] %d entries loaded from flash\n", savedCount);
         }
     }
     
@@ -183,7 +183,7 @@ bool SensorHistory::getEntry(int index, HistoryEntry& entry) const {
         return false;
     }
     
-    // Index 0 = ältester Eintrag
+    // Index 0 = oldest entry
     int actualIdx = (head - count + index + HISTORY_ENTRIES) % HISTORY_ENTRIES;
     entry = history[actualIdx];
     return true;
@@ -243,7 +243,7 @@ bool SensorHistory::getMinMax(int minutes,
     
     int entriesToUse = min(minutes, count);
     
-    // Initialisieren mit erstem Wert
+    // Initialize with first value
     HistoryEntry first;
     if (!getEntry(count - entriesToUse, first)) {
         return false;
@@ -253,7 +253,7 @@ bool SensorHistory::getMinMax(int minutes,
     humMin = humMax = first.humidity;
     co2Min = co2Max = first.co2;
     
-    // Rest durchgehen
+    // Go through the rest
     for (int i = count - entriesToUse + 1; i < count; i++) {
         HistoryEntry e;
         if (getEntry(i, e)) {
@@ -279,40 +279,40 @@ void SensorHistory::clear() {
     count = 0;
     memset(history, 0, sizeof(HistoryEntry) * HISTORY_ENTRIES);
     
-    // Flash löschen
+    // Clear flash
     prefs.begin("sensorhist", false);
     prefs.clear();
     prefs.end();
     
-    Serial.println("[HISTORY] Alle Daten gelöscht");
+    Serial.println("[HISTORY] All data cleared");
 }
 
 void SensorHistory::printStatus() {
     if (!initialized) {
-        Serial.println("[HISTORY] Nicht initialisiert!");
+        Serial.println("[HISTORY] Not initialized!");
         return;
     }
     
     Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
     Serial.println("║              SENSOR HISTORY STATUS                        ║");
     Serial.println("╠═══════════════════════════════════════════════════════════╣");
-    Serial.printf("║ Gespeicherte Einträge: %d / %d (%.1f%%)\n", 
+    Serial.printf("║ Stored entries: %d / %d (%.1f%%)\n", 
                   count, HISTORY_ENTRIES, (count * 100.0f) / HISTORY_ENTRIES);
-    Serial.printf("║ Speicherverbrauch: %d KB\n",
+    Serial.printf("║ Memory usage: %d KB\n",
                   (count * sizeof(HistoryEntry)) / 1024);
     
     if (count > 0) {
         HistoryEntry latest;
         if (getLatestEntry(latest)) {
-            Serial.printf("║ Letzter Eintrag: T=%.1f°C H=%d%% CO2=%dppm\n",
+            Serial.printf("║ Latest entry: T=%.1f°C H=%d%% CO2=%dppm\n",
                           latest.temp_x10 / 10.0f, latest.humidity, latest.co2);
         }
         
-        // Durchschnitt letzte Stunde
+        // Average of last hour
         float avgT, avgH;
         int32_t avgCO2, avgVOC, avgPM;
         if (getAverage(60, avgT, avgH, avgCO2, avgVOC, avgPM)) {
-            Serial.printf("║ Durchschnitt (1h): T=%.1f°C H=%.0f%% CO2=%ldppm\n",
+            Serial.printf("║ Average (1h): T=%.1f°C H=%.0f%% CO2=%ldppm\n",
                           avgT, avgH, avgCO2);
         }
     }
@@ -322,24 +322,24 @@ void SensorHistory::printStatus() {
 
 void SensorHistory::printLastHours(int hours) {
     if (!initialized || count == 0) {
-        Serial.println("[HISTORY] Keine Daten verfügbar");
+        Serial.println("[HISTORY] No data available");
         return;
     }
     
     int minutes = hours * 60;
     int entriesToShow = min(minutes, count);
     
-    Serial.printf("\n[HISTORY] Letzte %d Stunden (%d Einträge):\n", hours, entriesToShow);
-    Serial.println("Zeit          Temp   Hum   CO2    VOC   PM2.5");
+    Serial.printf("\n[HISTORY] Last %d hours (%d entries):\n", hours, entriesToShow);
+    Serial.println("Time          Temp   Hum   CO2    VOC   PM2.5");
     Serial.println("─────────────────────────────────────────────");
     
-    // Nur jeden 10. Eintrag zeigen (alle 10 Minuten)
+    // Only show every 10th entry (every 10 minutes)
     for (int i = count - entriesToShow; i < count; i += 10) {
         HistoryEntry e;
         if (getEntry(i, e)) {
-            // Timestamp formatieren wenn verfügbar
+            // Format timestamp if available
             char timeStr[20] = "??:??";
-            if (e.timestamp > 1600000000) {  // Plausible Unix-Zeit
+            if (e.timestamp > 1600000000) {  // Plausible Unix time
                 time_t t = e.timestamp;
                 struct tm* tm = localtime(&t);
                 if (tm) {
