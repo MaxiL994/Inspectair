@@ -33,6 +33,8 @@
 #include "WifiClock.h"
 #include "utils/sensor_filter.h"
 #include "utils/sensor_history.h"
+// NEU: Power Manager einbinden
+#include "utils/power_manager.h"
 
 // ============================================
 // WIFI CONFIGURATION
@@ -40,8 +42,8 @@
 #define WIFI_SSID_1     "AndroidAP3a99     j    vb h 7  b"
 #define WIFI_PASSWORD_1 "12345678"
 
-#define WIFI_SSID_2     "Vodafone-C414"
-#define WIFI_PASSWORD_2 "MXAZZeReKZt2NMKE"
+#define WIFI_SSID_2     "Pommes mit Mayo"
+#define WIFI_PASSWORD_2 "160506060406$$$"
 
 // ============================================
 // UI BUTTON CONFIGURATION
@@ -123,6 +125,9 @@ void checkUIButton() {
     
     // Detect falling edge (HIGH -> LOW = button pressed)
     if (lastButtonState == HIGH && currentState == LOW) {
+        // WICHTIG: Button weckt Display auch auf!
+        powerManager.wakeUp();
+        
         Serial.println("[BUTTON] *** BUTTON PRESSED - before ui_nextScreen() ***");
         Serial.flush();
         
@@ -233,6 +238,9 @@ void setup() {
     sensorFilter.begin();
     sensorHistory.begin();
     
+    // NEU: Power Manager starten
+    powerManager.begin();
+    
     // Initialize timing variables for equidistant intervals
     lastSensorRead = millis();
     lastTimeUpdate = millis();
@@ -272,9 +280,62 @@ void loop() {
     }
     
     // Read radar continuously
-    if (sensors_radar_read(&readings.radar)) {
+    bool radarUpdated = sensors_radar_read(&readings.radar);
+    if (radarUpdated) {
         last_radar_ok = millis();
     }
+    
+    // === POWER MANAGEMENT ===
+    // VERBESSERTE LOGIK 3.0 (Delta-Check):
+    // Da 'distance' auch Wände misst (Statisch), prüfen wir, ob sich der Wert ändert.
+    // Nur Änderungen > 5cm deuten auf echte Bewegung hin.
+    static int lastDist = 0;
+    static unsigned long lastMoveTime = 0;
+    
+    // Aktuelle Distanz holen
+    int currentDist = readings.radar.distance;
+    
+    // Prüfen ob Presence aktiv ist (OUT Pin)
+    bool presenceActive = readings.radar.presence;
+    
+    // Prüfen ob sich die Distanz geändert hat (Bewegung!)
+    bool distChanged = false;
+    
+    // Filter: Ignoriere 0 (Fehler) und >400 (zu weit)
+    if (currentDist > 0 && currentDist < 400 && lastDist > 0) {
+        // Delta Berechnung
+        int delta = abs(currentDist - lastDist);
+        
+        // Debug jedes Delta (damit wir sehen was passiert)
+        // Serial.printf("D:%d -> %d (Delta:%d)\n", lastDist, currentDist, delta); 
+        
+        // Logik UPDATE 4.0:
+        // Wir senken die Schwelle auf 40cm.
+        // Um Fehlalarme durch weit entfernte Echos zu vermeiden,
+        // akzeptieren wir Bewegung nur, wenn das ZIEL (currentDist) nah ist (< 120cm).
+        // Wenn currentDist > 120cm ist, ist es vermutlich die Wand/Echo.
+        
+        if (delta > 40 && delta < 250) { 
+            // Zusatzbedingung: Das Ziel muss nah sein
+            if (currentDist < 120) {
+                distChanged = true;
+                lastMoveTime = millis();
+                Serial.printf("[MOTION] WAKE UP! Delta: %dcm (%d -> %d)\n", delta, lastDist, currentDist);
+            }
+        }
+    }
+    
+    // Gültigen letzten Wert speichern (nicht 0)
+    if (currentDist > 0) {
+        lastDist = currentDist;
+    }
+    
+    // Wir sind wach, wenn:
+    // 1. Der Sensor per OUT-Pin 'Präsenz' meldet
+    // 2. ODER sich die Distanz signifikant geändert hat
+    bool isMotionDetected = presenceActive || (millis() - lastMoveTime < 2000);
+
+    powerManager.update(isMotionDetected);
     
     // === TIME UPDATE (500ms for smooth seconds display) ===
     if (millis() - lastTimeUpdate >= 500) {
@@ -363,13 +424,16 @@ void loop() {
     if (millis() - lastStatusPrint > 30000) {
         lastStatusPrint = millis();
         
-        Serial.printf("\n[RAW]      T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%u Radar:%d\n",
+        // Debug Update
+        Serial.printf("\n[RAW]      T:%.1f H:%.0f CO2:%ld VOC:%ld PM:%.0f Radar:%d Dist:%dcm Delta:%d\n",
                       readings.aht.temperature,
                       readings.aht.humidity,
                       readings.mhz.co2_ppm,
                       readings.sgp.voc_index,
-                      readings.pms.PM_AE_UG_2_5,
-                      readings.radar.presence);
+                      (float)readings.pms.PM_AE_UG_2_5,
+                      readings.radar.presence,
+                      readings.radar.distance,
+                      distChanged); // Zeigt ob Bewegung erkannt wurde
         Serial.printf("[SMOOTHED] T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%ld\n",
                       sensorFilter.getSmoothedTemp(),
                       sensorFilter.getSmoothedHum(),

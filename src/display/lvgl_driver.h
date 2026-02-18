@@ -23,6 +23,16 @@
 void lvgl_init(void);
 
 /**
+ * Sets the display brightness (0-255)
+ */
+void lvgl_setBrightness(uint8_t brightness);
+
+/**
+ * Returns the current brightness
+ */
+uint8_t lvgl_getBrightness(void);
+
+/**
  * Must be called regularly in loop
  * Processes LVGL timers and events
  */
