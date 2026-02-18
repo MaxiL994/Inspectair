@@ -17,6 +17,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
+#include <esp_task_wdt.h>
 
 // LVGL und Display
 #include <lvgl.h>
@@ -35,6 +36,12 @@
 #include "utils/sensor_history.h"
 // NEU: Power Manager einbinden
 #include "utils/power_manager.h"
+// Web Remote Control (Handy-Steuerung per Browser)
+// Aktivieren wenn gewünscht: #define einkommentieren
+// #define WEBREMOTE_ENABLED
+#ifdef WEBREMOTE_ENABLED
+#include "web_remote.h"
+#endif
 
 // ============================================
 // WIFI CONFIGURATION
@@ -245,6 +252,19 @@ void setup() {
     lastSensorRead = millis();
     lastTimeUpdate = millis();
     
+    // === WEB REMOTE CONTROL ===
+    #ifdef WEBREMOTE_ENABLED
+    if (WiFi.status() == WL_CONNECTED) {
+        webRemote_begin();
+    }
+    #endif
+
+    // === WATCHDOG TIMER ===
+    // Startet ESP32 automatisch neu, wenn loop() länger als 8s blockiert
+    esp_task_wdt_init(8, true);   // 8s Timeout, panic=true → Reset bei Timeout
+    esp_task_wdt_add(NULL);       // Aktuellen Task (loopTask) überwachen
+    Serial.println("[INIT] Watchdog Timer: 8s Timeout aktiv");
+
     Serial.println("\n[INFO] Initialization complete!");
     Serial.println("[INFO] Sensor measurement every 2 seconds (equidistant)");
     Serial.println("[INFO] Display update: Climate every 60s, Air every 12s");
@@ -258,6 +278,9 @@ void setup() {
 }
 
 void loop() {
+    // === WATCHDOG FÜTTERN ===
+    esp_task_wdt_reset();
+
     // === LVGL LOOP (IMPORTANT!) ===
     // Must be called regularly for UI updates
     lvgl_loop();
@@ -265,6 +288,11 @@ void loop() {
     // === UI BUTTON CHECK ===
     #ifdef UI_BUTTON_ENABLED
     checkUIButton();
+    #endif
+    
+    // === WEB REMOTE CONTROL ===
+    #ifdef WEBREMOTE_ENABLED
+    webRemote_loop();
     #endif
     
     // === WIFI RECONNECT CHECK ===

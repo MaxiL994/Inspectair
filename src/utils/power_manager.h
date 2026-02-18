@@ -27,7 +27,15 @@ private:
     unsigned long _lastActivityTime;
     bool _isDimmed;
     
-    void _setBrightnessSmooth(uint8_t start, uint8_t target);
+    // Non-blocking Fade (blockiert loop() nicht mehr!)
+    uint8_t _fadeCurrent;
+    uint8_t _fadeTarget;
+    unsigned long _lastFadeStep;
+    uint8_t _fadeStepInterval;  // ms zwischen Schritten
+    bool _isFading;
+    
+    void _startFade(uint8_t target);
+    void _updateFade();
 };
 
 extern PowerManager powerManager;

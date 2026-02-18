@@ -3,52 +3,68 @@
 
 PowerManager powerManager;
 
-PowerManager::PowerManager() : _lastActivityTime(0), _isDimmed(false) {}
+PowerManager::PowerManager() 
+    : _lastActivityTime(0), _isDimmed(false),
+      _fadeCurrent(BRIGHTNESS_ACTIVE), _fadeTarget(BRIGHTNESS_ACTIVE),
+      _lastFadeStep(0), _fadeStepInterval(5), _isFading(false) {}
 
 void PowerManager::begin() {
     _lastActivityTime = millis();
     _isDimmed = false;
+    _fadeCurrent = BRIGHTNESS_ACTIVE;
+    _fadeTarget = BRIGHTNESS_ACTIVE;
+    _isFading = false;
     lvgl_setBrightness(BRIGHTNESS_ACTIVE);
-    Serial.println("[POWER] Manager initialized. Timeout: 10s");
+    Serial.println("[POWER] Manager initialized. Timeout: 45s");
 }
 
 void PowerManager::wakeUp() {
     _lastActivityTime = millis();
     if (_isDimmed) {
         Serial.println("[POWER] Waking up display!");
-        _setBrightnessSmooth(BRIGHTNESS_DIMMED, BRIGHTNESS_ACTIVE);
+        _startFade(BRIGHTNESS_ACTIVE);
         _isDimmed = false;
     }
 }
 
 void PowerManager::update(bool presenceDetected) {
+    // Non-blocking Fade jeden loop()-Durchlauf fortsetzen
+    _updateFade();
+    
     if (presenceDetected) {
-        // Bei Bewegung/Präsenz Timer zurücksetzen
         wakeUp();
     } else {
-        // Keine Bewegung -> Prüfen ob Timeout abgelaufen
         if (!_isDimmed && (millis() - _lastActivityTime > PRESENCE_TIMEOUT_MS)) {
             Serial.println("[POWER] No presence detected. Dimming display...");
-            _setBrightnessSmooth(BRIGHTNESS_ACTIVE, BRIGHTNESS_DIMMED);
+            _startFade(BRIGHTNESS_DIMMED);
             _isDimmed = true;
         }
     }
 }
 
-// Weicher Übergang für Edles Look & Feel
-void PowerManager::_setBrightnessSmooth(uint8_t start, uint8_t target) {
-    if (start < target) {
-        // Aufblenden
-        for (int i = start; i <= target; i += 5) {
-            lvgl_setBrightness(i);
-            delay(5);
-        }
+// Startet einen weichen Übergang (non-blocking)
+void PowerManager::_startFade(uint8_t target) {
+    _fadeTarget = target;
+    _isFading = (_fadeCurrent != _fadeTarget);
+    _lastFadeStep = millis();
+    // Abblenden langsamer (10ms/Step) als Aufblenden (5ms/Step)
+    _fadeStepInterval = (target < _fadeCurrent) ? 10 : 5;
+}
+
+// Wird jeden loop()-Durchlauf aufgerufen, macht max. 1 Step
+void PowerManager::_updateFade() {
+    if (!_isFading) return;
+    if (millis() - _lastFadeStep < _fadeStepInterval) return;
+    _lastFadeStep = millis();
+    
+    if (_fadeCurrent < _fadeTarget) {
+        _fadeCurrent = min((int)_fadeCurrent + 5, (int)_fadeTarget);
     } else {
-        // Abblenden
-        for (int i = start; i >= target; i -= 5) {
-            lvgl_setBrightness(i);
-            delay(10);
-        }
+        _fadeCurrent = max((int)_fadeCurrent - 5, (int)_fadeTarget);
     }
-    lvgl_setBrightness(target); // Zielsicherer Abschluss
+    lvgl_setBrightness(_fadeCurrent);
+    
+    if (_fadeCurrent == _fadeTarget) {
+        _isFading = false;
+    }
 }
