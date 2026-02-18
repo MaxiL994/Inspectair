@@ -10,6 +10,10 @@
 static HardwareSerial SerialRadar(2); // UART2 for radar
 static ld2410 radar;
 static bool useOutPin = false;  // Fallback to OUT pin if UART fails
+static unsigned long lastRadarFrame = 0;
+static LD2410C_Data lastGoodRadar = {0};
+static bool haveLastGoodRadar = false;
+static bool radarAutoTaskStarted = false;
 
 // Test different baud rates
 static const uint32_t BAUD_RATES[] = {256000, 115200, 9600};
@@ -21,48 +25,57 @@ bool sensors_radar_init(void) {
   // Configure OUT pin as fallback
   pinMode(PIN_RADAR_OUT, INPUT);
   
-  // Test different baud rates
-  for (int b = 0; b < NUM_BAUDS; b++) {
-    uint32_t baud = BAUD_RATES[b];
-    Serial.printf("    [LD2410C] Testing %d baud...", baud);
-    
-    SerialRadar.end();
-    delay(100);
-    SerialRadar.begin(baud, SERIAL_8N1, PIN_RADAR_RX, PIN_RADAR_TX);
-    delay(500);
-    
-    // Clear buffer
-    while (SerialRadar.available()) SerialRadar.read();
-    delay(200);
-    
-    // Wait for data
-    int bytesAvailable = 0;
-    for (int i = 0; i < 10; i++) {
+  // Pin names in pins.h are ESP-side (confirmed: original orientation works)
+  // Try original first, then swapped as fallback
+  int rxPins[] = {PIN_RADAR_RX, PIN_RADAR_TX};
+  int txPins[] = {PIN_RADAR_TX, PIN_RADAR_RX};
+  const char* pinLabels[] = {"original", "swapped"};
+
+  for (int p = 0; p < 2; p++) {
+    if (p == 1) Serial.println("    [LD2410C] Trying swapped RX/TX pins...");
+
+    // Test different baud rates
+    for (int b = 0; b < NUM_BAUDS; b++) {
+      uint32_t baud = BAUD_RATES[b];
+      Serial.printf("    [LD2410C] Testing %d baud (%s)...", baud, pinLabels[p]);
+
+      SerialRadar.end();
       delay(100);
-      bytesAvailable = SerialRadar.available();
-      if (bytesAvailable > 0) {
-        Serial.printf(" %d bytes received!\n", bytesAvailable);
-        
-        // Show first bytes (hex)
-        Serial.print("    [LD2410C] Data: ");
-        for (int j = 0; j < min(bytesAvailable, 16); j++) {
-          Serial.printf("%02X ", SerialRadar.read());
-        }
-        Serial.println();
-        
-        // Initialize with this baud rate
-        SerialRadar.end();
+      SerialRadar.begin(baud, SERIAL_8N1, rxPins[p], txPins[p]);
+      delay(500);
+
+      int bytesAvailable = 0;
+      for (int i = 0; i < 20; i++) {
         delay(100);
-        SerialRadar.begin(baud, SERIAL_8N1, PIN_RADAR_RX, PIN_RADAR_TX);
-        delay(200);
-        
-        radar.begin(SerialRadar);
-        useOutPin = false;
-        Serial.printf("  LD2410C: OK with UART %d baud\n", baud);
-        return true;
+        bytesAvailable = SerialRadar.available();
+        if (bytesAvailable > 0) break;
+      }
+
+      if (bytesAvailable > 0) {
+        Serial.printf(" %d bytes - starting stream mode...\n", bytesAvailable);
+
+        // IMPORTANT:
+        // begin(..., false) disables firmware request/ack handshake.
+        // This keeps UART streaming functional even if ESP->sensor TX path
+        // is not available, as long as sensor->ESP RX data is present.
+        if (radar.begin(SerialRadar, false)) {
+          useOutPin = false;
+          lastRadarFrame = millis();
+          // Process radar UART in background task to avoid drops when loop is busy.
+          if (!radarAutoTaskStarted) {
+            radar.autoReadTask(4096, 1, 1);
+            radarAutoTaskStarted = true;
+          }
+          Serial.printf("  LD2410C: UART stream active (%d baud, %s)\n", baud, pinLabels[p]);
+          return true;
+        }
+
+        // Should rarely happen with waitForRadar=false, but keep fallback path.
+        Serial.printf("    [LD2410C] Stream init failed at %d baud\n", baud);
+      } else {
+        Serial.println(" no data");
       }
     }
-    Serial.println(" no data");
   }
   
   // UART failed - test OUT pin
@@ -99,26 +112,39 @@ bool sensors_radar_read(LD2410C_Data* data) {
     return true;
   }
 
-  // UART mode
-  // Debug: show every 10 seconds if raw bytes arrive
-  static unsigned long lastRawCheck = 0;
-  if (millis() - lastRawCheck > 10000) {
-    lastRawCheck = millis();
-    int avail = SerialRadar.available();
-    Serial.printf("[RADAR-DEBUG] Raw bytes available: %d\n", avail);
-    if (avail > 0) {
-      Serial.print("[RADAR-DEBUG] First bytes: ");
-      for (int i = 0; i < min(avail, 20); i++) {
-        Serial.printf("%02X ", SerialRadar.peek());
-        SerialRadar.read();
-      }
-      Serial.println();
+  // UART mode - let library process all bytes
+  if (!radarAutoTaskStarted) {
+    // Manual mode: call read() ourselves
+    if (radar.read()) {
+      lastRadarFrame = millis();
     }
   }
 
-  radar.read(); // Standard read
+  // Check connection status (library internal timeout ~1s)
+  bool connected = radar.isConnected();
+
+  // When autoReadTask is running, the background task processes frames.
+  // Update our timestamp whenever the library reports connected.
+  if (connected) {
+    lastRadarFrame = millis();
+  }
+
+  // Hysteresis: bridge brief gaps where isConnected() flickers false.
+  // With the timestamp now properly updated, this 20s window only
+  // activates during genuine interruptions.
+  if (!connected && (millis() - lastRadarFrame < 20000)) {
+    connected = true;
+  }
   
-  if (radar.isConnected()) {
+  // Debug: connection status every 10 seconds
+  static unsigned long lastRawCheck = 0;
+  if (millis() - lastRawCheck > 10000) {
+    lastRawCheck = millis();
+    Serial.printf("[RADAR] Connected: %s, Bytes available: %d\n", 
+                  connected ? "yes" : "no", SerialRadar.available());
+  }
+  
+  if (connected) {
     // Read distance (in cm)
     uint16_t moving_dist = radar.movingTargetDistance();
     uint16_t stationary_dist = radar.stationaryTargetDistance();
@@ -160,15 +186,26 @@ bool sensors_radar_read(LD2410C_Data* data) {
     data->presence = closeDetected ? 1 : 0;
     data->motion = radar.movingTargetDetected() ? 1 : 0;
     data->distance = min_dist;
+    lastGoodRadar = *data;
+    haveLastGoodRadar = true;
     
     return true;
   } else {
     static unsigned long lastWarn = 0;
     if (millis() - lastWarn > 10000) {
       lastWarn = millis();
-      Serial.println("[RADAR] UART not connected, using OUT pin");
+      Serial.println("[RADAR] UART frame timeout, keeping last valid UART radar value");
     }
-  }
 
-  return false;
+    if (haveLastGoodRadar) {
+      *data = lastGoodRadar;
+      return true;
+    }
+
+    // Keep UART mode active; do not auto-switch to OUT mode after successful UART init.
+    data->presence = 0;
+    data->motion = 0;
+    data->distance = 0;
+    return true;
+  }
 }
