@@ -129,8 +129,8 @@ bool sensors_radar_read(LD2410C_Data* data) {
       min_dist = stationary_dist;
     }
     
-    // Erkennung: näher als 30cm
-    bool closeDetected = (min_dist > 0 && min_dist <= 30);
+    // Erkennung: näher als 15cm
+    bool closeDetected = (min_dist > 0 && min_dist <= 15);
     
     // Debug: Sofort ausgeben wenn etwas näher als 10cm ist
     static bool lastCloseState = false;
