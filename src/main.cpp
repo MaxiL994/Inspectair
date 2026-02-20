@@ -33,6 +33,16 @@
 #include "WifiClock.h"
 #include "utils/sensor_filter.h"
 #include "utils/sensor_history.h"
+#include "utils/power_manager.h"
+
+// Web Remote Control (Handy-Steuerung per Browser)
+#define WEBREMOTE_ENABLED
+#ifdef WEBREMOTE_ENABLED
+#include "web_remote.h"
+#endif
+
+// Watchdog Timer
+#include <esp_task_wdt.h>
 
 // ============================================
 // WLAN KONFIGURATION
@@ -123,6 +133,9 @@ void checkUIButton() {
     
     // Fallende Flanke erkennen (HIGH -> LOW = Button gedrückt)
     if (lastButtonState == HIGH && currentState == LOW) {
+        // WICHTIG: Button weckt Display auch auf!
+        powerManager.wakeUp();
+
         Serial.println("[BUTTON] *** TASTE GEDRÜCKT - vor ui_nextScreen() ***");
         Serial.flush();
         
@@ -233,9 +246,24 @@ void setup() {
     sensorFilter.begin();
     sensorHistory.begin();
     
+    // Power Manager starten
+    powerManager.begin();
+    
     // Timing-Variablen initialisieren für äquidistante Intervalle
     lastSensorRead = millis();
     lastTimeUpdate = millis();
+    
+    // === WEB REMOTE CONTROL ===
+    #ifdef WEBREMOTE_ENABLED
+    if (WiFi.status() == WL_CONNECTED) {
+        webRemote_begin();
+    }
+    #endif
+    
+    // === WATCHDOG TIMER ===
+    esp_task_wdt_init(8, true);
+    esp_task_wdt_add(NULL);
+    Serial.println("[INIT] Watchdog Timer: 8s Timeout aktiv");
     
     Serial.println("\n[INFO] Initialisierung abgeschlossen!");
     Serial.println("[INFO] Sensor-Messung alle 2 Sekunden (äquidistant)");
@@ -250,13 +278,21 @@ void setup() {
 }
 
 void loop() {
+    // === WATCHDOG FÜTTERN ===
+    esp_task_wdt_reset();
+    
     // === LVGL LOOP (WICHTIG!) ===
     // Muss regelmäßig aufgerufen werden für UI Updates
     lvgl_loop();
     
-    // === UI BUTTON CHECK (auskommentiert) ===
+    // === UI BUTTON CHECK ===
     #ifdef UI_BUTTON_ENABLED
     checkUIButton();
+    #endif
+    
+    // === WEB REMOTE CONTROL ===
+    #ifdef WEBREMOTE_ENABLED
+    webRemote_loop();
     #endif
     
     // === WIFI RECONNECT CHECK ===
@@ -275,6 +311,29 @@ void loop() {
     if (sensors_radar_read(&readings.radar)) {
         last_radar_ok = millis();
     }
+    
+    // === POWER MANAGEMENT ===
+    static int lastDist = 0;
+    static unsigned long lastMoveTime = 0;
+    int currentDist = readings.radar.distance;
+    bool presenceActive = readings.radar.presence;
+    bool distChanged = false;
+    
+    if (currentDist > 0 && currentDist < 400 && lastDist > 0) {
+        int delta = abs(currentDist - lastDist);
+        if (delta > 40 && delta < 250) {
+            if (currentDist < 120) {
+                distChanged = true;
+                lastMoveTime = millis();
+                Serial.printf("[MOTION] WAKE UP! Delta: %dcm (%d -> %d)\n", delta, lastDist, currentDist);
+            }
+        }
+    }
+    if (currentDist > 0) {
+        lastDist = currentDist;
+    }
+    bool isMotionDetected = presenceActive || (millis() - lastMoveTime < 2000);
+    powerManager.update(isMotionDetected);
     
     // === UHRZEIT UPDATE (500ms für flüssige Sekunden-Anzeige) ===
     if (millis() - lastTimeUpdate >= 500) {
