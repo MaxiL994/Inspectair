@@ -9,11 +9,7 @@
 
 // Global display object
 static LGFX tft;
-
-// PWM configuration for backlight
-#define BLK_PWM_CHANNEL 0
-#define BLK_PWM_FREQ 5000
-#define BLK_PWM_RES 8
+static uint8_t currentBrightness = 255;
 
 // LVGL Tick
 static uint32_t last_tick = 0;
@@ -42,21 +38,14 @@ static void lvgl_flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px
  * Initializes LVGL and the display driver
  */
 void lvgl_init(void) {
-    // Configure backlight pin
-    pinMode(PIN_TFT_BL, OUTPUT);
-    digitalWrite(PIN_TFT_BL, HIGH);
-    
-    // Initialize LovyanGFX display
+    // Initialize LovyanGFX display (handles backlight PWM internally)
     tft.begin();
     tft.setRotation(1);  // Landscape Mode
     tft.fillScreen(TFT_BLACK);
     
-    // PWM for backlight initialization using PIN_TFT_BL
-    #ifdef PIN_TFT_BL
-        ledcSetup(BLK_PWM_CHANNEL, BLK_PWM_FREQ, BLK_PWM_RES);
-        ledcAttachPin(PIN_TFT_BL, BLK_PWM_CHANNEL);
-        lvgl_setBrightness(255); // Start with full brightness
-    #endif
+    // Set initial brightness via LovyanGFX
+    tft.setBrightness(255);
+    currentBrightness = 255;
 
     // Initialize LVGL
     lv_init();
@@ -90,23 +79,18 @@ void lvgl_init(void) {
 }
 
 /**
- * Sets the backlight brightness
+ * Sets the backlight brightness via LovyanGFX
  */
 void lvgl_setBrightness(uint8_t brightness) {
-    #ifdef PIN_TFT_BL
-        ledcWrite(BLK_PWM_CHANNEL, brightness);
-    #endif
+    tft.setBrightness(brightness);
+    currentBrightness = brightness;
 }
 
 /**
  * Gets the backlight brightness
  */
 uint8_t lvgl_getBrightness() {
-    #ifdef PIN_TFT_BL
-        return ledcRead(BLK_PWM_CHANNEL);
-    #else
-        return 255;
-    #endif
+    return currentBrightness;
 }
 
 /**
