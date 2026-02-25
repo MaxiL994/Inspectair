@@ -1,40 +1,33 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
  * INSPECTAIR - SENSOR FILTER & SMOOTHING
- * ═══════════════════════════════════════════════════════════════════════════
  */
 
 #include "sensor_filter.h"
+#include "../include/debug_log.h"
 
-// Globale Instanz
 SensorFilter sensorFilter;
 
 void SensorFilter::begin() {
-    // Puffer zurücksetzen
     tempBuffer.reset();
     humBuffer.reset();
     co2Buffer.reset();
     vocBuffer.reset();
     pm25Buffer.reset();
     
-    // Timing initialisieren
     lastClimateMeasure = 0;
     lastAirMeasure = 0;
     lastClimateDisplay = 0;
     lastAirDisplay = 0;
     
-    // Display-Werte auf 0
     displayTemp = 0;
     displayHum = 0;
     displayCO2 = 0;
     displayVOC = 0;
     displayPM25 = 0;
     
-    Serial.println("[FILTER] Sensor-Filter initialisiert");
-    Serial.printf("         Klima: Messung alle %ds, Anzeige alle %ds\n", 
-                  MEASURE_INTERVAL_CLIMATE/1000, DISPLAY_INTERVAL_CLIMATE/1000);
-    Serial.printf("         Luft:  Messung alle %ds, Anzeige alle %ds\n",
-                  MEASURE_INTERVAL_AIR/1000, DISPLAY_INTERVAL_AIR/1000);
+    LOG_I("FILTER", "Init (Klima: %ds/%ds, Luft: %ds/%ds)",
+          MEASURE_INTERVAL_CLIMATE/1000, DISPLAY_INTERVAL_CLIMATE/1000,
+          MEASURE_INTERVAL_AIR/1000, DISPLAY_INTERVAL_AIR/1000);
 }
 
 void SensorFilter::addClimateMeasurement(float temp, float humidity) {
@@ -120,23 +113,10 @@ void SensorFilter::fillSmoothedReadings(SensorReadings& readings) {
 }
 
 void SensorFilter::printStatus() {
-    Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║              SENSOR FILTER STATUS                         ║");
-    Serial.println("╠═══════════════════════════════════════════════════════════╣");
-    Serial.printf("║ Temperatur: Raw=%.1f°C  Avg=%.1f°C  (%d/%d Samples)      \n",
+    Serial.printf("── Filter: T=%.1f/%.1f H=%.0f/%.0f CO2=%ld/%ld VOC=%ld/%ld PM=%ld/%ld ──\n",
                   tempBuffer.getLatest(), tempBuffer.getAverageFloat(),
-                  tempBuffer.getCount(), BUFFER_SIZE_CLIMATE);
-    Serial.printf("║ Feuchte:    Raw=%.0f%%   Avg=%.0f%%   (%d/%d Samples)      \n",
                   humBuffer.getLatest(), humBuffer.getAverageFloat(),
-                  humBuffer.getCount(), BUFFER_SIZE_CLIMATE);
-    Serial.printf("║ CO2:        Raw=%ld    Avg=%ld    (%d/%d Samples)      \n",
                   co2Buffer.getLatest(), co2Buffer.getAverage(),
-                  co2Buffer.getCount(), BUFFER_SIZE_AIR);
-    Serial.printf("║ VOC:        Raw=%ld    Avg=%ld    (%d/%d Samples)      \n",
                   vocBuffer.getLatest(), vocBuffer.getAverage(),
-                  vocBuffer.getCount(), BUFFER_SIZE_AIR);
-    Serial.printf("║ PM2.5:      Raw=%ld    Avg=%ld    (%d/%d Samples)      \n",
-                  pm25Buffer.getLatest(), pm25Buffer.getAverage(),
-                  pm25Buffer.getCount(), BUFFER_SIZE_AIR);
-    Serial.println("╚═══════════════════════════════════════════════════════════╝\n");
+                  pm25Buffer.getLatest(), pm25Buffer.getAverage());
 }

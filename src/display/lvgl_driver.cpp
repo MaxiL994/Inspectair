@@ -5,6 +5,7 @@
 
 #include "lvgl_driver.h"
 #include "pins.h"
+#include "debug_log.h"
 #include <Arduino.h>
 
 // Global display object
@@ -65,7 +66,7 @@ void lvgl_init(void) {
     #endif
     
     if (!buf1 || !buf2) {
-        Serial.println("[LVGL] ERROR: Buffer allocation failed!");
+        LOG_E("LVGL", "Buffer-Allokierung fehlgeschlagen!");
         return;
     }
     
@@ -74,8 +75,7 @@ void lvgl_init(void) {
     lv_display_set_flush_cb(display, lvgl_flush_cb);
     lv_display_set_buffers(display, buf1, buf2, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     
-    Serial.println("[LVGL 9] Display initialized");
-    Serial.printf("[LVGL 9] Resolution: %dx%d\n", SCREEN_WIDTH, SCREEN_HEIGHT);
+    LOG_I("LVGL", "Display %dx%d initialisiert", SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 /**

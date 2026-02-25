@@ -5,6 +5,7 @@
  */
 
 #include "sensor_history.h"
+#include "../include/debug_log.h"
 #include <time.h>
 
 // Globale Instanz
@@ -15,10 +16,9 @@ bool SensorHistory::begin() {
     if (history == nullptr) {
         history = new HistoryEntry[HISTORY_ENTRIES];
         if (history == nullptr) {
-            Serial.println("[HISTORY] FEHLER: Konnte Speicher nicht allozieren!");
+            LOG_E("HIST", "Speicher-Allokierung fehlgeschlagen!");
             return false;
         }
-        // Speicher initialisieren
         memset(history, 0, sizeof(HistoryEntry) * HISTORY_ENTRIES);
     }
     
@@ -42,11 +42,8 @@ bool SensorHistory::begin() {
     
     initialized = true;
     
-    Serial.println("[HISTORY] Sensor-Historie initialisiert");
-    Serial.printf("          Speicher: %d Einträge à %d Bytes = %d KB\n",
-                  HISTORY_ENTRIES, sizeof(HistoryEntry),
-                  (HISTORY_ENTRIES * sizeof(HistoryEntry)) / 1024);
-    Serial.printf("          Geladene Einträge: %d\n", count);
+    LOG_I("HIST", "Init (%d Einträge, %dKB, %d geladen)",
+          HISTORY_ENTRIES, (HISTORY_ENTRIES * sizeof(HistoryEntry)) / 1024, count);
     
     return true;
 }
@@ -171,7 +168,7 @@ void SensorHistory::loadFromFlash() {
             head = savedCount % HISTORY_ENTRIES;
             count = savedCount;
             
-            Serial.printf("[HISTORY] %d Einträge aus Flash geladen\n", savedCount);
+            LOG_I("HIST", "%d Einträge aus Flash geladen", savedCount);
         }
     }
     
@@ -279,59 +276,45 @@ void SensorHistory::clear() {
     count = 0;
     memset(history, 0, sizeof(HistoryEntry) * HISTORY_ENTRIES);
     
-    // Flash löschen
     prefs.begin("sensorhist", false);
     prefs.clear();
     prefs.end();
     
-    Serial.println("[HISTORY] Alle Daten gelöscht");
+    LOG_I("HIST", "Alle Daten gelöscht");
 }
 
 void SensorHistory::printStatus() {
     if (!initialized) {
-        Serial.println("[HISTORY] Nicht initialisiert!");
+        LOG_W("HIST", "Nicht initialisiert!");
         return;
     }
     
-    Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║              SENSOR HISTORY STATUS                        ║");
-    Serial.println("╠═══════════════════════════════════════════════════════════╣");
-    Serial.printf("║ Gespeicherte Einträge: %d / %d (%.1f%%)\n", 
-                  count, HISTORY_ENTRIES, (count * 100.0f) / HISTORY_ENTRIES);
-    Serial.printf("║ Speicherverbrauch: %d KB\n",
+    Serial.printf("── Historie: %d/%d Einträge (%.1f%%) | %dKB",
+                  count, HISTORY_ENTRIES, (count * 100.0f) / HISTORY_ENTRIES,
                   (count * sizeof(HistoryEntry)) / 1024);
     
     if (count > 0) {
         HistoryEntry latest;
         if (getLatestEntry(latest)) {
-            Serial.printf("║ Letzter Eintrag: T=%.1f°C H=%d%% CO2=%dppm\n",
+            Serial.printf(" | Letzter: T=%.1f H=%d CO2=%d",
                           latest.temp_x10 / 10.0f, latest.humidity, latest.co2);
         }
-        
-        // Durchschnitt letzte Stunde
-        float avgT, avgH;
-        int32_t avgCO2, avgVOC, avgPM;
-        if (getAverage(60, avgT, avgH, avgCO2, avgVOC, avgPM)) {
-            Serial.printf("║ Durchschnitt (1h): T=%.1f°C H=%.0f%% CO2=%ldppm\n",
-                          avgT, avgH, avgCO2);
-        }
     }
-    
-    Serial.println("╚═══════════════════════════════════════════════════════════╝\n");
+    Serial.println(" ──");
 }
 
 void SensorHistory::printLastHours(int hours) {
     if (!initialized || count == 0) {
-        Serial.println("[HISTORY] Keine Daten verfügbar");
+        LOG_W("HIST", "Keine Daten verfügbar");
         return;
     }
     
     int minutes = hours * 60;
     int entriesToShow = min(minutes, count);
     
-    Serial.printf("\n[HISTORY] Letzte %d Stunden (%d Einträge):\n", hours, entriesToShow);
-    Serial.println("Zeit          Temp   Hum   CO2    VOC   PM2.5");
-    Serial.println("─────────────────────────────────────────────");
+    Serial.printf("\n── Historie: %dh (%d Einträge) ──\n", hours, entriesToShow);
+    Serial.println("Zeit   Temp  Hum  CO2   VOC  PM2.5");
+    Serial.println("───────────────────────────────────");
     
     // Nur jeden 10. Eintrag zeigen (alle 10 Minuten)
     for (int i = count - entriesToShow; i < count; i += 10) {

@@ -1,21 +1,17 @@
 #include "pms5003.h"
 #include "../include/pins.h"
+#include "../include/debug_log.h"
 #include <HardwareSerial.h>
 #include <PMS.h>
 
-// ============================================
-// PMS5003 FEINSTAUB SENSOR IMPLEMENTATION
-// ============================================
-
-static HardwareSerial SerialPMS(1); // UART1 für PMS5003
+static HardwareSerial SerialPMS(1);
 static PMS pms(SerialPMS);
 static PMS::DATA pmsData;
 
 bool sensors_pms_init(void) {
   SerialPMS.begin(9600, SERIAL_8N1, PIN_PMS_RX, PIN_PMS_TX);
   delay(500);
-  
-  Serial.println("  PMS5003: OK");
+  LOG_I("PMS", "PMS5003 OK (UART1)");
   return true;
 }
 

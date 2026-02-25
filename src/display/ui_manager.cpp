@@ -14,7 +14,8 @@
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
-#include "colors.h"  // Für einheitliche Grenzwerte
+#include "colors.h"
+#include "debug_log.h"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * EMOJI BILDER (LVGL 9 kompatibel)
@@ -560,7 +561,7 @@ static void create_screen0_tree() {
     s0_last_air_status = GOOD;
     s0_show_green();
 
-    Serial.println("[UI] Screen 0 (Baum-Animation) erstellt");
+    LOG_D("UI", "Screen 0 (Baum) erstellt");
 }
 
 // ------------------------------------------------------------
@@ -585,8 +586,7 @@ static void update_screen0_tree() {
                 break;
         }
         
-        Serial.printf("[UI] Baum-Zustand geändert: %s\n", 
-                      air == GOOD ? "GRÜN" : (air == WARN ? "GELB" : "ROT"));
+        LOG_D("UI", "Baum: %s", air == GOOD ? "grün" : (air == WARN ? "gelb" : "rot"));
     }
 }
 
@@ -792,7 +792,7 @@ static void create_screen1() {
     lv_obj_add_style(s1_bar_hum, &style_bar_bg, LV_PART_MAIN);
     lv_obj_add_style(s1_bar_hum, &style_bar_good, LV_PART_INDICATOR);
 
-    Serial.println("[UI] Screen 1 (Übersicht) erstellt");
+    LOG_D("UI", "Screen 1 (Übersicht) erstellt");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1050,7 +1050,7 @@ static void create_screen2() {
         lv_obj_add_style(s2_cards[i].bar, &style_bar_good, LV_PART_INDICATOR);
     }
 
-    Serial.println("[UI] Screen 2 (Detail) erstellt");
+    LOG_D("UI", "Screen 2 (Detail) erstellt");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1457,7 +1457,7 @@ static void create_screen3_analog() {
     s3_create_small_gauge(main_cont, &s3_gauge_hum, start_x + 100 + gap + 220 + gap, gauge_y_small,
                           0.0f, 100.0f, COLOR_HUM_GAUGE, "%", "Feuchte", s3_needle_pts_hum);
 
-    Serial.println("[UI] Screen 3 (Analog Cockpit) erstellt");
+    LOG_D("UI", "Screen 3 (Analog) erstellt");
 }
 
 // ------------------------------------------------------------
@@ -1921,7 +1921,7 @@ static void create_screen4_bubble() {
 
     // Keine Legende - Bubbles sind selbsterklärend
 
-    Serial.println("[UI] Screen 4 (Bubble) erstellt");
+    LOG_D("UI", "Screen 4 (Bubble) erstellt");
 }
 
 // Bubble Screen Zeit aktualisieren
@@ -1951,99 +1951,52 @@ static void update_screen4_sensors() {
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 void ui_init() {
-    Serial.println("[UI] Initialisiere Multi-Screen UI...");
+    LOG_I("UI", "Erstelle 5 Screens...");
     
     init_styles();
     
-    // Alle fünf Screens erstellen
-    create_screen0_tree();   // Baum-Animation (Startbildschirm)
-    create_screen1();        // Übersicht (minimalistisch)
-    create_screen2();        // Detail (volle Infos)
-    create_screen3_analog(); // Analog Cockpit (Instrumente)
-    create_screen4_bubble(); // Dynamische Kreise (Bubbles)
+    create_screen0_tree();
+    create_screen1();
+    create_screen2();
+    create_screen3_analog();
+    create_screen4_bubble();
     
-    // Mit Screen 0 (Baum-Animation) starten
     current_screen = UI_SCREEN_TREE;
     lv_screen_load(screens[current_screen]);
     
-    Serial.println("[UI] Multi-Screen UI initialisiert, Start mit Baum-Animation");
+    LOG_I("UI", "UI bereit (Start: Baum-Animation)");
 }
 
 void ui_nextScreen() {
-    Serial.println("[UI] ui_nextScreen() aufgerufen");
-    Serial.flush();
-    Serial.printf("[UI] Aktueller Screen: %d, screens[0]=%p, screens[1]=%p\n", 
-                  current_screen, screens[0], screens[1]);
-    Serial.flush();
-    
     int next = (current_screen + 1) % UI_SCREEN_COUNT;
-    Serial.printf("[UI] Wechsle zu Screen: %d\n", next);
-    Serial.flush();
     ui_setScreen((UIScreen)next);
 }
 
 void ui_setScreen(UIScreen screen) {
-    Serial.printf("[UI] ui_setScreen(%d) aufgerufen\n", screen);
-    Serial.flush();
-    
     if (screen >= UI_SCREEN_COUNT) {
-        Serial.println("[UI] FEHLER: Screen-Index ungültig!");
+        LOG_E("UI", "Screen-Index %d ungültig!", screen);
         return;
     }
     if (screens[screen] == nullptr) {
-        Serial.println("[UI] FEHLER: Screen ist NULL!");
+        LOG_E("UI", "Screen %d ist NULL!", screen);
         return;
     }
     
-    Serial.println("[UI] Starte Screen-Wechsel...");
-    Serial.flush();
     current_screen = screen;
-    
-    // Einfacher Load statt Animation (sicherer)
-    Serial.println("[UI] Vor lv_screen_load()...");
-    Serial.flush();
     lv_screen_load(screens[screen]);
-    Serial.println("[UI] Nach lv_screen_load()");
-    Serial.flush();
     
     // Aktuellen Screen mit gecachten Werten aktualisieren
-    if (screen == UI_SCREEN_TREE) {
-        Serial.println("[UI] Vor update_screen0_tree()...");
-        Serial.flush();
-        update_screen0_tree();
-    } else if (screen == UI_SCREEN_OVERVIEW) {
-        Serial.println("[UI] Vor update_screen1_time()...");
-        Serial.flush();
-        update_screen1_time();
-        Serial.println("[UI] Vor update_screen1_sensors()...");
-        Serial.flush();
-        update_screen1_sensors();
-    } else if (screen == UI_SCREEN_DETAIL) {
-        Serial.println("[UI] Vor update_screen2_time()...");
-        Serial.flush();
-        update_screen2_time();
-        Serial.println("[UI] Vor update_screen2_sensors()...");
-        Serial.flush();
-        update_screen2_sensors();
-    } else if (screen == UI_SCREEN_ANALOG) {
-        Serial.println("[UI] Vor update_screen3_time()...");
-        Serial.flush();
-        update_screen3_time();
-        Serial.println("[UI] Vor update_screen3_sensors()...");
-        Serial.flush();
-        update_screen3_sensors();
-    } else if (screen == UI_SCREEN_BUBBLE) {
-        Serial.println("[UI] Vor update_screen4_time()...");
-        Serial.flush();
-        update_screen4_time();
-        Serial.println("[UI] Vor update_screen4_sensors()...");
-        Serial.flush();
-        update_screen4_sensors();
+    switch (screen) {
+        case UI_SCREEN_TREE:     update_screen0_tree(); break;
+        case UI_SCREEN_OVERVIEW: update_screen1_time(); update_screen1_sensors(); break;
+        case UI_SCREEN_DETAIL:   update_screen2_time(); update_screen2_sensors(); break;
+        case UI_SCREEN_ANALOG:   update_screen3_time(); update_screen3_sensors(); break;
+        case UI_SCREEN_BUBBLE:   update_screen4_time(); update_screen4_sensors(); break;
+        default: break;
     }
     
-    const char* screen_names[] = {"Baum-Animation", "Übersicht", "Detail", "Analog Cockpit", "Bubbles"};
-    Serial.printf("[UI] Wechsel zu Screen %d (%s) abgeschlossen\n", screen, screen_names[screen]);
-    Serial.flush();
+    const char* screen_names[] = {"Baum", "Übersicht", "Detail", "Analog", "Bubbles"};
+    LOG_I("UI", "Screen → %d (%s)", screen, screen_names[screen]);
 }
 
 UIScreen ui_getCurrentScreen() {
@@ -2082,7 +2035,7 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     cached_pm25 = pm25;
     cached_voc = voc;
     
-    Serial.printf("[UI] Update: T=%.1f H=%.0f CO2=%d PM=%d VOC=%d\n", temp, hum, co2, pm25, voc);
+    LOG_D("UI", "T=%.1f H=%.0f CO2=%d PM=%d VOC=%d", temp, hum, co2, pm25, voc);
     
     // Alle Screens aktualisieren
     update_screen0_tree();    // Tree-Screen ändert Farbe basierend auf Luftqualität

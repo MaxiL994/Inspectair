@@ -1,0 +1,137 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{eurosym}
+\usepackage{amssymb}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{F57F17}
+\definecolor{riskhigh}{HTML}{D32F2F}
+\definecolor{riskmedium}{HTML}{F57F17}
+\definecolor{risklow}{HTML}{388E3C}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=headerblue,
+    urlcolor=headerblue
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Risk \& Opportunities v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Risk \& Opportunities Analysis}\\[0.3cm]
+{\large Luftqualitätsmessgerät mit ESP32-S3}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Risiken}
+% ============================================================
+
+\begin{longtable}{p{0.8cm} p{3cm} p{3cm} p{2cm} p{4cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Risiko} & \textbf{Auswirkung} & \textbf{Stufe} & \textbf{Mitigation} \\
+\midrule
+\endhead
+\textbf{R1} & Systemabsturz durch Stromspitzen & System instabil, unzuverlässig & \textcolor{riskhigh}{\textbf{HOCH}} & 220\,µF Stützkondensatoren an CO\textsubscript{2} + Radar \\
+\midrule
+\textbf{R2} & ESP32 Zerstörung durch 5V & Hardware-Totalschaden & \textcolor{riskhigh}{\textbf{HOCH}} & Level Shifter für LD2410C TX zwingend! \\
+\midrule
+\textbf{R3} & Zeitplan-Verzögerung & Features gestrichen & \textcolor{riskmedium}{\textbf{MITTEL}} & Puffer eingeplant, Light Sleep optional \\
+\midrule
+\textbf{R4} & Sensor-Ausfall & Unvollständige Messwerte & \textcolor{riskmedium}{\textbf{MITTEL}} & Fehlertolerantes Design, ok-Flags \\
+\midrule
+\textbf{R5} & I2C-Adresskonflikt & Sensoren nicht ansprechbar & \textcolor{risklow}{NIEDRIG} & Unterschiedliche Adressen (0x38, 0x59) \\
+\midrule
+\textbf{R6} & Display-Lesbarkeit & Schlechte UX & \textcolor{risklow}{NIEDRIG} & Große Schrift, Farbkontrast, 5 UI-Screens \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Opportunities}
+% ============================================================
+
+\begin{longtable}{p{0.8cm} p{3cm} p{4.5cm} p{4.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Opportunity} & \textbf{Nutzen} & \textbf{Umsetzung} \\
+\midrule
+\endhead
+\textbf{O1} & WiFi-Anbindung & Datenlogging, Smart Home Integration & ESP32 hat WiFi, Erweiterung möglich \\
+\midrule
+\textbf{O2} & Batteriebetrieb & Mobiler Einsatz & Light Sleep macht das möglich \\
+\midrule
+\textbf{O3} & Mehrere UI-Themes & Personalisierung & LVGL 9.2 Architektur erlaubt einfache Erweiterung \\
+\midrule
+\textbf{O4} & Alarm-Funktion & Akustische Warnung bei kritischen Werten & Buzzer an freiem GPIO \\
+\midrule
+\textbf{O5} & SD-Karten-Logging & Langzeit-Datenaufzeichnung & SPI-Slot vorhanden \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Kosten}
+% ============================================================
+
+\begin{longtable}{p{5.5cm} p{3cm} p{2cm} p{2cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Komponente} & \textbf{Quelle} & \textbf{Preis ca.} & \textbf{Anz.} \\
+\midrule
+\endhead
+ESP32-S3 DevKit (Waveshare) & AliExpress & \textasciitilde15\,\euro{} & 1 \\
+ST7796S 4" Display          & AliExpress & \textasciitilde12\,\euro{} & 1 \\
+MH-Z19C CO\textsubscript{2}-Sensor & AliExpress & \textasciitilde18\,\euro{} & 1 \\
+PMS5003 Feinstaubsensor     & AliExpress & \textasciitilde15\,\euro{} & 1 \\
+SGP40 VOC-Sensor            & AliExpress & \textasciitilde8\,\euro{} & 1 \\
+AHT20 Temp/Feuchte          & AliExpress & \textasciitilde3\,\euro{} & 1 \\
+LD2410C Radar               & AliExpress & \textasciitilde5\,\euro{} & 1 \\
+Level Shifter, MOSFET, Kondensatoren, etc. & Lokal/Online & \textasciitilde10\,\euro{} & -- \\
+PETG 3D-Druck-Gehäuse + Filament & Eigenfertigung & \textasciitilde10\,\euro{} & 1 \\
+\midrule
+\textbf{GESAMT} & & \textbf{\textasciitilde96\,\euro{}} & \\
+\bottomrule
+\end{longtable}
+
+\end{document}

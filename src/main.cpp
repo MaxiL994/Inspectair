@@ -3,15 +3,9 @@
  * INSPECTAIR - LUFTQUALITÄTSMESSGERÄT
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Modulare Architektur v3.0 mit LVGL UI (Multi-Screen)
+ * Modulare Architektur v3.1 mit LVGL UI (Multi-Screen)
  * Display: 480x320 (ST7796S) via LovyanGFX
  * Framework: LVGL 9.x
- *
- * Screens:
- *   1. Übersicht: Große AQI + 2 Kacheln (Temp, Feuchte)
- *   2. Detail: Kleine AQI + 4 Kacheln (alle Werte)
- *
- * WLAN: AndroidAP3a99 / 12345678
  */
 
 #include <Arduino.h>
@@ -24,6 +18,7 @@
 #include "display/ui_manager.h"
 
 // Projekt-Header
+#include "debug_log.h"
 #include "pins.h"
 #include "sensor_types.h"
 #include "sensors/aht_sgp.h"
@@ -34,6 +29,7 @@
 #include "utils/sensor_filter.h"
 #include "utils/sensor_history.h"
 #include "utils/power_manager.h"
+#include "utils/endurance_test.h"
 
 // Web Remote Control (Handy-Steuerung per Browser)
 #define WEBREMOTE_ENABLED
@@ -54,16 +50,14 @@
 #define WIFI_PASSWORD_2 "MXAZZeReKZt2NMKE"
 
 // ============================================
-// UI BUTTON KONFIGURATION (auskommentiert)
+// UI BUTTON
 // ============================================
-// Button zum Umschalten zwischen UI Screens
-// Aktivieren sobald Button angeschlossen ist
 #define UI_BUTTON_ENABLED
 
 #ifdef UI_BUTTON_ENABLED
 static unsigned long lastButtonPress = 0;
-static const unsigned long BUTTON_DEBOUNCE_MS = 250;  // Entprell-Zeit
-static bool lastButtonState = HIGH;  // Button ist Active LOW mit Pullup
+static const unsigned long BUTTON_DEBOUNCE_MS = 250;
+static bool lastButtonState = HIGH;
 #endif
 
 // ============================================
@@ -73,13 +67,13 @@ WifiClock myClock;
 static SensorReadings readings = {0};
 
 // Timing
-static unsigned long lastSensorRead = 0;       // Schnelles Sensor-Auslesen
+static unsigned long lastSensorRead = 0;
 static unsigned long lastTimeUpdate = 0;
-static unsigned long lastStatusPrint = 0;      // Status-Ausgabe alle 30s
+static unsigned long lastStatusPrint = 0;
 static unsigned long last_pms_ok = 0;
 static unsigned long last_radar_ok = 0;
 
-// Wochentags-Namen für formatiertes Datum
+// Wochentags-Namen
 const char* weekdays[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
 const char* months[] = {"Jan", "Feb", "Mär", "Apr", "Mai", "Jun", 
                         "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"};
@@ -107,207 +101,115 @@ void getFormattedDateString(char* buf, size_t len) {
 // UI BUTTON HANDLER
 // ============================================
 #ifdef UI_BUTTON_ENABLED
-static unsigned long lastButtonDebug = 0;  // Für periodische Button-Status-Ausgabe
-
 /**
- * Prüft den UI-Button und wechselt bei Tastendruck zum nächsten Screen
- * Button ist Active LOW (gedrückt = LOW) mit internem Pullup
+ * Prüft Button (Active LOW mit Pullup) und wechselt Screen
  */
 void checkUIButton() {
     bool currentState = digitalRead(PIN_UI_BUTTON);
     
-    // Debug: Zeige Button-Status alle 5 Sekunden
-    if (millis() - lastButtonDebug > 5000) {
-        lastButtonDebug = millis();
-        Serial.printf("[BUTTON] Status: GPIO%d = %s (erwartet: HIGH wenn nicht gedrückt)\n", 
-                      PIN_UI_BUTTON, currentState ? "HIGH" : "LOW");
-    }
-    
-    // Debug: Zeige jeden Zustandswechsel sofort
-    if (currentState != lastButtonState) {
-        Serial.printf("[BUTTON] >>> WECHSEL! GPIO%d: %s -> %s <<<\n", PIN_UI_BUTTON, 
-                      lastButtonState ? "HIGH" : "LOW",
-                      currentState ? "HIGH" : "LOW");
-        Serial.flush();  // Sofort ausgeben vor möglichem Crash
-    }
-    
-    // Fallende Flanke erkennen (HIGH -> LOW = Button gedrückt)
+    // Fallende Flanke (HIGH → LOW = gedrückt)
     if (lastButtonState == HIGH && currentState == LOW) {
-        // WICHTIG: Button weckt Display auch auf!
         powerManager.wakeUp();
-
-        Serial.println("[BUTTON] *** TASTE GEDRÜCKT - vor ui_nextScreen() ***");
-        Serial.flush();
         
-        // Entprell-Check
         if (millis() - lastButtonPress > BUTTON_DEBOUNCE_MS) {
             lastButtonPress = millis();
-            
-            Serial.println("[BUTTON] Rufe ui_nextScreen() auf...");
-            Serial.flush();
-            
-            // Zum nächsten Screen wechseln
             ui_nextScreen();
-            
-            Serial.printf("[BUTTON] Screen gewechselt zu: %d\n", ui_getCurrentScreen());
-            Serial.flush();
-        } else {
-            Serial.println("[BUTTON] Entprellt (ignoriert)");
+            LOG_I("BTN", "Screen → %d", ui_getCurrentScreen());
         }
     }
-    
     lastButtonState = currentState;
 }
 #endif
 
 void setup() {
-    // Serial für Debugging
     Serial.begin(115200);
     delay(1000);
     
-    Serial.println("\n\n═══════════════════════════════════════════════════════════════");
-    Serial.println("              INSPECTAIR v3.0 - Multi-Screen UI");
-    Serial.println("═══════════════════════════════════════════════════════════════\n");
+    LOG_BANNER();
     
-    // === UI BUTTON INITIALISIEREN ===
+    // === UI BUTTON ===
     #ifdef UI_BUTTON_ENABLED
     pinMode(PIN_UI_BUTTON, INPUT_PULLUP);
-    Serial.printf("[INIT] UI-Button auf GPIO %d initialisiert\n", PIN_UI_BUTTON);
-    
-    // Button-Test beim Start
-    Serial.println("[INIT] Button-Test: Drücke den Button innerhalb 3 Sekunden...");
-    bool buttonPressed = false;
-    unsigned long testStart = millis();
-    bool initialState = digitalRead(PIN_UI_BUTTON);
-    Serial.printf("[INIT] Button Startzustand: %s\n", initialState ? "HIGH (nicht gedrückt)" : "LOW (gedrückt?)");
-    
-    while (millis() - testStart < 3000) {
-      bool state = digitalRead(PIN_UI_BUTTON);
-      if (state != initialState) {
-        Serial.printf("[INIT] >>> Button-Wechsel erkannt! %s -> %s <<<\n", 
-                      initialState ? "HIGH" : "LOW", state ? "HIGH" : "LOW");
-        buttonPressed = true;
-        break;
-      }
-      delay(10);
-    }
-    
-    if (!buttonPressed) {
-      Serial.println("[INIT] Kein Button-Wechsel erkannt.");
-      Serial.println("[INIT] Prüfe Verkabelung:");
-      Serial.println("       - Button Pin 1 oder 2 -> GPIO 21");  
-      Serial.println("       - Button Pin 3 oder 4 -> GND");
-      Serial.println("       - WICHTIG: Diagonal verbinden (1↔4 oder 2↔3)!");
-    } else {
-      Serial.println("[INIT] Button funktioniert!");
-    }
+    LOG_I("INIT", "Button GPIO %d", PIN_UI_BUTTON);
     #endif
     
-    // === LVGL UND DISPLAY INITIALISIEREN ===
-    Serial.println("[INIT] LVGL Display initialisieren...");
+    // === DISPLAY ===
+    LOG_I("INIT", "Display + LVGL...");
     lvgl_init();
-    
-    // === UI ERSTELLEN (beide Screens) ===
-    Serial.println("[INIT] Multi-Screen UI erstellen...");
     ui_init();
-    
-    // Erstes Screen-Update um UI anzuzeigen
     lvgl_loop();
     
-    // === WLAN UND UHRZEIT ===
-    Serial.println("[INIT] WLAN verbinden...");
-    Serial.printf("       SSID 1: %s\n", WIFI_SSID_1);
-    Serial.printf("       SSID 2: %s\n", WIFI_SSID_2);
+    // === WLAN ===
+    LOG_I("INIT", "WLAN: %s / %s", WIFI_SSID_1, WIFI_SSID_2);
     myClock.begin(WIFI_SSID_1, WIFI_PASSWORD_1, WIFI_SSID_2, WIFI_PASSWORD_2);
     
-    // === I2C SENSOREN ===
-    Serial.println("[INIT] I2C-Sensoren (AHT20, SGP40)...");
-    if (!sensors_i2c_init()) {
-        Serial.println("[ERROR] I2C-Sensoren konnten nicht initialisiert werden!");
-    }
+    // === SENSOREN ===
+    LOG_I("INIT", "I2C-Sensoren (AHT20, SGP40)...");
+    if (!sensors_i2c_init()) LOG_E("INIT", "I2C-Sensoren fehlgeschlagen!");
     
-    // === UART SENSOREN ===
-    Serial.println("[INIT] UART-Sensoren...");
+    LOG_I("INIT", "UART-Sensoren...");
+    if (!sensors_pms_init())   LOG_E("INIT", "PMS5003 fehlgeschlagen!");
+    if (!sensors_mhz19_init()) LOG_E("INIT", "MH-Z19C fehlgeschlagen!");
+    if (!sensors_radar_init()) LOG_E("INIT", "LD2410C fehlgeschlagen!");
     
-    if (!sensors_pms_init()) {
-        Serial.println("[ERROR] PMS5003 konnte nicht initialisiert werden!");
-    }
-    
-    if (!sensors_mhz19_init()) {
-        Serial.println("[ERROR] MH-Z19C konnte nicht initialisiert werden!");
-    }
-    
-    if (!sensors_radar_init()) {
-        Serial.println("[ERROR] LD2410C konnte nicht initialisiert werden!");
-    }
-    
-    // === SENSOR FILTER & HISTORIE INITIALISIEREN ===
-    Serial.println("[INIT] Sensor-Filter & Historie...");
+    // === FILTER & HISTORIE ===
     sensorFilter.begin();
     sensorHistory.begin();
     
-    // Power Manager starten
+    // === POWER MANAGER ===
     powerManager.begin();
     
-    // Timing-Variablen initialisieren für äquidistante Intervalle
+    // Timing initialisieren
     lastSensorRead = millis();
     lastTimeUpdate = millis();
     
-    // === WEB REMOTE CONTROL ===
+    // === WEB REMOTE ===
     #ifdef WEBREMOTE_ENABLED
     if (WiFi.status() == WL_CONNECTED) {
         webRemote_begin();
     }
     #endif
     
-    // === WATCHDOG TIMER ===
+    // === WATCHDOG (8s) ===
     esp_task_wdt_init(8, true);
     esp_task_wdt_add(NULL);
-    Serial.println("[INIT] Watchdog Timer: 8s Timeout aktiv");
     
-    Serial.println("\n[INFO] Initialisierung abgeschlossen!");
-    Serial.println("[INFO] Sensor-Messung alle 2 Sekunden (äquidistant)");
-    Serial.println("[INFO] Display-Update: Klima alle 60s, Luft alle 12s");
-    Serial.println("[INFO] Zeit-Update jede Sekunde (äquidistant)");
-    #ifdef UI_BUTTON_ENABLED
-    Serial.printf("[INFO] UI-Button aktiv auf GPIO %d\n", PIN_UI_BUTTON);
-    #else
-    Serial.println("[INFO] UI-Button deaktiviert (UI_BUTTON_ENABLED nicht definiert)");
-    #endif
+    // === ENDURANCE TEST ===
+    enduranceTest.begin();
+    
+    LOG_I("INIT", "Bereit! Sensoren: 2s | Klima-Display: 60s | Luft-Display: 12s");
     Serial.println();
 }
 
 void loop() {
-    // === WATCHDOG FÜTTERN ===
+    unsigned long loopStart = millis();
+    
+    // === WATCHDOG ===
     esp_task_wdt_reset();
     
-    // === LVGL LOOP (WICHTIG!) ===
-    // Muss regelmäßig aufgerufen werden für UI Updates
+    // === LVGL ===
     lvgl_loop();
     
-    // === UI BUTTON CHECK ===
+    // === UI BUTTON ===
     #ifdef UI_BUTTON_ENABLED
     checkUIButton();
     #endif
     
-    // === WEB REMOTE CONTROL ===
+    // === WEB REMOTE ===
     #ifdef WEBREMOTE_ENABLED
     webRemote_loop();
     #endif
     
-    // === WIFI RECONNECT CHECK ===
+    // === WIFI ===
     myClock.update();
     
-    // === SENSOR HISTORIE UPDATE ===
+    // === HISTORIE ===
     sensorHistory.update();
     
-    // === KONTINUIERLICHE SENSOR-LESEVORGÄNGE ===
-    // PMS5003 kontinuierlich auslesen (asynchron)
+    // === SENSOREN (kontinuierlich) ===
     if (sensors_pms_read(&readings.pms)) {
         last_pms_ok = millis();
     }
-    
-    // Radar kontinuierlich auslesen
     if (sensors_radar_read(&readings.radar)) {
         last_radar_ok = millis();
     }
@@ -317,69 +219,58 @@ void loop() {
     static unsigned long lastMoveTime = 0;
     int currentDist = readings.radar.distance;
     bool presenceActive = readings.radar.presence;
-    bool distChanged = false;
     
     if (currentDist > 0 && currentDist < 400 && lastDist > 0) {
         int delta = abs(currentDist - lastDist);
-        if (delta > 40 && delta < 250) {
-            if (currentDist < 120) {
-                distChanged = true;
-                lastMoveTime = millis();
-                Serial.printf("[MOTION] WAKE UP! Delta: %dcm (%d -> %d)\n", delta, lastDist, currentDist);
-            }
+        if (delta > 40 && delta < 250 && currentDist < 120) {
+            lastMoveTime = millis();
+            LOG_D("MOTION", "Wake! %dcm → %dcm (Δ%d)", lastDist, currentDist, delta);
         }
     }
-    if (currentDist > 0) {
-        lastDist = currentDist;
-    }
+    if (currentDist > 0) lastDist = currentDist;
+    
     bool isMotionDetected = presenceActive || (millis() - lastMoveTime < 2000);
     powerManager.update(isMotionDetected);
     
-    // === UHRZEIT UPDATE (500ms für flüssige Sekunden-Anzeige) ===
+    // === UHRZEIT (500ms) ===
     if (millis() - lastTimeUpdate >= 500) {
-        lastTimeUpdate = millis();  // Nicht äquidistant, da Sekunden-Display wichtiger
-        
+        lastTimeUpdate = millis();
         struct tm timeinfo;
         if (getLocalTime(&timeinfo)) {
-            // Uhrzeit in UI aktualisieren (mit Sekunden)
             ui_updateTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-            
-            // Datum aktualisieren
             char dateBuf[32];
             getFormattedDateString(dateBuf, sizeof(dateBuf));
             ui_updateDate(dateBuf);
         }
     }
     
-    // === SCHNELLES SENSOR-AUSLESEN (alle 2 Sekunden, äquidistant) ===
-    // Werte werden vom Filter geglättet, Display nur periodisch aktualisiert
+    // === SENSOR-AUSLESEN (2s, äquidistant) ===
     if (millis() - lastSensorRead >= 2000) {
-        lastSensorRead += 2000;  // Feste Intervalle statt Drift
+        lastSensorRead += 2000;
         readings.timestamp = millis();
         
-        // Sensoren auslesen
         bool aht_ok = sensors_aht20_read(&readings.aht);
         bool mhz_ok = sensors_mhz19_read(&readings.mhz);
         
-        // SGP40 benötigt aktuelle Temp/Humidity
         if (aht_ok) {
             sensors_sgp40_read(readings.aht.temperature,
                                readings.aht.humidity,
                                &readings.sgp);
         }
         
-        // === WERTE AN FILTER ÜBERGEBEN ===
-        if (aht_ok) {
-            sensorFilter.addClimateMeasurement(readings.aht.temperature, 
-                                               readings.aht.humidity);
-        }
+        // Endurance: Sensor-Fehler tracken
+        if (!aht_ok) enduranceTest.recordSensorError(0);
+        if (!mhz_ok) enduranceTest.recordSensorError(2);
         
-        // Luftqualitätswerte zum Filter
+        // Filter
+        if (aht_ok) {
+            sensorFilter.addClimateMeasurement(readings.aht.temperature, readings.aht.humidity);
+        }
         sensorFilter.addAirMeasurement(readings.mhz.co2_ppm,
                                        readings.sgp.voc_index,
                                        readings.pms.PM_AE_UG_2_5);
         
-        // === WERTE AN HISTORIE ÜBERGEBEN ===
+        // Historie
         sensorHistory.addMeasurement(readings.aht.temperature,
                                      readings.aht.humidity,
                                      readings.mhz.co2_ppm,
@@ -387,27 +278,16 @@ void loop() {
                                      readings.pms.PM_AE_UG_2_5);
     }
     
-    // === DISPLAY UPDATE (GEGLÄTTET) ===
+    // === DISPLAY UPDATE ===
     bool needsUIUpdate = false;
     
-    // Klima-Update prüfen (alle 60s)
     if (sensorFilter.shouldUpdateClimateDisplay()) {
         needsUIUpdate = true;
-        Serial.printf("[DISPLAY] Klima-Update: T=%.1f°C H=%.0f%%\n",
-                      sensorFilter.getSmoothedTemp(),
-                      sensorFilter.getSmoothedHum());
     }
-    
-    // Luftqualitäts-Update prüfen (alle 12s)
     if (sensorFilter.shouldUpdateAirDisplay()) {
         needsUIUpdate = true;
-        Serial.printf("[DISPLAY] Luft-Update: CO2=%ld VOC=%ld PM=%ld\n",
-                      sensorFilter.getSmoothedCO2(),
-                      sensorFilter.getSmoothedVOC(),
-                      sensorFilter.getSmoothedPM25());
     }
     
-    // UI aktualisieren wenn nötig
     if (needsUIUpdate) {
         ui_updateSensorValues(
             sensorFilter.getSmoothedTemp(),
@@ -418,26 +298,24 @@ void loop() {
         );
     }
     
-    // === STATUS-AUSGABE (alle 30 Sekunden) ===
-    if (millis() - lastStatusPrint > 30000) {
+    // === ENDURANCE TEST UPDATE ===
+    unsigned long loopMs = millis() - loopStart;
+    enduranceTest.recordLoop(loopMs);
+    enduranceTest.update();
+    
+    // === STATUS (60s) ===
+    if (millis() - lastStatusPrint > 60000) {
         lastStatusPrint = millis();
         
-        Serial.printf("\n[RAW]      T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%u Radar:%d\n",
-                      readings.aht.temperature,
-                      readings.aht.humidity,
-                      readings.mhz.co2_ppm,
-                      readings.sgp.voc_index,
-                      readings.pms.PM_AE_UG_2_5,
-                      readings.radar.presence);
-        Serial.printf("[SMOOTHED] T:%.1f H:%.0f CO2:%ld VOC:%ld PM2.5:%ld\n",
+        Serial.printf("── Status ─ T:%.1f H:%.0f CO2:%ld VOC:%ld PM:%ld | Heap:%dK | %s ──\n",
                       sensorFilter.getSmoothedTemp(),
                       sensorFilter.getSmoothedHum(),
                       sensorFilter.getSmoothedCO2(),
                       sensorFilter.getSmoothedVOC(),
-                      sensorFilter.getSmoothedPM25());
-        Serial.printf("[HISTORY]  Einträge: %d\n", sensorHistory.getEntryCount());
+                      sensorFilter.getSmoothedPM25(),
+                      ESP.getFreeHeap() / 1024,
+                      powerManager.getStateString());
     }
     
-    // CPU-Zeit für FreeRTOS Tasks freigeben
     yield();
 }

@@ -10,6 +10,7 @@
  */
 
 #include "web_remote.h"
+#include "debug_log.h"
 #include <WebServer.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -17,6 +18,7 @@
 #include "utils/power_manager.h"
 #include "utils/sensor_filter.h"
 #include "utils/sensor_history.h"
+#include "utils/endurance_test.h"
 
 static WebServer server(80);
 
@@ -409,10 +411,10 @@ static void handleWake() {
 static void handleDim() {
     if (powerManager.isDimmed()) {
         powerManager.wakeUp();
-        Serial.println("[WEB] Dim: -> Active");
+        LOG_D("WEB", "Dim → Active");
     } else {
         powerManager.dim();
-        Serial.println("[WEB] Dim: -> Dimmed");
+        LOG_D("WEB", "Dim → Dimmed");
     }
     server.sendHeader("Location", "/");
     server.send(302, "text/plain", "OK");
@@ -421,10 +423,10 @@ static void handleDim() {
 static void handleToggle() {
     if (powerManager.isDisplayOff() || powerManager.isSleeping()) {
         powerManager.wakeUp();
-        Serial.println("[WEB] Toggle: -> Active");
+        LOG_D("WEB", "Toggle → Active");
     } else {
         powerManager.displayOff();
-        Serial.println("[WEB] Toggle: -> Off");
+        LOG_D("WEB", "Toggle → Off");
     }
     server.send(200, "text/plain", "OK");
 }
@@ -517,6 +519,15 @@ static void handleApiHistory() {
 }
 
 // ============================================
+// JSON API: Endurance Test / Health Report
+// ============================================
+static void handleApiHealth() {
+    String json = enduranceTest.getJsonReport();
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "application/json", json);
+}
+
+// ============================================
 // PUBLIC API
 // ============================================
 void webRemote_begin() {
@@ -528,18 +539,14 @@ void webRemote_begin() {
     server.on("/toggle",        handleToggle);
     server.on("/api/values",    handleApiValues);
     server.on("/api/history",   handleApiHistory);
+    server.on("/api/health",    handleApiHealth);
     server.begin();
     
     if (MDNS.begin("inspectair")) {
         MDNS.addService("http", "tcp", 80);
-        Serial.println("[WEB] mDNS: http://inspectair.local");
     }
     
-    Serial.println("[WEB] ═══════════════════════════════════════════");
-    Serial.printf("[WEB]  Remote: http://%s\n", WiFi.localIP().toString().c_str());
-    Serial.println("[WEB]  oder:  http://inspectair.local");
-    Serial.println("[WEB]  API:   /api/values  /api/history");
-    Serial.println("[WEB] ═══════════════════════════════════════════");
+    LOG_I("WEB", "Server: http://%s | http://inspectair.local", WiFi.localIP().toString().c_str());
 }
 
 void webRemote_loop() {

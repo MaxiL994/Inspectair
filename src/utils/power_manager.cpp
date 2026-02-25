@@ -1,5 +1,6 @@
 #include "power_manager.h"
 #include "../display/lvgl_driver.h"
+#include "../include/debug_log.h"
 #include <esp_sleep.h>
 #include <esp_wifi.h>
 
@@ -19,20 +20,20 @@ void PowerManager::begin() {
     _isFading = false;
     _lightSleepEnabled = true;
     lvgl_setBrightness(BRIGHTNESS_ACTIVE);
-    Serial.println("[POWER] Manager initialized. Dim: 45s, Off: 5min, Light Sleep enabled");
+    LOG_I("POWER", "Init (Dim: 45s, Off: 5min, Sleep: ein)");
 }
 
 void PowerManager::wakeUp() {
     _lastActivityTime = millis();
     if (_state != STATE_ACTIVE) {
-        Serial.printf("[POWER] Waking up from %s!\n", getStateString());
+        LOG_I("POWER", "Wake from %s", getStateString());
         _startFade(BRIGHTNESS_ACTIVE);
         _setState(STATE_ACTIVE);
     }
 }
 
 void PowerManager::dim() {
-    Serial.println("[POWER] Dimming (manual)");
+    LOG_I("POWER", "Dim (manuell)");
     _startFade(BRIGHTNESS_DIMMED);
     _setState(STATE_DIMMED);
     // Timer so setzen, dass Dimm-Timeout schon abgelaufen ist
@@ -40,19 +41,19 @@ void PowerManager::dim() {
 }
 
 void PowerManager::displayOff() {
-    Serial.println("[POWER] Display OFF (manual)");
+    LOG_I("POWER", "Display AUS (manuell)");
     _startFade(BRIGHTNESS_OFF);
     _setState(STATE_OFF);
 }
 
 void PowerManager::enterLightSleep() {
     _lightSleepEnabled = true;
-    Serial.println("[POWER] Light Sleep ENABLED");
+    LOG_I("POWER", "Light Sleep EIN");
 }
 
 void PowerManager::exitLightSleep() {
     _lightSleepEnabled = false;
-    Serial.println("[POWER] Light Sleep DISABLED");
+    LOG_I("POWER", "Light Sleep AUS");
     if (_state == STATE_SLEEPING) {
         _setState(STATE_OFF);
     }
@@ -70,10 +71,10 @@ const char* PowerManager::getStateString() const {
 
 void PowerManager::_setState(DisplayState newState) {
     if (_state != newState) {
-        Serial.printf("[POWER] State: %s -> %s\n", getStateString(), 
-                      newState == STATE_ACTIVE ? "Active" :
-                      newState == STATE_DIMMED ? "Dimmed" :
-                      newState == STATE_OFF ? "Off" : "Sleep");
+        LOG_D("POWER", "%s → %s", getStateString(),
+              newState == STATE_ACTIVE ? "Active" :
+              newState == STATE_DIMMED ? "Dimmed" :
+              newState == STATE_OFF ? "Off" : "Sleep");
         _state = newState;
     }
 }
@@ -92,7 +93,7 @@ void PowerManager::update(bool presenceDetected) {
     switch (_state) {
         case STATE_ACTIVE:
             if (elapsed > PRESENCE_TIMEOUT_DIM_MS) {
-                Serial.println("[POWER] No presence. Dimming display...");
+                LOG_D("POWER", "Keine Präsenz → Dimmen");
                 _startFade(BRIGHTNESS_DIMMED);
                 _setState(STATE_DIMMED);
             }
@@ -100,7 +101,7 @@ void PowerManager::update(bool presenceDetected) {
             
         case STATE_DIMMED:
             if (_lightSleepEnabled && elapsed > PRESENCE_TIMEOUT_OFF_MS) {
-                Serial.println("[POWER] Extended absence. Display OFF + Light Sleep.");
+                LOG_D("POWER", "Lange Abwesenheit → Display aus + Sleep");
                 _startFade(BRIGHTNESS_OFF);
                 _setState(STATE_SLEEPING);
             }

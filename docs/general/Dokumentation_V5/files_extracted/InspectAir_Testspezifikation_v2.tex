@@ -1,0 +1,408 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2cm, right=2cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{enumitem}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{C8E6C9}
+\definecolor{inprog}{HTML}{FFF9C4}
+\definecolor{todo}{HTML}{E0E0E0}
+
+\hypersetup{colorlinks=true,linkcolor=headerblue,urlcolor=headerblue}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Testspezifikation v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Testspezifikation}\\[0.3cm]
+{\large Testfälle und Abnahmekriterien}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Testübersicht}
+
+\begin{tabularx}{\textwidth}{llXl}
+\toprule
+\rowcolor{tableheader}
+\textbf{TC-ID} & \textbf{Kategorie} & \textbf{Testfall} & \textbf{Status} \\
+\midrule
+\rowcolor{pass} TC-01 & Einzeltest & AHT20 Temperatur/Feuchte & \checkmark~PASS \\
+\rowcolor{pass} TC-02 & Einzeltest & SGP40 VOC-Sensor & \checkmark~PASS \\
+\rowcolor{pass} TC-03 & Einzeltest & MH-Z19C CO\textsubscript{2}-Sensor & \checkmark~PASS \\
+\rowcolor{pass} TC-04 & Einzeltest & PMS5003 Feinstaub & \checkmark~PASS \\
+\rowcolor{pass} TC-05 & Einzeltest & LD2410C Radar & \checkmark~PASS \\
+\rowcolor{pass} TC-06 & Einzeltest & TFT-Display (LVGL 9) & \checkmark~PASS \\
+\rowcolor{pass} TC-07 & Hardware & BS170 MOSFET Backlight & \checkmark~PASS \\
+\rowcolor{inprog} TC-08 & Hardware & Stützkondensatoren & $\circlearrowright$ \\
+\rowcolor{inprog} TC-09 & Integration & Alle Sensoren parallel & $\circlearrowright$ \\
+\rowcolor{todo} TC-10 & UI & Overview-Screen & $\circ$ \\
+\rowcolor{todo} TC-11 & UI & Detail-Screen & $\circ$ \\
+\rowcolor{todo} TC-12 & UI & Button-Navigation & $\circ$ \\
+\rowcolor{todo} TC-13 & UI & Farbkonsistenz & $\circ$ \\
+\rowcolor{todo} TC-14 & Power & Display-Dimming & $\circ$ \\
+\rowcolor{todo} TC-15 & Power & Radar-Wake-Up & $\circ$ \\
+\rowcolor{todo} TC-16 & Power & Light Sleep & $\circ$ \\
+\rowcolor{todo} TC-17 & System & Gesamtszenario & $\circ$ \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Einzeltests (TC-01 bis TC-06)}
+
+\subsection{TC-01: AHT20 Temperatur- und Feuchtemessung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-004, REQ-HW-005 \\
+Vorbedingung & AHT20 an I2C (SDA:~GPIO8, SCL:~GPIO18), 4{,}7\,k$\Omega$ Pull-ups \\
+Durchführung & \texttt{aht\_sgp\_init()} aufrufen, 10 Messzyklen mit \texttt{aht\_sgp\_read()} \\
+Erwartetes Ergebnis & Temperatur: 15--30\,°C ($\pm$0{,}3\,°C), Feuchte: 20--80\,\% ($\pm$2\,\%) \\
+Prüfung & Vergleich mit Referenz-Thermometer/-Hygrometer \\
+Status & \checkmark~PASS -- Werte plausibel und stabil \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-02: SGP40 VOC-Messung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-003, REQ-HW-005 \\
+Vorbedingung & SGP40 am gleichen I2C-Bus wie AHT20, Addr: 0x59 \\
+Durchführung & \texttt{aht\_sgp\_read()} mit VOC-Index-Algorithmus, Aufwärmzeit 60\,s \\
+Erwartetes Ergebnis & VOC-Index: 0--500, Basiswert nach Aufwärmung 80--120 \\
+Prüfung & Provokationstest: Alkohol/Desinfektionsmittel in Sensornähe $\to$ Index steigt \\
+Status & \checkmark~PASS -- VOC-Index reagiert auf Ausdünstungen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-03: MH-Z19C CO\textsubscript{2}-Messung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-001, REQ-HW-003 \\
+Vorbedingung & MH-Z19C über SoftwareSerial (RX:~GPIO4, TX:~GPIO5), 220\,\textmu F Kondensator, 3\,Min Aufwärmzeit \\
+Durchführung & \texttt{mhz19c\_read()}, 10 Messzyklen im Abstand von 5\,s \\
+Erwartetes Ergebnis & CO\textsubscript{2}: 400--2000\,ppm, \texttt{valid}-Flag = \texttt{true} \\
+Prüfung & Ausatmen in Sensornähe $\to$ CO\textsubscript{2}-Wert steigt auf $>$1000\,ppm \\
+Status & \checkmark~PASS -- Werte reagieren zuverlässig auf Atemluft \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-04: PMS5003 Feinstaubmessung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-002, REQ-HW-004 \\
+Vorbedingung & PMS5003 über UART1 (RX:~GPIO16, TX:~GPIO17), interner Lüfter aktiv \\
+Durchführung & \texttt{pms5003\_read()}, 10 Messzyklen \\
+Erwartetes Ergebnis & PM2.5: 0--300\,\textmu g/m³, PM10: 0--500\,\textmu g/m³ \\
+Prüfung & Staubquelle (Kreidestaub) in Nähe $\to$ PM-Werte steigen \\
+Status & \checkmark~PASS -- Reaktion auf Partikelquellen nachgewiesen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-05: LD2410C Radar-Präsenzerkennung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-005, REQ-HW-006 \\
+Vorbedingung & LD2410C über UART2 (RX:~GPIO7, TX:~GPIO6), TXS0108E Level Shifter, 220\,\textmu F Kondensator \\
+Durchführung & \texttt{ld2410c\_read()}, Person bewegt sich im Raum \\
+Erwartetes Ergebnis & \texttt{presence}: true bei Person im Raum (bis 6\,m Reichweite), false bei leerem Raum \\
+Prüfung & Raum betreten/verlassen, Entfernungswert prüfen \\
+Status & \checkmark~PASS -- Zuverlässige Erkennung bis 5\,m \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-06: TFT-Display und LVGL 9}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-007, REQ-HW-007 \\
+Vorbedingung & ST7796S über SPI, LovyanGFX 1.1.16, LVGL 9.2.2 \\
+Durchführung & \texttt{lvgl\_init()} + \texttt{ui\_init()}, alle 5 Screens durchschalten \\
+Erwartetes Ergebnis & Alle Screens werden korrekt gerendert, keine Artefakte, 480$\times$320 Auflösung \\
+Prüfung & Visuelle Inspektion aller 5 Screens (Tree, Overview, Detail, Analog, Bubble) \\
+Status & \checkmark~PASS -- Alle Screens rendering korrekt \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Hardware-Tests (TC-07, TC-08)}
+
+\subsection{TC-07: BS170 MOSFET Backlight-Steuerung}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-006 \\
+Vorbedingung & BS170 MOSFET mit 10\,k$\Omega$ Gate-Widerstand an GPIO3 \\
+Durchführung & \texttt{lvgl\_setBrightness()} mit Werten 0, 30, 128, 255 aufrufen \\
+Erwartetes Ergebnis & Display-Helligkeit ändert sich stufenlos entsprechend PWM-Wert \\
+Status & \checkmark~PASS \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-08: Stützkondensatoren Stabilität}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-HW-010 \\
+Vorbedingung & 220\,\textmu F Elkos an VCC der MH-Z19C und LD2410C \\
+Durchführung & 30\,Min Dauerbetrieb mit allen Sensoren gleichzeitig aktiv \\
+Erwartetes Ergebnis & Kein Systemabsturz, keine Messwert-Aussetzer, stabile 5V/3{,}3V-Versorgung \\
+Status & $\circlearrowright$~In Bearbeitung \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Integrationstests (TC-09)}
+
+\subsection{TC-09: Alle Sensoren parallel}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-001 bis REQ-F-005 \\
+Vorbedingung & Alle 5 Sensoren verkabelt und einzeln getestet (TC-01 bis TC-05) \\
+Durchführung & Hauptprogramm starten, 15\,Min Dauerbetrieb, alle Sensorwerte auf Serial Monitor prüfen \\
+Erwartetes Ergebnis & Alle Sensoren liefern gleichzeitig plausible Werte, kein UART-Konflikt, I2C stabil \\
+Status & $\circlearrowright$~In Bearbeitung \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{UI-Tests (TC-10 bis TC-13)}
+
+\subsection{TC-10: Overview-Screen}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-007, REQ-F-009 \\
+Durchführung & Overview-Screen aufrufen, Sensorwerte variieren \\
+Erwartetes Ergebnis & Große AQI-Anzeige rechts, 2 Kacheln (Temperatur, Feuchte) links, Uhrzeit/Datum oben, Farbcodierung korrekt \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-11: Detail-Screen}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-007, REQ-F-009 \\
+Durchführung & Detail-Screen aufrufen, alle Messwerte prüfen \\
+Erwartetes Ergebnis & Kleine AQI-Anzeige, 4 Kacheln mit CO\textsubscript{2}, PM2.5, VOC, Temperatur/Feuchte, korrekte Einheiten und Farbcodierung \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-12: Button-Navigation}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-009 \\
+Vorbedingung & UI-Button an GPIO1 (Active LOW, interner Pull-up) \\
+Durchführung & Button wiederholt drücken, Screen-Wechsel prüfen \\
+Erwartetes Ergebnis & Zyklische Navigation: Tree $\to$ Overview $\to$ Detail $\to$ Analog $\to$ Bubble $\to$ Tree. Entprellung: 250\,ms Debounce \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-13: Farbkonsistenz über Grenzwerte}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-008 \\
+Durchführung & Verschiedene Messwerte provozieren und Farbänderungen auf allen Screens prüfen \\
+Erwartetes Ergebnis & Identische Farbcodierung auf allen 5 Screens gemäß Grenzwert-Tabelle (Anhang~A) \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Power-Management-Tests (TC-14 bis TC-16)}
+
+\subsection{TC-14: Display-Dimming}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-006 \\
+Durchführung & Raum verlassen, 45\,s warten \\
+Erwartetes Ergebnis & Display dimmt von Brightness 255 auf 30 mit Fade-Übergang \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-15: Radar-Wake-Up}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-F-005, REQ-F-006 \\
+Durchführung & Display im DIMMED- oder OFF-Zustand, Raum betreten \\
+Erwartetes Ergebnis & Radar erkennt Präsenz $\to$ \texttt{wakeUp()} $\to$ Display auf volle Helligkeit (255) \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+\subsection{TC-16: Light Sleep}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & REQ-NF-003 \\
+Durchführung & Raum für $>$5\,Min verlassen, Sleep-Eintritt prüfen \\
+Erwartetes Ergebnis & ESP32 wechselt in Light Sleep ($\sim$0{,}8\,mA), Aufwachzeit $<$5\,ms, RAM-Daten erhalten \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{System-Gesamttest (TC-17)}
+
+\subsection{TC-17: Vollständiges Betriebsszenario}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Anforderung & Alle REQ-F und REQ-NF \\
+Durchführung & System einschalten, 60\,Min Dauerbetrieb: Alle Screens durchschalten, Grenzwerte provozieren, Raum betreten/verlassen, WiFi-Verbindung und NTP prüfen, Web Remote testen \\
+Erwartetes Ergebnis & Stabile Messwerte, korrekte Farbcodierung, Power Management reagiert auf Präsenz, keine Abstürze, Uhrzeit korrekt \\
+Status & $\circ$~Offen \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section*{Anhang A: Grenzwert-Konfiguration}
+\addcontentsline{toc}{section}{Anhang A: Grenzwert-Konfiguration}
+
+\begin{tabularx}{\textwidth}{lllll}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Grün (Gut)} & \textbf{Gelb (Mäßig)} & \textbf{Orange (Schlecht)} & \textbf{Rot (Gefährlich)} \\
+\midrule
+CO\textsubscript{2} (ppm) & $<$800 & 800--1000 & 1000--1500 & $>$1500 \\
+PM2.5 (\textmu g/m³) & $<$5 & 5--15 & 15--25 & $>$25 \\
+PM10 (\textmu g/m³) & $<$15 & 15--45 & 45--75 & $>$75 \\
+VOC-Index & $<$100 & 100--200 & 200--300 & $>$300 \\
+Temperatur (°C) & 19--23 & 17--19 / 23--26 & 15--17 / 26--28 & $<$15 / $>$28 \\
+Feuchte (\%) & 40--60 & 30--40 / 60--70 & 20--30 / 70--80 & $<$20 / $>$80 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.3cm}
+\textit{Grenzwerte basieren auf WHO Air Quality Guidelines 2021 (PM2.5, PM10) und UBA-Empfehlungen (CO\textsubscript{2}, Temperatur, Feuchte). Implementierung in \texttt{colors.h}.}
+
+% ============================================================
+\section*{Anhang B: Timeout-Konfiguration}
+\addcontentsline{toc}{section}{Anhang B: Timeout-Konfiguration}
+
+\begin{tabularx}{\textwidth}{lll}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} & \textbf{Quelle} \\
+\midrule
+PRESENCE\_TIMEOUT\_DIM\_MS & 45\,000\,ms (45\,s) & \texttt{power\_manager.h} \\
+PRESENCE\_TIMEOUT\_OFF\_MS & 300\,000\,ms (5\,Min) & \texttt{power\_manager.h} \\
+BRIGHTNESS\_ACTIVE & 255 (100\,\%) & \texttt{power\_manager.h} \\
+BRIGHTNESS\_DIMMED & 30 ($\sim$12\,\%) & \texttt{power\_manager.h} \\
+BRIGHTNESS\_OFF & 0 & \texttt{power\_manager.h} \\
+Button Debounce & 250\,ms & \texttt{main.cpp} \\
+Sensor Read Interval & 2\,000--5\,000\,ms & \texttt{main.cpp} \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section*{Anhang C: Kritische Hardware-Hinweise}
+\addcontentsline{toc}{section}{Anhang C: Kritische Hardware-Hinweise}
+
+\textbf{WARNUNG: Vor dem Testen unbedingt beachten:}
+
+\begin{enumerate}[nosep]
+\item \textbf{Level Shifter PFLICHT:} LD2410C-TX sendet 5V-Signale. Ohne TXS0108E wird GPIO7 des ESP32 zerstört!
+\item \textbf{Stützkondensatoren PFLICHT:} 220\,\textmu F Elkos an VCC von MH-Z19C und LD2410C. Ohne Kondensatoren kommt es zu Systemabstürzen.
+\item \textbf{I2C Pull-ups prüfen:} AHT20 und SGP40 benötigen 4{,}7\,k$\Omega$ Pull-ups an SDA (GPIO8) und SCL (GPIO18).
+\item \textbf{PMS5003 Belüftung:} Der interne Lüfter benötigt freien Luftstrom. Im Gehäuse Belüftungsöffnungen vorsehen.
+\item \textbf{GPIO-Belegung:} GPIO0 nicht verwenden (Boot-Pin!), GPIO10--13 für Flash/PSRAM reserviert.
+\end{enumerate}
+
+% ============================================================
+\section{Änderungshistorie}
+
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+\rowcolor{tableheader}
+\textbf{Version} & \textbf{Datum} & \textbf{Autor} & \textbf{Änderung} \\
+\midrule
+1.0 & Januar 2026 & Team & Erstversion \\
+2.0 & Februar 2026 & Team & Grenzwerte aktualisiert (WHO 2021, 4-stufig), Pin-Belegung aus \texttt{pins.h}, SoftwareSerial für MH-Z19C, 5 Screens statt 2, Power-Management-Tests ergänzt (TC-14 bis TC-16), Timeout-Konfiguration aus Code, Hardware-Warnungen ergänzt. \\
+\bottomrule
+\end{tabularx}
+
+\end{document}

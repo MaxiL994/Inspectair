@@ -1,4 +1,5 @@
 #include "WifiClock.h"
+#include "debug_log.h"
 
 // ============================================
 // KONFIGURATION
@@ -18,8 +19,7 @@ WifiClock::WifiClock() {
 bool WifiClock::connectTo(const char* ssid, const char* password, int retries) {
     if (!ssid || !password) return false;
     
-    Serial.print("Verbinde mit WiFi: ");
-    Serial.println(ssid);
+    LOG_I("WIFI", "Verbinde mit: %s", ssid);
     
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -27,19 +27,15 @@ bool WifiClock::connectTo(const char* ssid, const char* password, int retries) {
     int retry = 0;
     while (WiFi.status() != WL_CONNECTED && retry < retries) {
         delay(WIFI_RETRY_DELAY_MS);
-        Serial.print(".");
         retry++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println();
-        Serial.print("WiFi verbunden! IP: ");
-        Serial.println(WiFi.localIP());
+        LOG_I("WIFI", "Verbunden! IP: %s", WiFi.localIP().toString().c_str());
         return true;
     }
     
-    Serial.println("\nWiFi Verbindung fehlgeschlagen!");
-    Serial.printf("WiFi Status: %d\n", WiFi.status());
+    LOG_W("WIFI", "Verbindung fehlgeschlagen (Status: %d)", WiFi.status());
     return false;
 }
 
@@ -50,24 +46,19 @@ void WifiClock::begin(const char* ssid, const char* password) {
     _password2 = nullptr;
     
     if (connectTo(ssid, password, WIFI_CONNECT_RETRIES)) {
-        Serial.println("Konfiguriere NTP...");
         configTzTime(TIME_ZONE, NTP_SERVER);
         
-        Serial.print("Warte auf NTP Sync");
         struct tm timeinfo;
         int ntpRetry = 0;
         while (!getLocalTime(&timeinfo) && ntpRetry < NTP_SYNC_RETRIES) {
             delay(WIFI_RETRY_DELAY_MS);
-            Serial.print(".");
             ntpRetry++;
         }
         
         if (getLocalTime(&timeinfo)) {
-            Serial.println();
-            Serial.printf("Zeit synchronisiert: %02d:%02d:%02d\n", 
-                         timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+            LOG_I("WIFI", "NTP: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         } else {
-            Serial.println("\nNTP Sync fehlgeschlagen!");
+            LOG_W("WIFI", "NTP Sync fehlgeschlagen!");
         }
     }
 }
@@ -80,7 +71,6 @@ void WifiClock::begin(const char* ssid1, const char* password1, const char* ssid
     
     bool ok = connectTo(ssid1, password1, WIFI_CONNECT_RETRIES);
     if (!ok && ssid2 && password2) {
-        Serial.println("Wechsle zum zweiten WLAN...");
         ok = connectTo(ssid2, password2, WIFI_CONNECT_RETRIES);
         if (ok) {
             _ssid = ssid2;
@@ -89,41 +79,34 @@ void WifiClock::begin(const char* ssid1, const char* password1, const char* ssid
     }
     
     if (ok) {
-        Serial.println("Konfiguriere NTP...");
         configTzTime(TIME_ZONE, NTP_SERVER);
         
-        Serial.print("Warte auf NTP Sync");
         struct tm timeinfo;
         int ntpRetry = 0;
         while (!getLocalTime(&timeinfo) && ntpRetry < NTP_SYNC_RETRIES) {
             delay(WIFI_RETRY_DELAY_MS);
-            Serial.print(".");
             ntpRetry++;
         }
         
         if (getLocalTime(&timeinfo)) {
-            Serial.println();
-            Serial.printf("Zeit synchronisiert: %02d:%02d:%02d\n", 
-                         timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+            LOG_I("WIFI", "NTP: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         } else {
-            Serial.println("\nNTP Sync fehlgeschlagen!");
+            LOG_W("WIFI", "NTP Sync fehlgeschlagen!");
         }
     }
 }
 
 void WifiClock::update() {
-    // Reconnect falls Verbindung verloren
     if (WiFi.status() != WL_CONNECTED && _ssid != nullptr) {
         static unsigned long lastReconnect = 0;
         if (millis() - lastReconnect > RECONNECT_INTERVAL_MS) {
             lastReconnect = millis();
-            Serial.printf("WiFi Reconnect... (Status: %d)\n", WiFi.status());
+            LOG_W("WIFI", "Reconnect... (Status: %d)", WiFi.status());
             WiFi.disconnect();
             delay(100);
             
             bool ok = connectTo(_ssid, _password, WIFI_RECONNECT_RETRIES);
             if (!ok && _ssid2 && _password2) {
-                Serial.println("Wechsle zum zweiten WLAN...");
                 ok = connectTo(_ssid2, _password2, WIFI_RECONNECT_RETRIES);
                 if (ok) {
                     _ssid = _ssid2;
@@ -133,8 +116,6 @@ void WifiClock::update() {
             
             if (ok) {
                 configTzTime(TIME_ZONE, NTP_SERVER);
-            } else {
-                Serial.printf("\nWiFi fehlgeschlagen. Status: %d\n", WiFi.status());
             }
         }
     }

@@ -1,0 +1,214 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{eurosym}
+\usepackage{amssymb}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{F57F17}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=headerblue,
+    urlcolor=headerblue
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Pin-Belegung \& Bauteilliste v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Pin-Belegung \& Bauteilliste}\\[0.3cm]
+{\large Waveshare ESP32-S3-WROOM N8R8 DevKit}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{GPIO Pin-Belegung}
+% ============================================================
+
+Alle Pin-Definitionen gemäß \texttt{pins.h} im Quellcode.
+
+\begin{longtable}{p{1.8cm} p{3cm} p{3cm} p{5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{GPIO} & \textbf{Funktion} & \textbf{Komponente} & \textbf{Hinweis} \\
+\midrule
+\endhead
+\textbf{GPIO\,1}  & UI\_BUTTON   & Taster / Boot-Btn & Screen-Wechsel (Active LOW, interner Pull-up) \\
+\textbf{GPIO\,3}  & TFT\_BL      & BS170 MOSFET Gate  & Backlight PWM, über 1\,k$\Omega$ Widerstand \\
+\textbf{GPIO\,4}  & CO2\_RX      & MH-Z19C TX         & ESP empfängt von CO\textsubscript{2} (SoftwareSerial) \\
+\textbf{GPIO\,5}  & CO2\_TX      & MH-Z19C RX         & ESP sendet an CO\textsubscript{2} (SoftwareSerial) \\
+\textbf{GPIO\,6}  & RADAR\_TX    & LD2410C RX         & ESP sendet an Radar (3.3V OK) \\
+\textbf{GPIO\,7}  & RADAR\_RX    & LD2410C TX         & \textbf{Über Level Shifter!} (5V$\rightarrow$3.3V) \\
+\textbf{GPIO\,8}  & I2C\_SDA     & AHT20 + SGP40      & 4.7\,k$\Omega$ Pull-up nach 3.3V \\
+\textbf{GPIO\,9}  & TFT\_DC      & ST7796S DC          & Data/Command Select \\
+\textbf{GPIO\,11} & TFT\_MOSI    & ST7796S MOSI        & SPI Daten zum Display \\
+\textbf{GPIO\,12} & TFT\_SCLK    & ST7796S CLK         & SPI Clock \\
+\textbf{GPIO\,13} & TFT\_MISO    & ST7796S MISO        & SPI Daten vom Display (nicht aktiv genutzt) \\
+\textbf{GPIO\,14} & TFT\_CS      & ST7796S CS          & Chip Select \\
+\textbf{GPIO\,15} & RADAR\_OUT   & LD2410C OUT         & Digitaler Presence-Ausgang \\
+\textbf{GPIO\,16} & PMS\_RX      & PMS5003 TX          & ESP empfängt von Feinstaub (UART1) \\
+\textbf{GPIO\,17} & PMS\_TX      & PMS5003 RX          & ESP sendet an Feinstaub (UART1) \\
+\textbf{GPIO\,18} & I2C\_SCL     & AHT20 + SGP40       & 4.7\,k$\Omega$ Pull-up nach 3.3V \\
+\textbf{GPIO\,46} & TFT\_RST     & ST7796S Reset        & Display Reset Pin \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Sensor-Verbindungen Detail}
+% ============================================================
+
+\subsection{Display ST7796S (SPI)}
+
+\begin{longtable}{p{2.8cm} p{2.8cm} p{2.5cm} p{4.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Display Pin} & \textbf{ESP32 Pin} & \textbf{Spannung} & \textbf{Funktion} \\
+\midrule
+\endhead
+VCC   & 3.3V     & 3.3V & Stromversorgung \\
+GND   & GND      & --   & Masse \\
+CS    & GPIO\,14 & 3.3V & Chip Select \\
+DC    & GPIO\,9  & 3.3V & Data/Command \\
+RST   & GPIO\,46 & 3.3V & Reset \\
+MOSI  & GPIO\,11 & 3.3V & SPI Data \\
+SCK   & GPIO\,12 & 3.3V & SPI Clock \\
+BL+   & 3.3V/5V  & --   & Backlight Anode \\
+BL-   & $\rightarrow$ BS170 Drain & -- & Über MOSFET nach GND! \\
+\bottomrule
+\end{longtable}
+
+\subsection{I2C Sensoren (AHT20 + SGP40)}
+
+\begin{longtable}{p{2.5cm} p{2.5cm} p{2cm} p{2.5cm} p{2.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Sensor} & \textbf{I2C Adresse} & \textbf{VCC} & \textbf{SDA} & \textbf{SCL} \\
+\midrule
+\endhead
+\textbf{AHT20} & 0x38 & 3.3V & GPIO\,8 & GPIO\,18 \\
+\textbf{SGP40} & 0x59 & 3.3V & GPIO\,8 & GPIO\,18 \\
+\bottomrule
+\end{longtable}
+
+\textbf{WICHTIG:} 4.7\,k$\Omega$ Pull-up Widerstände von SDA und SCL nach 3.3V!
+
+\subsection{UART Sensoren}
+
+\begin{longtable}{p{2.5cm} p{1.5cm} p{1.5cm} p{2cm} p{2cm} p{3cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Sensor} & \textbf{Baud} & \textbf{VCC} & \textbf{TX$\rightarrow$ESP} & \textbf{RX$\leftarrow$ESP} & \textbf{Besonderes} \\
+\midrule
+\endhead
+\textbf{MH-Z19C} (CO\textsubscript{2})   & 9600   & 5V & GPIO\,4 & GPIO\,5 & SoftwareSerial, 220\,µF Elko! \\
+\textbf{PMS5003}    & 9600   & 5V & GPIO\,16 & GPIO\,17 & UART1, Molex Stecker \\
+\textbf{LD2410C} (Radar) & 256000 & 5V & GPIO\,7 (LS!) & GPIO\,6 & Level Shifter + 220\,µF! \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Bauteilliste (BOM)}
+% ============================================================
+
+\subsection{Hauptkomponenten}
+
+\begin{longtable}{p{0.5cm} p{3.5cm} p{3.5cm} p{1.5cm} p{3.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{\#} & \textbf{Komponente} & \textbf{Typ/Modell} & \textbf{Preis} & \textbf{Quelle} \\
+\midrule
+\endhead
+1 & Mikrocontroller     & ESP32-S3-WROOM N8R8 DevKit & \textasciitilde15\,\euro{} & AliExpress/Waveshare \\
+2 & Display             & 4" TFT ST7796S 480$\times$320 & \textasciitilde12\,\euro{} & AliExpress \\
+3 & CO\textsubscript{2}-Sensor & MH-Z19C NDIR & \textasciitilde18\,\euro{} & AliExpress \\
+4 & Feinstaubsensor     & PMS5003 Plantower & \textasciitilde15\,\euro{} & AliExpress \\
+5 & VOC-Sensor          & SGP40 Sensirion & \textasciitilde8\,\euro{} & AliExpress/Mouser \\
+6 & Temp/Feuchte-Sensor & AHT20 & \textasciitilde3\,\euro{} & AliExpress \\
+7 & Radar-Sensor        & LD2410C 24\,GHz HLK & \textasciitilde5\,\euro{} & AliExpress \\
+\bottomrule
+\end{longtable}
+
+\subsection{Zusatzkomponenten (Pflicht!)}
+
+\begin{longtable}{p{0.5cm} p{3.5cm} p{3.5cm} p{5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{\#} & \textbf{Komponente} & \textbf{Wert/Typ} & \textbf{Verwendung} \\
+\midrule
+\endhead
+1 & Stützkondensator & 220\,µF 25V Elko & An MH-Z19C VCC/GND \\
+2 & Stützkondensator & 220\,µF 25V Elko & An LD2410C VCC/GND \\
+3 & Level Shifter    & Bidirektional 5V$\leftrightarrow$3.3V & LD2410C TX $\rightarrow$ ESP32 GPIO\,7 \\
+4 & MOSFET           & BS170 N-Kanal (TO-92) & Display Backlight PWM \\
+5 & Widerstand       & 1\,k$\Omega$ 1/4W & MOSFET Gate-Vorwiderstand \\
+6 & Pull-up Widerstand & 4.7\,k$\Omega$ 1/4W (2 Stück) & I2C SDA + SCL nach 3.3V \\
+7 & Taster           & 6$\times$6\,mm Microtaster & UI-Wechsel (optional, Boot-Button nutzbar) \\
+\bottomrule
+\end{longtable}
+
+\subsection{Verbindungsmaterial}
+
+\begin{itemize}[leftmargin=2em]
+    \item Dupont-Kabel Female-Female 10\,cm und 20\,cm
+    \item Breadboard 830 Kontakte
+    \item Molex 1.25\,mm Adapterkabel (für PMS5003)
+    \item USB-C Kabel (Stromversorgung)
+\end{itemize}
+
+% ============================================================
+\section{Kritische Hinweise}
+% ============================================================
+
+\textbf{LEVEL SHIFTER PFLICHT:}
+
+Der LD2410C sendet TX-Signale mit 5V-Pegel. Der ESP32 verträgt maximal 3.3V! Ohne Level Shifter wird der ESP32 zerstört. Der Level Shifter muss zwischen LD2410C TX und ESP32 GPIO\,7 (RADAR\_RX) geschaltet werden.
+
+\textbf{STÜTZKONDENSATOREN PFLICHT:}
+
+MH-Z19C und LD2410C verursachen Stromspitzen, die zu Spannungseinbrüchen führen. 220\,µF (25V) Elkos direkt an VCC/GND der Sensoren löten!
+
+\textbf{I2C PULL-UPS:}
+
+4.7\,k$\Omega$ Widerstände von SDA (GPIO\,8) und SCL (GPIO\,18) nach 3.3V. Manche Breakout-Boards haben diese bereits -- prüfen!
+
+\end{document}
