@@ -6,15 +6,16 @@
  * Display: 480x320 (ST7796S)
  * Framework: LVGL 9.x
  * 
- * Screen 1 (Overview): Large AQI on the right (full height), 2 large tiles on the left
- * Screen 2 (Detail):   Small AQI on top, 4 tiles on the bottom
+ * Screen 1 (Übersicht): Große AQI rechts (volle Höhe), 2 große Kacheln links
+ * Screen 2 (Detail):    Kleine AQI oben, 4 Kacheln unten
  */
 
 #include "ui_manager.h"
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
-#include "colors.h"  // For unified threshold values
+#include "colors.h"
+#include "debug_log.h"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * EMOJI BILDER (LVGL 9 kompatibel)
@@ -30,7 +31,7 @@ LV_IMAGE_DECLARE(emoji_icon_cloud);
 LV_IMAGE_DECLARE(emoji_icon_dash);
 LV_IMAGE_DECLARE(emoji_icon_nose);
 
-// Tree and leaves for tree animation
+// Baum und Blätter für Tree-Animation
 LV_IMAGE_DECLARE(img_tree_green);
 LV_IMAGE_DECLARE(img_tree_yellow);
 LV_IMAGE_DECLARE(img_tree_red);
@@ -47,7 +48,7 @@ LV_IMAGE_DECLARE(img_leaf_red);
 #define FONT_28  &ui_font_28
 #define FONT_48  &ui_font_48
 
-// Playfair Display fonts (Serif, for time/branding in analog screen)
+// Playfair Display fonts (Serif, für Uhrzeit/Branding im Analog-Screen)
 LV_FONT_DECLARE(playfair_12);
 LV_FONT_DECLARE(playfair_14);
 LV_FONT_DECLARE(playfair_20);
@@ -61,7 +62,7 @@ LV_FONT_DECLARE(playfair_48);
 #define FONT_PLAYFAIR_32  &playfair_32
 #define FONT_PLAYFAIR_48  &playfair_48
 
-// Orbitron fonts (Futuristic/Space, for bubble screen)
+// Orbitron fonts (Futuristic/Space, für Bubble-Screen)
 LV_FONT_DECLARE(orbitron_28);
 LV_FONT_DECLARE(orbitron_16);
 #define FONT_ORBITRON_28  &orbitron_28
@@ -218,7 +219,7 @@ static void init_styles() {
 static lv_obj_t* screens[UI_SCREEN_COUNT] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 static UIScreen current_screen = UI_SCREEN_TREE;
 
-// Cached sensor values for screen updates
+// Gecachte Sensorwerte für Screen-Updates
 static float cached_temp = 0;
 static float cached_hum = 0;
 static int cached_co2 = 0;
@@ -230,29 +231,29 @@ static int cached_sec = 0;
 static char cached_date[24] = "Di, 28. Jan 2026";
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN 0: TREE ANIMATION (Start Screen)
+ * SCREEN 0: BAUM-ANIMATION (Startbildschirm)
  * ═══════════════════════════════════════════════════════════════════════════
  * Layout:
  * ┌──────────────────────────────────────────────────────────┐
  * │                                                          │
- * │              🌳 Animated Tree 🌳                        │
- * │              (Color based on air quality)                │
+ * │              🌳 Animierter Baum 🌳                      │
+ * │              (Farbe je nach Luftqualität)                │
  * │                                                          │
- * │              🍂 Falling Leaves 🍂                       │
- * │              (when yellow/red)                           │
+ * │              🍂 Fallende Blätter 🍂                     │
+ * │              (bei gelb/rot)                              │
  * │                                                          │
  * └──────────────────────────────────────────────────────────┘
  */
 
-// Screen 0 (Tree) UI elements
+// Screen 0 (Tree) UI Elemente
 static lv_obj_t* s0_tree_img = nullptr;
 static lv_obj_t* s0_leaf_yellow_1 = nullptr;
 static lv_obj_t* s0_leaf_yellow_2 = nullptr;
 static lv_obj_t* s0_leaf_red = nullptr;
-static int s0_leaf_end_y = 290;  // Ground Y position for 320px height
+static int s0_leaf_end_y = 290;  // Boden-Y-Position für 320px Höhe
 static Status s0_last_air_status = GOOD;
 
-// Forward declarations for leaf animations
+// Forward-Deklarationen für Blatt-Animationen
 static void s0_animate_yellow_leaf_from_branch(lv_obj_t* leaf, float branch_x_ratio, float branch_y_ratio, int sway, uint32_t delay_ms, int end_y_offset);
 static void s0_animate_red_leaf_from_branch(lv_obj_t* leaf);
 static void s0_animate_fade_in(lv_obj_t* obj, uint32_t duration_ms);
@@ -264,12 +265,12 @@ static void s0_leaf_fall_complete_cb(lv_anim_t* a)
 {
     lv_obj_t* leaf = (lv_obj_t*)a->var;
 
-    // Only restart if the leaf is still visible (state hasn't changed)
+    // Nur neu starten wenn das Blatt noch sichtbar ist (Zustand nicht gewechselt)
     if(!lv_obj_has_flag(leaf, LV_OBJ_FLAG_HIDDEN)) {
-        // Stop all running animations for this leaf
+        // Alle laufenden Animationen für dieses Blatt stoppen
         lv_anim_delete(leaf, NULL);
 
-        // Restart yellow leaves on fixed paths
+        // Gelbe Blätter auf festen Pfaden neustarten
         if(leaf == s0_leaf_yellow_1) {
             s0_animate_yellow_leaf_from_branch(leaf, 0.36f, 0.31f, 14, 0, -12);
         } else if(leaf == s0_leaf_yellow_2) {
@@ -282,13 +283,13 @@ static void s0_leaf_fall_complete_cb(lv_anim_t* a)
 }
 
 // ------------------------------------------------------------
-// Yellow leaf animation: branch tip calculated, custom path + delay
+// Gelbe Blatt-Animation: Astspitze berechnet, eigener Pfad + Delay
 // ------------------------------------------------------------
 static void s0_animate_yellow_leaf_from_branch(lv_obj_t* leaf, float branch_x_ratio, float branch_y_ratio, int sway, uint32_t delay_ms, int end_y_offset)
 {
     if (!s0_tree_img) return;
     
-    // Get tree position and size
+    // Baum-Position und -Größe ermitteln
     int tree_x = lv_obj_get_x(s0_tree_img);
     int tree_y = lv_obj_get_y(s0_tree_img);
     int tree_w = lv_obj_get_width(s0_tree_img);
@@ -347,13 +348,13 @@ static void s0_animate_yellow_leaf_from_branch(lv_obj_t* leaf, float branch_x_ra
 }
 
 // ------------------------------------------------------------
-// Red leaf: start from branch tip (position calculated from tree size)
+// Rotes Blatt: Start von Astspitze (Position aus Baumgröße berechnet)
 // ------------------------------------------------------------
 static void s0_animate_red_leaf_from_branch(lv_obj_t* leaf)
 {
     if (!s0_tree_img) return;
     
-    // Get tree position and size
+    // Baum-Position und -Größe ermitteln
     int tree_x = lv_obj_get_x(s0_tree_img);
     int tree_y = lv_obj_get_y(s0_tree_img);
     int tree_w = lv_obj_get_width(s0_tree_img);
@@ -434,7 +435,7 @@ static void s0_animate_fade_in(lv_obj_t* obj, uint32_t duration_ms)
 }
 
 // ------------------------------------------------------------
-// Tree state change based on air quality
+// Baum-Zustandswechsel basierend auf Luftqualität
 // ------------------------------------------------------------
 static void s0_show_green()
 {
@@ -442,7 +443,7 @@ static void s0_show_green()
     
     lv_image_set_src(s0_tree_img, &img_tree_green);
 
-    // Stop animations and hide leaves
+    // Animationen stoppen und Blätter verstecken
     if (s0_leaf_yellow_1) {
         lv_anim_delete(s0_leaf_yellow_1, NULL);
         lv_obj_add_flag(s0_leaf_yellow_1, LV_OBJ_FLAG_HIDDEN);
@@ -471,7 +472,7 @@ static void s0_show_yellow()
         lv_obj_add_flag(s0_leaf_red, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // Two yellow leaves: branch tips left/right, staggered, different paths
+    // Zwei gelbe Blätter: Astspitzen links/rechts, zeitversetzt, unterschiedliche Pfade
     if (s0_leaf_yellow_1) {
         s0_animate_yellow_leaf_from_branch(s0_leaf_yellow_1, 0.36f, 0.31f, 14, 0, -12);
         s0_animate_fade_in(s0_leaf_yellow_1, 500);
@@ -513,20 +514,20 @@ static void create_screen0_tree() {
     screens[UI_SCREEN_TREE] = lv_obj_create(NULL);
     lv_obj_t* scr = screens[UI_SCREEN_TREE];
     
-    // White background
+    // Weißer Hintergrund
     lv_obj_set_style_bg_color(scr, lv_color_white(), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
 
-    // Display size: 480x320
+    // Display-Größe: 480x320
     const int disp_w = 480;
     const int disp_h = 320;
     
     // Baum-Bild erstellen und zentrieren
     s0_tree_img = lv_image_create(scr);
     lv_image_set_src(s0_tree_img, &img_tree_green);
-    lv_image_set_scale(s0_tree_img, 320);  // ~125% size (256 = 100%)
+    lv_image_set_scale(s0_tree_img, 320);  // ~125% Größe (256 = 100%)
     
-    // Update layout to get size
+    // Layout aktualisieren um Größe zu erhalten
     lv_obj_update_layout(s0_tree_img);
     int tree_w = lv_obj_get_width(s0_tree_img);
     int tree_h = lv_obj_get_height(s0_tree_img);
@@ -534,14 +535,14 @@ static void create_screen0_tree() {
     
     lv_obj_set_pos(s0_tree_img, (disp_w - tree_w) / 2, disp_h - tree_h + extra_down_px);
     
-    // Calculate leaf pile position
+    // Blätterhaufen-Position berechnen
     const int leaf_pile_offset = 30;
     s0_leaf_end_y = disp_h - leaf_pile_offset;
 
     // Gelbes Blatt 1 (links)
     s0_leaf_yellow_1 = lv_image_create(scr);
     lv_image_set_src(s0_leaf_yellow_1, &img_leaf_yellow);
-    lv_image_set_scale(s0_leaf_yellow_1, 48);  // ~19% size
+    lv_image_set_scale(s0_leaf_yellow_1, 48);  // ~19% Größe
     lv_obj_add_flag(s0_leaf_yellow_1, LV_OBJ_FLAG_HIDDEN);
 
     // Gelbes Blatt 2 (rechts, gespiegelt)
@@ -556,20 +557,20 @@ static void create_screen0_tree() {
     lv_image_set_scale(s0_leaf_red, 48);
     lv_obj_add_flag(s0_leaf_red, LV_OBJ_FLAG_HIDDEN);
 
-    // Initial: green tree (good air quality)
+    // Initial: Grüner Baum (gute Luftqualität)
     s0_last_air_status = GOOD;
     s0_show_green();
 
-    Serial.println("[UI] Screen 0 (tree animation) created");
+    LOG_D("UI", "Screen 0 (Baum) erstellt");
 }
 
 // ------------------------------------------------------------
-// Update tree screen based on air quality
+// Baum-Screen basierend auf Luftqualität aktualisieren
 // ------------------------------------------------------------
 static void update_screen0_tree() {
     Status air = get_air_quality(cached_co2, cached_pm25);
     
-    // Only update when state has changed
+    // Nur aktualisieren wenn sich der Zustand geändert hat
     if (air != s0_last_air_status) {
         s0_last_air_status = air;
         
@@ -585,27 +586,26 @@ static void update_screen0_tree() {
                 break;
         }
         
-        Serial.printf("[UI] Tree state changed: %s\n", 
-                      air == GOOD ? "GREEN" : (air == WARN ? "YELLOW" : "RED"));
+        LOG_D("UI", "Baum: %s", air == GOOD ? "grün" : (air == WARN ? "gelb" : "rot"));
     }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN 1: OVERVIEW (Large AQI + 2 large tiles)
+ * SCREEN 1: ÜBERSICHT (Große AQI + 2 große Kacheln)
  * ═══════════════════════════════════════════════════════════════════════════
  * Layout:
  * ┌──────────────────────────────────────────────────────┐
- * │  Clock + Date (top left)     │   Large AQI Box      │
- * │  12:34 56                    │   (full height)      │
- * │  Tue, Jan 28                 │                      │
- * ├──────────────────────────────┤   🙂 Air Quality    │
- * │    TEMPERATURE   │  HUMIDITY │      Very good       │
+ * │  Uhr + Datum (oben links)    │   Große AQI Box      │
+ * │  12:34 56                    │   (volle Höhe)       │
+ * │  Di, 28. Jan                 │                      │
+ * ├──────────────────────────────┤   🙂 Luftqualität   │
+ * │    TEMPERATUR    │  FEUCHTE  │      Sehr gut        │
  * │    🌡️  23.5°C    │  💧 45%  │                      │
  * │    ═══════       │  ═══════  │   Arc + Emoji        │
  * └──────────────────────────────┴──────────────────────┘
  */
 
-// Screen 1 UI elements
+// Screen 1 UI Elemente
 static lv_obj_t* s1_lbl_time = nullptr;
 static lv_obj_t* s1_lbl_seconds = nullptr;
 static lv_obj_t* s1_lbl_date = nullptr;
@@ -615,7 +615,7 @@ static lv_obj_t* s1_img_emoji = nullptr;
 static lv_obj_t* s1_lbl_aqi_title = nullptr;
 static lv_obj_t* s1_lbl_aqi_status = nullptr;
 
-// 2 large tiles
+// 2 große Kacheln
 static lv_obj_t* s1_card_temp = nullptr;
 static lv_obj_t* s1_lbl_temp_title = nullptr;
 static lv_obj_t* s1_img_temp = nullptr;
@@ -636,7 +636,7 @@ static void create_screen1() {
     lv_obj_set_style_bg_color(scr, COLOR_BG, 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
 
-    // Layout constants for screen 1
+    // Layout-Konstanten für Screen 1
     const int AQI_BOX_W = 180;
     const int AQI_BOX_H = 280;
     const int AQI_BOX_X = 480 - AQI_BOX_W - 10;
@@ -668,7 +668,7 @@ static void create_screen1() {
     lv_obj_set_pos(s1_lbl_date, 75, 115);
 
     // ─────────────────────────────────────────────────────────────────────
-    // LARGE AQI BOX (right side, full height)
+    // GROSSE AQI BOX (rechts, volle Höhe)
     // ─────────────────────────────────────────────────────────────────────
     s1_aqi_box = lv_obj_create(scr);
     lv_obj_add_style(s1_aqi_box, &style_card, 0);
@@ -683,7 +683,7 @@ static void create_screen1() {
     lv_label_set_text(s1_lbl_aqi_title, TXT_LUFTQUALITAET);
     lv_obj_align(s1_lbl_aqi_title, LV_ALIGN_TOP_MID, 0, 5);
 
-    // Large AQI ring (centered)
+    // Großer AQI Ring (mittig)
     s1_arc_aqi = lv_arc_create(s1_aqi_box);
     lv_obj_set_size(s1_arc_aqi, 120, 120);
     lv_obj_align(s1_arc_aqi, LV_ALIGN_CENTER, 0, -10);
@@ -699,10 +699,10 @@ static void create_screen1() {
     lv_obj_set_style_arc_width(s1_arc_aqi, 10, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(s1_arc_aqi, COLOR_GOOD, LV_PART_INDICATOR);
 
-    // Large emoji in ring
+    // Großes Emoji im Ring
     s1_img_emoji = lv_image_create(s1_arc_aqi);
     lv_image_set_src(s1_img_emoji, &emoji_happy);
-    lv_image_set_scale(s1_img_emoji, 384);  // 1.5x larger
+    lv_image_set_scale(s1_img_emoji, 384);  // 1.5x größer
     lv_obj_center(s1_img_emoji);
 
     // Status Text unten
@@ -773,7 +773,7 @@ static void create_screen1() {
     lv_obj_align(s1_img_hum, LV_ALIGN_TOP_RIGHT, -5, 0);
 
     s1_lbl_hum_value = lv_label_create(s1_card_hum);
-    lv_obj_set_style_text_font(s1_lbl_hum_value, FONT_28, 0);  // FONT_28 for consistency
+    lv_obj_set_style_text_font(s1_lbl_hum_value, FONT_28, 0);  // FONT_28 für Konsistenz
     lv_obj_set_style_text_color(s1_lbl_hum_value, COLOR_TEXT, 0);
     lv_label_set_text(s1_lbl_hum_value, "--");
     lv_obj_set_pos(s1_lbl_hum_value, 0, 40);
@@ -792,24 +792,24 @@ static void create_screen1() {
     lv_obj_add_style(s1_bar_hum, &style_bar_bg, LV_PART_MAIN);
     lv_obj_add_style(s1_bar_hum, &style_bar_good, LV_PART_INDICATOR);
 
-    Serial.println("[UI] Screen 1 (overview) created");
+    LOG_D("UI", "Screen 1 (Übersicht) erstellt");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN 2: DETAIL (Small AQI + 4 tiles)
+ * SCREEN 2: DETAIL (Kleine AQI + 4 Kacheln)
  * ═══════════════════════════════════════════════════════════════════════════
  * Layout:
  * ┌────────────────────────────────────────────────────────┐
- * │  Clock + Date        │  Small AQI Box                 │
- * │  12:34 56            │  🙂 Air Quality Very good      │
- * │  Tue, Jan 28         │                                 │
+ * │  Uhr + Datum         │  Kleine AQI Box                │
+ * │  12:34 56            │  🙂 Luftqualität Sehr gut      │
+ * │  Di, 28. Jan         │                                 │
  * ├──────────┬───────────┼─────────────┬──────────────────┤
- * │ Temp/Hum │    CO2    │   PM2.5     │       VOC        │
+ * │ Temp/Hum │    CO2    │  Feinstaub  │       VOC        │
  * │ combined │           │             │                  │
  * └──────────┴───────────┴─────────────┴──────────────────┘
  */
 
-// Screen 2 UI elements
+// Screen 2 UI Elemente
 static lv_obj_t* s2_lbl_time = nullptr;
 static lv_obj_t* s2_lbl_seconds = nullptr;
 static lv_obj_t* s2_lbl_date = nullptr;
@@ -1050,7 +1050,7 @@ static void create_screen2() {
         lv_obj_add_style(s2_cards[i].bar, &style_bar_good, LV_PART_INDICATOR);
     }
 
-    Serial.println("[UI] Screen 2 (Detail) erstellt");
+    LOG_D("UI", "Screen 2 (Detail) erstellt");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1079,7 +1079,7 @@ static void create_screen2() {
 #define COLOR_CO2_GAUGE      lv_color_hex(0x9b59b6)
 #define COLOR_HUM_GAUGE      lv_color_hex(0x3498db)
 
-// Gauge structure for analog screen
+// Gauge Struktur für Analog-Screen
 typedef struct {
     lv_obj_t* container;
     lv_obj_t* arc_bg;
@@ -1258,21 +1258,21 @@ static void s3_create_small_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y
     lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
     lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->value_label, 100);
-    lv_obj_set_pos(g->value_label, 0, 62);  // Centered between gauge (cy=50) and name
+    lv_obj_set_pos(g->value_label, 0, 62);  // Mittig zwischen Gauge (cy=50) und Name
     lv_label_set_text(g->value_label, "--");
 
-    // Name label (Playfair Serif for elegant look)
+    // Name Label (Playfair Serif für eleganten Look)
     g->name_label = lv_label_create(g->container);
     lv_obj_set_style_text_font(g->name_label, FONT_PLAYFAIR_14, 0);
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
     lv_obj_set_style_text_align(g->name_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->name_label, 100);
-    lv_obj_set_pos(g->name_label, 0, 84);  // Below the value
+    lv_obj_set_pos(g->name_label, 0, 84);  // Unter dem Wert
     lv_label_set_text(g->name_label, name);
 }
 
 // ------------------------------------------------------------
-// Create large gauge (CO2)
+// Große Gauge erstellen (CO2)
 // ------------------------------------------------------------
 static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
                                 float min_val, float max_val, lv_color_t color,
@@ -1372,16 +1372,16 @@ static void s3_create_big_gauge(lv_obj_t* parent, AnalogGauge* g, int x, int y,
     lv_obj_set_style_bg_color(g->needle_center, COLOR_NEEDLE, 0);
     lv_obj_set_style_bg_opa(g->needle_center, LV_OPA_COVER, 0);
 
-    // Value label (Playfair 32 for large values)
+    // Wert Label (Playfair 32 für große Werte)
     g->value_label = lv_label_create(g->container);
     lv_obj_set_style_text_font(g->value_label, FONT_PLAYFAIR_32, 0);
     lv_obj_set_style_text_color(g->value_label, COLOR_CARD, 0);
     lv_obj_set_style_text_align(g->value_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(g->value_label, 220);
-    lv_obj_set_pos(g->value_label, 0, 125);  // Centered between gauge (cy=110) and name
+    lv_obj_set_pos(g->value_label, 0, 125);  // Mittig zwischen Gauge (cy=110) und Name
     lv_label_set_text(g->value_label, "--");
 
-    // Name label (Playfair Serif for elegant look)
+    // Name Label (Playfair Serif für eleganten Look)
     g->name_label = lv_label_create(g->container);
     lv_obj_set_style_text_font(g->name_label, FONT_PLAYFAIR_14, 0);
     lv_obj_set_style_text_color(g->name_label, COLOR_ANALOG_DGRAY, 0);
@@ -1449,15 +1449,15 @@ static void create_screen3_analog() {
     s3_create_small_gauge(main_cont, &s3_gauge_temp, start_x, gauge_y_small,
                           10.0f, 35.0f, COLOR_TEMP_GAUGE, "°C", "Temperatur", s3_needle_pts_temp);
 
-    // CO2 (center, large)
+    // CO2 (Mitte, groß)
     s3_create_big_gauge(main_cont, &s3_gauge_co2, start_x + 100 + gap, gauge_y_big,
                         400.0f, 2000.0f, COLOR_CO2_GAUGE, "ppm", "CO2", s3_needle_pts_co2);
 
-    // Humidity (right, small)
+    // Feuchtigkeit (rechts, klein)
     s3_create_small_gauge(main_cont, &s3_gauge_hum, start_x + 100 + gap + 220 + gap, gauge_y_small,
-                          0.0f, 100.0f, COLOR_HUM_GAUGE, "%", "Humidity", s3_needle_pts_hum);
+                          0.0f, 100.0f, COLOR_HUM_GAUGE, "%", "Feuchte", s3_needle_pts_hum);
 
-    Serial.println("[UI] Screen 3 (analog cockpit) created");
+    LOG_D("UI", "Screen 3 (Analog) erstellt");
 }
 
 // ------------------------------------------------------------
@@ -1634,15 +1634,15 @@ static void update_screen2_sensors() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN 4: BUBBLE UI (Dynamic Circles)
+ * SCREEN 4: BUBBLE UI (Dynamische Kreise)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-// Colors for bubble screen
-#define COLOR_BUBBLE_BG_DARK   lv_color_hex(0x0f0f23)  // Dark blue-black
-#define COLOR_BUBBLE_BG_LIGHT  lv_color_hex(0x1a1a3e)  // Dark blue
-#define COLOR_BUBBLE_TEXT_DIM  lv_color_hex(0x999999)  // 60% white
-#define COLOR_BUBBLE_TEXT_DIMMER lv_color_hex(0x666666)  // 40% white
-#define COLOR_BUBBLE_STAR      lv_color_hex(0x6496FF)  // Blue-white stars
+// Farben für Bubble-Screen
+#define COLOR_BUBBLE_BG_DARK   lv_color_hex(0x0f0f23)  // Dunkelblau-Schwarz
+#define COLOR_BUBBLE_BG_LIGHT  lv_color_hex(0x1a1a3e)  // Dunkelblau
+#define COLOR_BUBBLE_TEXT_DIM  lv_color_hex(0x999999)  // 60% weiß
+#define COLOR_BUBBLE_TEXT_DIMMER lv_color_hex(0x666666)  // 40% weiß
+#define COLOR_BUBBLE_STAR      lv_color_hex(0x6496FF)  // Blau-Weiß Sterne
 
 // Bubble Layout
 #define BUBBLE_MIN_SIZE  95
@@ -1666,7 +1666,7 @@ static Bubble s4_bubbles[5];
 static lv_style_t style_bubble_base;
 static bool style_bubble_initialized = false;
 
-// Calculate bubble size based on value
+// Bubble Größe basierend auf Wert berechnen
 static int s4_get_bubble_size(int type, float value) {
     float min_val, max_val, good_min, good_max;
 
@@ -1695,29 +1695,29 @@ static int s4_get_bubble_size(int type, float value) {
 
     float severity = 0.0f;
 
-    // Severity only outside of good range
+    // Severity nur außerhalb des guten Bereichs
     if (value < good_min) {
         severity = (good_min - value) / (good_min - min_val);
     } else if (value > good_max) {
         severity = (value - good_max) / (max_val - good_max);
     }
-    // Values in good range → severity = 0 (small green bubble)
+    // Werte im guten Bereich → severity = 0 (kleine grüne Bubble)
 
     if (severity < 0.0f) severity = 0.0f;
     if (severity > 1.0f) severity = 1.0f;
 
-    // Size offset per sensor type (+ larger, - smaller)
+    // Größen-Offset pro Sensor-Typ (+ größer, - kleiner)
     int size_offset = 0;
     switch(type) {
-        case 1: size_offset = -8; break;  // Humidity: smaller
-        case 3: size_offset = 8; break;   // PM2.5: larger
-        case 4: size_offset = -8; break;  // VOC: smaller
+        case 1: size_offset = -8; break;  // Feuchte: kleiner
+        case 3: size_offset = 8; break;   // PM2.5: größer
+        case 4: size_offset = -8; break;  // VOC: kleiner
     }
 
     return (int)(BUBBLE_MIN_SIZE + severity * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + size_offset;
 }
 
-// Calculate bubble status (for color)
+// Bubble Status berechnen (für Farbe)
 static Status s4_get_bubble_status(int type, float value) {
     switch(type) {
         case 0: return get_temp_status(value);
@@ -1867,10 +1867,10 @@ static void create_screen4_bubble() {
     lv_label_set_text(s4_lbl_date, "Di, 28. Jan 2026");
     lv_obj_align_to(s4_lbl_date, s4_lbl_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 
-    // Bubble positions (asymmetric, well distributed across 480x320)
-    // Display: X=0-480, Y available approx. 60-280 (header on top, legend on bottom)
-    // Max bubble 110px → centers at least 55px from edge
-    const char* labels[] = {"Temp", "Humidity", "CO2", "PM2.5", "VOC"};
+    // Bubble-Positionen (asymmetrisch, gut verteilt über 480x320)
+    // Display: X=0-480, Y verfügbar ca. 60-280 (Header oben, Legende unten)
+    // Max Bubble 110px → Zentren mind. 55px vom Rand
+    const char* labels[] = {"Temp", "Feuchte", "CO2", "PM2.5", "VOC"};
     const char* units[] = {"C", "%", "ppm", "ug/m3", "ppb"};
     //                      Temp   Feuchte  CO2    PM2.5   VOC
     int center_x[] = {      85,    395,     255,   110,    355};
@@ -1919,9 +1919,9 @@ static void create_screen4_bubble() {
         lv_obj_align_to(s4_bubbles[i].lbl_label, s4_bubbles[i].lbl_unit, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
     }
 
-    // No legend - bubbles are self-explanatory
+    // Keine Legende - Bubbles sind selbsterklärend
 
-    Serial.println("[UI] Screen 4 (bubble) created");
+    LOG_D("UI", "Screen 4 (Bubble) erstellt");
 }
 
 // Bubble Screen Zeit aktualisieren
@@ -1947,103 +1947,56 @@ static void update_screen4_sensors() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * PUBLIC API FUNCTIONS
+ * PUBLIC API FUNKTIONEN
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 void ui_init() {
-    Serial.println("[UI] Initializing multi-screen UI...");
+    LOG_I("UI", "Erstelle 5 Screens...");
     
     init_styles();
     
-    // Create all five screens
-    create_screen0_tree();   // Tree animation (start screen)
-    create_screen1();        // Overview (minimalistic)
-    create_screen2();        // Detail (full info)
-    create_screen3_analog(); // Analog cockpit (instruments)
-    create_screen4_bubble(); // Dynamic circles (bubbles)
+    create_screen0_tree();
+    create_screen1();
+    create_screen2();
+    create_screen3_analog();
+    create_screen4_bubble();
     
-    // Start with screen 0 (tree animation)
     current_screen = UI_SCREEN_TREE;
     lv_screen_load(screens[current_screen]);
     
-    Serial.println("[UI] Multi-screen UI initialized, starting with tree animation");
+    LOG_I("UI", "UI bereit (Start: Baum-Animation)");
 }
 
 void ui_nextScreen() {
-    Serial.println("[UI] ui_nextScreen() called");
-    Serial.flush();
-    Serial.printf("[UI] Current screen: %d, screens[0]=%p, screens[1]=%p\n", 
-                  current_screen, screens[0], screens[1]);
-    Serial.flush();
-    
     int next = (current_screen + 1) % UI_SCREEN_COUNT;
-    Serial.printf("[UI] Switching to screen: %d\n", next);
-    Serial.flush();
     ui_setScreen((UIScreen)next);
 }
 
 void ui_setScreen(UIScreen screen) {
-    Serial.printf("[UI] ui_setScreen(%d) called\n", screen);
-    Serial.flush();
-    
     if (screen >= UI_SCREEN_COUNT) {
-        Serial.println("[UI] ERROR: Screen index invalid!");
+        LOG_E("UI", "Screen-Index %d ungültig!", screen);
         return;
     }
     if (screens[screen] == nullptr) {
-        Serial.println("[UI] ERROR: Screen is NULL!");
+        LOG_E("UI", "Screen %d ist NULL!", screen);
         return;
     }
     
-    Serial.println("[UI] Starting screen transition...");
-    Serial.flush();
     current_screen = screen;
-    
-    // Simple load instead of animation (safer)
-    Serial.println("[UI] Before lv_screen_load()...");
-    Serial.flush();
     lv_screen_load(screens[screen]);
-    Serial.println("[UI] After lv_screen_load()");
-    Serial.flush();
     
     // Aktuellen Screen mit gecachten Werten aktualisieren
-    if (screen == UI_SCREEN_TREE) {
-        Serial.println("[UI] Vor update_screen0_tree()...");
-        Serial.flush();
-        update_screen0_tree();
-    } else if (screen == UI_SCREEN_OVERVIEW) {
-        Serial.println("[UI] Vor update_screen1_time()...");
-        Serial.flush();
-        update_screen1_time();
-        Serial.println("[UI] Vor update_screen1_sensors()...");
-        Serial.flush();
-        update_screen1_sensors();
-    } else if (screen == UI_SCREEN_DETAIL) {
-        Serial.println("[UI] Vor update_screen2_time()...");
-        Serial.flush();
-        update_screen2_time();
-        Serial.println("[UI] Vor update_screen2_sensors()...");
-        Serial.flush();
-        update_screen2_sensors();
-    } else if (screen == UI_SCREEN_ANALOG) {
-        Serial.println("[UI] Vor update_screen3_time()...");
-        Serial.flush();
-        update_screen3_time();
-        Serial.println("[UI] Vor update_screen3_sensors()...");
-        Serial.flush();
-        update_screen3_sensors();
-    } else if (screen == UI_SCREEN_BUBBLE) {
-        Serial.println("[UI] Vor update_screen4_time()...");
-        Serial.flush();
-        update_screen4_time();
-        Serial.println("[UI] Vor update_screen4_sensors()...");
-        Serial.flush();
-        update_screen4_sensors();
+    switch (screen) {
+        case UI_SCREEN_TREE:     update_screen0_tree(); break;
+        case UI_SCREEN_OVERVIEW: update_screen1_time(); update_screen1_sensors(); break;
+        case UI_SCREEN_DETAIL:   update_screen2_time(); update_screen2_sensors(); break;
+        case UI_SCREEN_ANALOG:   update_screen3_time(); update_screen3_sensors(); break;
+        case UI_SCREEN_BUBBLE:   update_screen4_time(); update_screen4_sensors(); break;
+        default: break;
     }
     
-    const char* screen_names[] = {"Tree Animation", "Overview", "Detail", "Analog Cockpit", "Bubbles"};
-    Serial.printf("[UI] Switch to screen %d (%s) completed\n", screen, screen_names[screen]);
-    Serial.flush();
+    const char* screen_names[] = {"Baum", "Übersicht", "Detail", "Analog", "Bubbles"};
+    LOG_I("UI", "Screen → %d (%s)", screen, screen_names[screen]);
 }
 
 UIScreen ui_getCurrentScreen() {
@@ -2082,10 +2035,10 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     cached_pm25 = pm25;
     cached_voc = voc;
     
-    Serial.printf("[UI] Update: T=%.1f H=%.0f CO2=%d PM=%d VOC=%d\n", temp, hum, co2, pm25, voc);
+    LOG_D("UI", "T=%.1f H=%.0f CO2=%d PM=%d VOC=%d", temp, hum, co2, pm25, voc);
     
     // Alle Screens aktualisieren
-    update_screen0_tree();    // Tree screen changes color based on air quality
+    update_screen0_tree();    // Tree-Screen ändert Farbe basierend auf Luftqualität
     update_screen1_sensors();
     update_screen2_sensors();
     update_screen3_sensors(); // Analog Cockpit

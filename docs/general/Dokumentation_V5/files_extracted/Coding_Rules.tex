@@ -1,0 +1,236 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{enumitem}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codegreen}{HTML}{2E7D32}
+\definecolor{codegray}{HTML}{757575}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{headerblue}\bfseries,
+  commentstyle=\color{codegreen},
+  stringstyle=\color{codegray},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{codegray!30},
+  numbers=none,
+  showstringspaces=false,
+  tabsize=4,
+  language=C++
+}
+
+\hypersetup{colorlinks=true,linkcolor=headerblue,urlcolor=headerblue}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Coding Rules v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Coding Rules}\\[0.3cm]
+{\large Programmierrichtlinien und Konventionen}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Programmiersprache und Umgebung}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+Sprache & C++ (Arduino Framework) \\
+IDE & VSCode mit PlatformIO \\
+Board & esp32-s3-devkitc-1 \\
+Framework & Arduino (Espressif32) \\
+Flash Mode & QIO 80\,MHz, OPI PSRAM \\
+Upload Speed & 921600 Baud \\
+Monitor Speed & 115200 Baud \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Formatierung}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Regel} & \textbf{Beschreibung} \\
+\midrule
+Einrückung & 4 Leerzeichen (keine Tabs) \\
+Zeilenlänge & Maximal 100 Zeichen \\
+Encoding & UTF-8 \\
+Zeilenende & LF (Unix-Style) \\
+Klammern & Öffnende geschweifte Klammer auf gleicher Zeile (K\&R-Stil) \\
+Leerzeilen & Eine Leerzeile zwischen logischen Blöcken und Funktionen \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Namenskonventionen}
+
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Element} & \textbf{Konvention} & \textbf{Beispiel} \\
+\midrule
+Variablen & \texttt{snake\_case} & \texttt{sensor\_data}, \texttt{last\_read\_time} \\
+Funktionen & \texttt{snake\_case} & \texttt{read\_sensors()}, \texttt{ui\_init()} \\
+Konstanten / Defines & \texttt{UPPER\_SNAKE\_CASE} & \texttt{PRESENCE\_TIMEOUT\_DIM\_MS} \\
+Structs / Enums & \texttt{PascalCase} & \texttt{SensorReadings}, \texttt{DisplayState} \\
+Enum-Werte & \texttt{UPPER\_SNAKE\_CASE} & \texttt{UI\_SCREEN\_OVERVIEW}, \texttt{STATE\_ACTIVE} \\
+Klassen & \texttt{PascalCase} & \texttt{PowerManager}, \texttt{WifiClock} \\
+Private Member & Präfix \texttt{\_} & \texttt{\_state}, \texttt{\_fadeCurrent} \\
+Typedefs & Suffix \texttt{\_Data} & \texttt{AHT20\_Data}, \texttt{PMS5003\_Data} \\
+Header Guards & \texttt{UPPER\_SNAKE\_CASE} mit \texttt{\_H} & \texttt{POWER\_MANAGER\_H} \\
+Dateinamen & \texttt{snake\_case.cpp/.h} & \texttt{power\_manager.cpp}, \texttt{sensor\_filter.h} \\
+Pin-Defines & Präfix nach Funktion & \texttt{TFT\_MOSI}, \texttt{I2C\_SDA}, \texttt{CO2\_RX} \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Dokumentation}
+
+Alle öffentlichen Funktionen, Klassen und Strukturen werden mit Doxygen-Kommentaren versehen:
+
+\begin{lstlisting}
+/**
+ * @brief Aktualisiert alle Sensorwerte auf dem Display
+ * @param readings Aktuelle Sensor-Messwerte
+ */
+void ui_updateSensorValues(const SensorReadings& readings);
+\end{lstlisting}
+
+Inline-Kommentare erklären nicht-offensichtliche Logik:
+\begin{lstlisting}
+// 220uF Stuetzkondensator puffert Stromspitzen des MH-Z19C
+delay(100);  // Warten bis Sensor-Versorgung stabil
+\end{lstlisting}
+
+% ============================================================
+\section{Fehlerbehandlung}
+
+Da Exceptions auf ESP32 nicht verfügbar sind, wird folgendes Schema verwendet:
+
+\begin{itemize}[nosep]
+\item Jeder Sensor-Treiber gibt ein \texttt{ok}-Flag in seiner Datenstruktur zurück (z.\,B. \texttt{MHZ19C\_Data.valid}).
+\item Fehlerzustände werden über \texttt{Serial.println()} auf der Debug-Konsole protokolliert.
+\item Die \texttt{main.cpp} prüft bei jedem Lesezyklus den Rückgabewert und zeigt fehlerhafte Sensoren auf dem Display an.
+\item Ein Watchdog-Timer (WDT) überwacht die Hauptschleife und löst bei Blockierung einen Reset aus.
+\end{itemize}
+
+Beispiel aus dem Sensor-Treiber:
+\begin{lstlisting}
+MHZ19C_Data mhz19c_read() {
+    MHZ19C_Data data;
+    data.co2_ppm = myMHZ19.getCO2();
+    data.valid = (data.co2_ppm > 0 && data.co2_ppm < 5000);
+    return data;
+}
+\end{lstlisting}
+
+% ============================================================
+\section{Verbotene Praktiken}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Verboten} & \textbf{Begründung} \\
+\midrule
+\texttt{delay()} in \texttt{loop()} & Blockiert LVGL-Rendering und Sensor-Abfragen. Stattdessen \texttt{millis()}-basiertes Timing verwenden. \\
+\texttt{String} Klasse & Heap-Fragmentierung auf ESP32. Stattdessen \texttt{char[]}, \texttt{snprintf()} oder \texttt{lv\_label\_set\_text\_fmt()} verwenden. \\
+Globale Variablen & Nur \texttt{static}-Variablen in \texttt{main.cpp} und \texttt{extern}-Singleton-Instanzen (z.\,B. \texttt{powerManager}) erlaubt. \\
+Magic Numbers & Alle Konstanten als \texttt{\#define} oder \texttt{static const} mit sprechendem Namen in \texttt{pins.h}, \texttt{colors.h} oder \texttt{app\_config.h}. \\
+Dynamische Allokation in \texttt{loop()} & Kein \texttt{new}/\texttt{malloc} in der Hauptschleife. LVGL-Objekte werden einmalig in \texttt{ui\_init()} erstellt. \\
+Blocking I/O & Sensor-Reads mit Timeout absichern; niemals endlos auf Daten warten. \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Versionskontrolle}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Regel} & \textbf{Beschreibung} \\
+\midrule
+Repository & GitHub (privat), Git-basiert \\
+Branching & \texttt{main} (stabil) + Feature-Branches (\texttt{feature/sensor-xyz}) \\
+Commit-Format & Conventional Commits: \texttt{feat:}, \texttt{fix:}, \texttt{docs:}, \texttt{refactor:} \\
+Merge-Strategie & Feature-Branch $\to$ Pull Request $\to$ Review $\to$ Merge in \texttt{main} \\
+.gitignore & Build-Artefakte (\texttt{.pio/}), IDE-Konfiguration (\texttt{.vscode/}), Credentials \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Build-Konfiguration}
+
+Zentrale Build-Flags in \texttt{platformio.ini}:
+
+\begin{lstlisting}
+build_flags =
+  -DARDUINO_USB_CDC_ON_BOOT=1
+  -DBOARD_HAS_PSRAM
+  -DLV_CONF_INCLUDE_SIMPLE
+  -DLV_COLOR_DEPTH=16
+  -DLV_COLOR_16_SWAP=1
+  -DLV_MEM_SIZE="(96U * 1024U)"
+  -DLV_FONT_MONTSERRAT_16=1
+\end{lstlisting}
+
+Pin-Definitionen sind zentral in \texttt{pins.h} gesammelt und dürfen nicht in einzelnen Modulen hart codiert werden.
+
+% ============================================================
+\section{Änderungshistorie}
+
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+\rowcolor{tableheader}
+\textbf{Version} & \textbf{Datum} & \textbf{Autor} & \textbf{Änderung} \\
+\midrule
+1.0 & Januar 2026 & Team & Erstversion \\
+2.0 & Februar 2026 & Team & Ergänzung: Watchdog, LVGL-spezifische Regeln, Build-Flags, Private-Member-Konvention, Dateinamen-Konvention. \\
+\bottomrule
+\end{tabularx}
+
+\end{document}

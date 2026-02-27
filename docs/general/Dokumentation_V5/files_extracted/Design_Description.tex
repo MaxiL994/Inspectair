@@ -1,0 +1,302 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{graphicx}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codegreen}{HTML}{2E7D32}
+\definecolor{codegray}{HTML}{757575}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{headerblue}\bfseries,
+  commentstyle=\color{codegreen},
+  stringstyle=\color{codegray},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{codegray!30},
+  numbers=none,
+  showstringspaces=false,
+  tabsize=2,
+  language=C++
+}
+
+\hypersetup{colorlinks=true,linkcolor=headerblue,urlcolor=headerblue}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Design Description v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Design Description}\\[0.3cm]
+{\large System- und Software-Architektur}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Projektbeschreibung}
+
+\subsection{Überblick}
+InspectAir ist ein Luftqualitätsmonitor für Innenräume, basierend auf dem ESP32-S3. Das System erfasst kontinuierlich sechs Umweltparameter (CO\textsubscript{2}, PM2.5, PM10, VOC, Temperatur, Luftfeuchtigkeit), erkennt Personen per 24\,GHz-Radar und stellt alle Daten auf einem 4-Zoll-TFT-Display dar. Durch eine vierstufige Farbcodierung nach WHO-2021- und UBA-Grenzwerten können kritische Werte auf einen Blick erkannt werden.
+
+\subsection{Kernfunktionen}
+Das System bietet folgende Hauptfunktionen:
+\begin{itemize}[nosep]
+\item Messung von CO\textsubscript{2}, Feinstaub (PM1.0/PM2.5/PM10), VOC, Temperatur und Luftfeuchtigkeit
+\item Echtzeit-Anzeige auf 4-Zoll-Display (480$\times$320 Pixel) über LVGL 9.2
+\item Fünf wählbare Bildschirmansichten (Overview, Detail, Analog, Bubble, Tree-Animation)
+\item Vierstufige Farbcodierung (Grün/Gelb/Orange/Rot) nach WHO/UBA-Grenzwerten
+\item Präsenzerkennung via 24\,GHz FMCW-Radar für automatisches Display-Management
+\item Energiesparmodi: Display-Dimming, Display-Off und Light Sleep
+\item WiFi-Anbindung für NTP-Zeitsynchronisation und optionale Web-Fernsteuerung
+\end{itemize}
+
+% ============================================================
+\section{Systemarchitektur}
+
+\subsection{Hardware-Blockdiagramm}
+
+Das System besteht aus einem ESP32-S3 Mikrocontroller als zentraler Steuereinheit, verbunden mit fünf Sensoren über drei verschiedene Busse sowie einem TFT-Display über SPI:
+
+\begin{verbatim}
+  ┌─────────────┐     SPI      ┌─────────────────┐
+  │  ST7796S    │◄────────────►│                 │
+  │  480x320    │              │   ESP32-S3      │
+  │  (LovyanGFX)│              │   N8R8 DevKit   │
+  └─────────────┘              │   (Waveshare)   │
+                               │                 │
+  ┌─────────────┐     I2C      │  Flash: 8MB QIO │
+  │ AHT20       │◄────────────►│  PSRAM: 8MB OPI │
+  │ SGP40       │  (4.7kΩ PU)  │                 │
+  └─────────────┘              │                 │
+                               │                 │
+  ┌─────────────┐   UART1      │                 │
+  │ PMS5003     │◄────────────►│                 │
+  └─────────────┘   9600 Bd    │                 │
+                               │                 │
+  ┌─────────────┐  SoftSerial  │                 │
+  │ MH-Z19C    │◄────────────►│                 │
+  │ (+220µF)    │   9600 Bd    │                 │
+  └─────────────┘              │                 │
+                               │                 │
+  ┌─────────────┐   UART2      │                 │
+  │ LD2410C     │◄──[TXS0108E]►│                 │
+  │ (+220µF)    │  256000 Bd   │                 │
+  └─────────────┘              └─────────────────┘
+\end{verbatim}
+
+\subsection{Bus-Zuordnung}
+
+\begin{tabularx}{\textwidth}{llXl}
+\toprule
+\rowcolor{tableheader}
+\textbf{Bus} & \textbf{Sensor} & \textbf{Pins} & \textbf{Baudrate} \\
+\midrule
+SPI & ST7796S Display & MOSI:11, MISO:13, SCLK:12, CS:14, DC:9, RST:46 & -- \\
+I2C & AHT20 + SGP40 & SDA:8, SCL:18 (4{,}7\,k$\Omega$ Pull-ups) & -- \\
+UART1 & PMS5003 & RX:16, TX:17 & 9600 \\
+SoftwareSerial & MH-Z19C & RX:4, TX:5 & 9600 \\
+UART2 & LD2410C & RX:7, TX:6 (via Level Shifter) & 256000 \\
+GPIO & UI-Button & GPIO1 (Active LOW, interner Pull-up) & -- \\
+GPIO & Backlight & GPIO3 (via LovyanGFX PWM) & -- \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Software-Architektur}
+
+\subsection{Schichtenmodell}
+
+Die Software folgt einem 3-Schichten-Modell:
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Schicht} & \textbf{Module} \\
+\midrule
+\textbf{Application Layer} & \texttt{main.cpp} -- Hauptschleife, Timing, Button-Handler, Watchdog \\
+\textbf{Service Layer} & \texttt{ui\_manager} (5 Screens), \texttt{sensor\_filter} (Moving Average), \texttt{sensor\_history} (24h-Daten), \texttt{power\_manager} (Energieverwaltung), \texttt{WifiClock} (NTP), \texttt{web\_remote} (HTTP-Server) \\
+\textbf{Driver Layer} & \texttt{lvgl\_driver} (LVGL~9 + LovyanGFX), \texttt{aht\_sgp} (I2C), \texttt{mhz19c} (SoftSerial), \texttt{pms5003} (UART1), \texttt{ld2410c} (UART2) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Dateistruktur}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Datei} & \textbf{Funktion} \\
+\midrule
+\texttt{main.cpp} & Hauptprogramm: setup(), loop(), Button-Handler, Sensor-Timing \\
+\texttt{pins.h} & Zentrale GPIO-Pin-Definitionen \\
+\texttt{sensor\_types.h} & Datenstrukturen: \texttt{SensorReadings}, \texttt{AHT20\_Data}, etc. \\
+\texttt{colors.h} & RGB565-Farben, Grenzwerte, Klassifizierungsfunktionen \\
+\texttt{display\_config.h} & LovyanGFX-Konfiguration für ST7796S \\
+\texttt{app\_config.h} & Applikations-Konfiguration \\
+\texttt{lvgl\_driver.cpp/h} & LVGL~9 Display-Treiber, Flush-Callback, Brightness-Steuerung \\
+\texttt{ui\_manager.cpp/h} & Multi-Screen UI System (5 Screens), Update-Funktionen \\
+\texttt{aht\_sgp.cpp/h} & AHT20 + SGP40 I2C-Treiber \\
+\texttt{mhz19c.cpp/h} & MH-Z19C CO\textsubscript{2}-Treiber über SoftwareSerial \\
+\texttt{pms5003.cpp/h} & PMS5003 Feinstaub-Treiber über UART1 \\
+\texttt{ld2410c.cpp/h} & LD2410C Radar-Treiber über UART2 \\
+\texttt{sensor\_filter.cpp/h} & Moving-Average-Filter für Sensordaten \\
+\texttt{sensor\_history.cpp/h} & 24-Stunden-Datenhistorie \\
+\texttt{power\_manager.cpp/h} & Display-Zustandsmaschine, Fade-Effekte, Light Sleep \\
+\texttt{WifiClock.cpp/h} & WiFi-Verbindung und NTP-Zeitsynchronisation \\
+\texttt{web\_remote.cpp/h} & HTTP-Server für Fernsteuerung per Smartphone \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Zentrale Datenstruktur}
+
+Alle Sensordaten werden in einer aggregierten Struktur zusammengefasst (definiert in \texttt{sensor\_types.h}):
+
+\begin{lstlisting}
+typedef struct {
+  AHT20_Data aht;       // Temperatur/Feuchte
+  SGP40_Data sgp;       // VOC-Index + Rohwert
+  PMS5003_Data pms;     // PM1.0, PM2.5, PM10 (AE + SP)
+  MHZ19C_Data mhz;      // CO2 in ppm + valid-Flag
+  LD2410C_Data radar;   // Praesenz, Entfernung, Bewegung
+  uint32_t timestamp;   // Zeitstempel (millis)
+} SensorReadings;
+\end{lstlisting}
+
+\subsection{Display-Architektur}
+
+Die Display-Ausgabe basiert auf einer zweistufigen Architektur:
+
+\textbf{Schicht 1 -- LovyanGFX} (\texttt{display\_config.h}, \texttt{lvgl\_driver.cpp}): Konfiguriert die SPI-Kommunikation mit dem ST7796S-Controller, verwaltet den Backlight-PWM über \texttt{setBrightness(0-255)} und stellt den Flush-Callback bereit. Dual-Buffer-Strategie mit PSRAM-Allokation (\texttt{LVGL\_BUF\_SIZE = 480*32}).
+
+\textbf{Schicht 2 -- LVGL 9.2} (\texttt{ui\_manager.cpp/h}): Verwaltet fünf verschiedene Bildschirme:
+
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Enum} & \textbf{Screen} & \textbf{Beschreibung} \\
+\midrule
+\texttt{UI\_SCREEN\_TREE} & Baum-Animation & Startbildschirm mit animierter Baumgrafik \\
+\texttt{UI\_SCREEN\_OVERVIEW} & Übersicht & Große AQI-Anzeige rechts, 2 Kacheln (Temp, Feuchte) links \\
+\texttt{UI\_SCREEN\_DETAIL} & Detail & Kleine AQI, 4 Kacheln mit allen Messwerten \\
+\texttt{UI\_SCREEN\_ANALOG} & Analog & Analoge Cockpit-Instrumente \\
+\texttt{UI\_SCREEN\_BUBBLE} & Bubbles & Dynamische Kreise (Modern Bubbles Design) \\
+\bottomrule
+\end{tabularx}
+
+Custom Fonts mit deutschen Umlauten sind in fünf Größen integriert: 12, 16, 20, 28 und 48\,pt.
+
+\subsection{Zustandsmaschine -- Power Management}
+
+Der \texttt{PowerManager} implementiert eine 4-Zustands-Maschine:
+
+\begin{verbatim}
+  ACTIVE ──(45s ohne Präsenz)──► DIMMED ──(5 Min)──► OFF ──► SLEEPING
+    ▲                              │                   │        │
+    └──────────────────────────────┴───────────────────┴────────┘
+                    (Präsenz erkannt → wakeUp)
+\end{verbatim}
+
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\rowcolor{tableheader}
+\textbf{Zustand} & \textbf{Beschreibung} & \textbf{Helligkeit} \\
+\midrule
+\texttt{STATE\_ACTIVE} & Normalbetrieb, volle Displayhelligkeit & 255 (100\,\%) \\
+\texttt{STATE\_DIMMED} & Nach 45\,s ohne Präsenz, reduzierte Helligkeit & 30 ($\sim$12\,\%) \\
+\texttt{STATE\_OFF} & Nach 5\,Min ohne Präsenz, Display ausgeschaltet & 0 \\
+\texttt{STATE\_SLEEPING} & ESP32 Light Sleep, minimaler Stromverbrauch & 0 \\
+\bottomrule
+\end{tabularx}
+
+Übergänge zwischen den Helligkeitsstufen erfolgen als Non-Blocking-Fade über \texttt{\_startFade()} und \texttt{\_updateFade()}.
+
+% ============================================================
+\section{Bibliotheken und Abhängigkeiten}
+
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Bibliothek} & \textbf{Version} & \textbf{Verwendung} \\
+\midrule
+LovyanGFX & 1.1.16 & Display-Treiber für ST7796S, Backlight-PWM \\
+LVGL & 9.2.2 & UI-Framework, Widgets (Arc, Bar, Button, Image, Label, Flex) \\
+Adafruit AHTX0 & latest & AHT20 Temperatur-/Feuchte-Sensor \\
+Adafruit SGP40 & latest & SGP40 VOC-Sensor mit VOC-Index-Algorithmus \\
+MH-Z19 & 1.5.4 & MH-Z19C CO\textsubscript{2}-Sensor-Treiber \\
+PMS Library & 1.1.0 & PMS5003 Feinstaub-Sensor-Treiber \\
+ld2410 & 0.1.3 & LD2410C Radar-Sensor-Treiber \\
+EspSoftwareSerial & 8.2.0 & Software-UART für MH-Z19C \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Kritische Designentscheidungen}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Entscheidung} & \textbf{Begründung} \\
+\midrule
+220\,\textmu F Stützkondensatoren & Puffern Stromspitzen der 5V-Sensoren (MH-Z19C, LD2410C), die sonst Systemabstürze verursachen. \\
+Level Shifter (TXS0108E) & LD2410C sendet 5V UART-Signale, die den 3{,}3V-ESP32 ohne Level Shifter zerstören würden. \\
+SoftwareSerial für MH-Z19C & UART0 ist USB-Monitor, UART1 ist PMS5003, UART2 ist LD2410C -- daher Software-UART (9600\,Baud ist unkritisch). \\
+LVGL 9.2 statt 8.3 & Modernere API, besseres Speichermanagement, native Custom-Font-Unterstützung mit Umlauten. \\
+PSRAM für LVGL-Buffer & Dual-Buffer in PSRAM entlastet den internen SRAM für Anwendungslogik. \\
+Light Sleep statt Deep Sleep & Schnellere Aufwachzeit ($\sim$2\,ms vs. $\sim$300\,ms), RAM bleibt erhalten, Radardaten persistent. \\
+PETG 3D-Druck-Gehäuse & Temperaturbeständiger als PLA, bessere Schlagfestigkeit, gute Druckbarkeit mit Bambu Studio. \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Änderungshistorie}
+
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+\rowcolor{tableheader}
+\textbf{Version} & \textbf{Datum} & \textbf{Autor} & \textbf{Änderung} \\
+\midrule
+1.0 & Januar 2026 & Team & Erstversion \\
+2.0 & Februar 2026 & Team & LVGL 8.3$\to$9.2, LovyanGFX 1.1.16, 5 Screens, SoftwareSerial, PETG-Gehäuse, aktualisierte Pin-Belegung, 4-Zustands-PowerManager, Web Remote. \\
+\bottomrule
+\end{tabularx}
+
+\end{document}

@@ -5,37 +5,58 @@
 
 class PowerManager {
 public:
-    // Konfiguration
-    static const uint32_t PRESENCE_TIMEOUT_MS = 45000; // 45 Sekunden
+    // Konfiguration - Timeouts
+    static const uint32_t PRESENCE_TIMEOUT_DIM_MS  = 45000;   // 45s → Dimmen
+    static const uint32_t PRESENCE_TIMEOUT_OFF_MS   = 300000;  // 5 Min → Display aus + Light Sleep
+    
+    // Helligkeit
     static const uint8_t BRIGHTNESS_ACTIVE = 255;      // 100%
-    static const uint8_t BRIGHTNESS_DIMMED = 30;       // ~12% (Angenehm dunkel, aber lesbar)
-    static const uint8_t BRIGHTNESS_OFF = 0;           // (Optional ganz aus)
+    static const uint8_t BRIGHTNESS_DIMMED = 30;        // ~12%
+    static const uint8_t BRIGHTNESS_OFF = 0;            // Komplett aus
 
     PowerManager();
     
-    // Muss im setup() aufgerufen werden
     void begin();
-    
-    // Muss im loop() aufgerufen werden
-    // presenceDetected: true wenn Radar Bewegung meldet (oder Button gedrückt wurde)
     void update(bool presenceDetected);
-    
-    // Manuelles Aufwecken (z.B. bei Button-Druck)
     void wakeUp();
+    void dim();                  // Manuell dimmen
+    
+    // Webapp-Steuerung
+    void displayOff();           // Display sofort aus
+    void enterLightSleep();      // Light Sleep aktivieren
+    void exitLightSleep();       // Light Sleep deaktivieren
+    
+    // Status-Abfragen
+    bool isDimmed() const { return _state == STATE_DIMMED; }
+    bool isDisplayOff() const { return _state == STATE_OFF || _state == STATE_SLEEPING; }
+    bool isSleeping() const { return _state == STATE_SLEEPING; }
+    const char* getStateString() const;
 
 private:
-    unsigned long _lastActivityTime;
-    bool _isDimmed;
+    enum DisplayState {
+        STATE_ACTIVE,
+        STATE_DIMMED,
+        STATE_OFF,
+        STATE_SLEEPING
+    };
     
-    // Non-blocking Fade (blockiert loop() nicht mehr!)
+    DisplayState _state;
+    unsigned long _lastActivityTime;
+    
+    // Non-blocking Fade
     uint8_t _fadeCurrent;
     uint8_t _fadeTarget;
     unsigned long _lastFadeStep;
-    uint8_t _fadeStepInterval;  // ms zwischen Schritten
+    uint8_t _fadeStepInterval;
     bool _isFading;
+    
+    // Light Sleep
+    bool _lightSleepEnabled;
+    unsigned long _lastSleepWake;
     
     void _startFade(uint8_t target);
     void _updateFade();
+    void _setState(DisplayState newState);
 };
 
 extern PowerManager powerManager;

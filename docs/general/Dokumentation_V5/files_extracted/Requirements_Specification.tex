@@ -1,0 +1,237 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{graphicx}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{F57F17}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=headerblue,
+    urlcolor=headerblue
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Requirements Specification v2.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Requirements Specification}\\[0.3cm]
+{\large Luftqualitätsmessgerät mit ESP32-S3}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Projekt:} & InspectAir -- Luftqualitätsmessgerät \\
+\textbf{Version:} & 2.0 \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Modul:} & Mikrocomputertechnik 1, DHBW Ravensburg \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\noindent\textit{Dieses Dokument wurde unter Verwendung von KI-Tools (Claude, Anthropic) zur Überprüfung erstellt.}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Einleitung}
+
+\subsection{Zweck}
+Dieses Dokument spezifiziert die Anforderungen an das InspectAir-System, ein Luftqualitätsmessgerät für den Innenraumbereich. Es dient als Grundlage für Design, Implementierung und Test.
+
+\subsection{Scope}
+InspectAir ist ein ESP32-S3-basiertes Embedded System zur Überwachung der Raumluftqualität. Das System misst CO\textsubscript{2}, Feinstaub, VOC, Temperatur und Luftfeuchtigkeit und zeigt die Werte auf einem 4-Zoll-Display mit verschiedenen Bildschirmansichten an. Durch eine radarbasierte Präsenzerkennung wird das Display automatisch gedimmt oder aufgeweckt.
+
+\subsection{Definitionen}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Begriff} & \textbf{Definition} \\
+\midrule
+\textbf{CO\textsubscript{2}} & Kohlendioxid -- Indikator für Raumluftqualität \\
+\textbf{PM2.5} & Feinstaub mit Partikeldurchmesser $<$\,2{,}5\,\textmu m \\
+\textbf{VOC} & Volatile Organic Compounds -- flüchtige organische Verbindungen \\
+\textbf{NDIR} & Non-Dispersive Infrared -- Messprinzip des CO\textsubscript{2}-Sensors \\
+\textbf{FMCW} & Frequency Modulated Continuous Wave -- Radarprinzip des LD2410C \\
+\textbf{MOX} & Metalloxid-Halbleiter -- Sensorprinzip des SGP40 \\
+\textbf{UART} & Universal Asynchronous Receiver/Transmitter -- serielle Schnittstelle \\
+\textbf{I2C} & Inter-Integrated Circuit -- serieller Datenbus \\
+\textbf{SPI} & Serial Peripheral Interface -- synchroner Datenbus \\
+\textbf{LVGL} & Light and Versatile Graphics Library -- UI-Framework (Version 9.2) \\
+\textbf{Light Sleep} & Energiesparmodus des ESP32 mit $\sim$\,0{,}8\,mA, RAM bleibt erhalten \\
+\textbf{PETG} & Polyethylenterephthalatglycol -- 3D-Druck-Filament \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Funktionale Anforderungen}
+
+Die folgenden Anforderungen beschreiben, \textbf{was} das System tun soll.
+
+\begin{small}
+\begin{longtable}{p{2cm}p{2.5cm}p{4cm}p{4cm}p{1cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Name} & \textbf{Beschreibung} & \textbf{Akzeptanzkriterium} & \textbf{Prio} \\
+\midrule
+\endfirsthead
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Name} & \textbf{Beschreibung} & \textbf{Akzeptanzkriterium} & \textbf{Prio} \\
+\midrule
+\endhead
+\textbf{REQ-F-001} & CO\textsubscript{2}-Messung & Das System muss die CO\textsubscript{2}-Konzentration in ppm messen. & Messbereich 400--5000\,ppm, Genauigkeit $\pm$50\,ppm & Muss \\[4pt]
+\textbf{REQ-F-002} & Feinstaub-Messung & Das System muss Feinstaubwerte (PM1.0, PM2.5, PM10) messen. & Messbereich 0--500\,\textmu g/m\textsuperscript{3}, Auflösung 1\,\textmu g/m\textsuperscript{3} & Muss \\[4pt]
+\textbf{REQ-F-003} & VOC-Messung & Das System muss flüchtige organische Verbindungen als Index messen. & VOC-Index 0--500 & Muss \\[4pt]
+\textbf{REQ-F-004} & Temperatur-Messung & Das System muss die Umgebungstemperatur messen. & Messbereich 0--50\,°C, Genauigkeit $\pm$0{,}5\,°C & Muss \\[4pt]
+\textbf{REQ-F-005} & Luftfeuchte-Messung & Das System muss die relative Luftfeuchtigkeit messen. & Messbereich 0--100\,\% rH, Genauigkeit $\pm$3\,\% & Muss \\[4pt]
+\textbf{REQ-F-006} & Präsenzerkennung & Das System muss Personen im Raum erkennen. & Reichweite bis 2\,m, Reaktionszeit $<$\,500\,ms & Muss \\[4pt]
+\textbf{REQ-F-007} & Display-Anzeige & Das System muss alle Messwerte auf einem Display darstellen. & Alle 6 Werte gleichzeitig sichtbar, lesbar aus 1\,m & Muss \\[4pt]
+\textbf{REQ-F-008} & Farbcodierung & Das System muss Messwerte farblich nach Grenzwerten kategorisieren. & 4-stufige Ampel (Grün/Gelb/Orange/Rot) für CO\textsubscript{2}, PM2.5, VOC & Muss \\[4pt]
+\textbf{REQ-F-009} & Screen-Wechsel & Der Benutzer muss zwischen verschiedenen Bildschirm\-ansichten wechseln können. & Button-Druck wechselt zyklisch zwischen 5 Screens & Muss \\[4pt]
+\textbf{REQ-F-010} & Display-Dimming & Das Display muss nach Inaktivität automatisch dimmen. & Dimmen nach 60\,s ohne Präsenz auf 15\,\% Helligkeit & Soll \\[4pt]
+\textbf{REQ-F-011} & Display-Aufwecken & Das Display muss bei Präsenzerkennung aufwachen. & Aufwecken innerhalb 500\,ms nach Präsenzerkennung & Soll \\[4pt]
+\textbf{REQ-F-012} & Light Sleep & Das System soll bei langer Inaktivität in Stromsparmodus gehen. & Light Sleep nach 5\,Min, Aufwachen durch Radar & Kann \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+% ============================================================
+\section{Nicht-Funktionale Anforderungen}
+
+Die folgenden Anforderungen beschreiben, \textbf{wie gut} das System funktionieren soll.
+
+\begin{small}
+\begin{longtable}{p{2cm}p{2.2cm}p{4cm}p{4.3cm}p{1cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Name} & \textbf{Beschreibung} & \textbf{Akzeptanzkriterium} & \textbf{Prio} \\
+\midrule
+\endfirsthead
+\textbf{REQ-NF-001} & Update-Rate & Die Messwerte müssen regelmäßig aktualisiert werden. & Sensor-Update alle 2 Sekunden & Muss \\[4pt]
+\textbf{REQ-NF-002} & Reaktionszeit UI & Die Benutzeroberfläche muss flüssig reagieren. & UI-Refresh via LVGL Timer Handler, Button-Reaktion $<$\,200\,ms & Muss \\[4pt]
+\textbf{REQ-NF-003} & Dauerbetrieb & Das System muss für 24/7-Dauerbetrieb geeignet sein. & Keine Abstürze oder Memory Leaks über 24\,h & Muss \\[4pt]
+\textbf{REQ-NF-004} & Stromversorgung & Das System muss über USB betrieben werden können. & USB 5\,V, max. 1\,A Stromaufnahme & Muss \\[4pt]
+\textbf{REQ-NF-005} & Gehäuse & Das System soll in einem 3D-gedruckten PETG-Gehäuse untergebracht werden. & Belüftungsöffnungen für Sensoren, Display-Ausschnitt, USB-Zuführung & Soll \\[4pt]
+\textbf{REQ-NF-006} & Wartbarkeit & Der Code soll modular und dokumentiert sein. & Mind. 80\,\% der Funktionen mit Doxygen dokumentiert, max. 3 Module-Dependencies & Soll \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+% ============================================================
+\section{Hardware-Anforderungen}
+
+Die folgenden Anforderungen spezifizieren die verwendeten Hardwarekomponenten.
+
+\begin{small}
+\begin{longtable}{p{2cm}p{2.5cm}p{4.5cm}p{4.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Komponente} & \textbf{Beschreibung} & \textbf{Akzeptanzkriterium} \\
+\midrule
+\endfirsthead
+\textbf{REQ-HW-001} & Mikrocontroller & ESP32-S3-WROOM N8R8 DevKit (Waveshare) & Dual-Core 240\,MHz, 8\,MB Flash QIO\_OPI, PSRAM, WiFi/BLE \\[4pt]
+\textbf{REQ-HW-002} & Display & 4-Zoll TFT-Display mit ST7796S Controller & 480$\times$320 Pixel, SPI-Interface, Backlight-Steuerung \\[4pt]
+\textbf{REQ-HW-003} & CO\textsubscript{2}-Sensor & MH-Z19C NDIR CO\textsubscript{2}-Sensor & SoftwareSerial 9600\,Baud (GPIO4/5), 5\,V Versorgung \\[4pt]
+\textbf{REQ-HW-004} & Feinstaubsensor & PMS5003 Laser-Partikelsensor & UART1 9600\,Baud (GPIO16/17), 5\,V Versorgung \\[4pt]
+\textbf{REQ-HW-005} & VOC-Sensor & SGP40 MOX VOC-Sensor & I2C Adresse 0x59, 3{,}3\,V \\[4pt]
+\textbf{REQ-HW-006} & Temp/Feuchte & AHT20 Temperatur- und Feuchtigkeitssensor & I2C Adresse 0x38, 3{,}3\,V \\[4pt]
+\textbf{REQ-HW-007} & Radar-Sensor & LD2410C 24\,GHz mmWave Radar & UART2 256000\,Baud (GPIO6/7), Level Shifter erforderlich! \\[4pt]
+\textbf{REQ-HW-008} & Level Shifter & TXS0108E bidirektionaler Level Shifter & 5\,V$\leftrightarrow$3{,}3\,V Wandlung für LD2410C UART \\[4pt]
+\textbf{REQ-HW-009} & Stützkondensatoren & Elkos zur Pufferung von Stromspitzen & 220\,\textmu F 25\,V an MH-Z19C und LD2410C VCC \\[4pt]
+\textbf{REQ-HW-010} & Button & Taster für Screen-Wechsel & GPIO1 mit internem Pull-up, Active LOW \\[4pt]
+\textbf{REQ-HW-011} & I2C Pull-ups & 4{,}7\,k$\Omega$ Pull-up-Widerstände & An SDA (GPIO8) und SCL (GPIO18) \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+% ============================================================
+\section{Grenzwert-Definition}
+
+Die Farbcodierung der Messwerte basiert auf folgenden Grenzwerten (gemäß WHO 2021 und UBA-Richtwerten, implementiert in \texttt{colors.h}):
+
+\begin{tabularx}{\textwidth}{lXXXX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Gut (Grün)} & \textbf{Mäßig (Gelb)} & \textbf{Schlecht (Orange)} & \textbf{Gefährlich (Rot)} \\
+\midrule
+\textbf{CO\textsubscript{2}} & $<$\,800\,ppm & 800--1000\,ppm & 1000--1500\,ppm & $>$\,1500\,ppm \\
+\textbf{PM2.5} & $\leq$\,5\,\textmu g/m\textsuperscript{3} & 5--15\,\textmu g/m\textsuperscript{3} & 15--25\,\textmu g/m\textsuperscript{3} & $>$\,25\,\textmu g/m\textsuperscript{3} \\
+\textbf{VOC Index} & $\leq$\,100 & 100--200 & 200--300 & $>$\,300 \\
+\textbf{Temperatur} & 18--26\,°C & 15--18 / 26--30\,°C & $<$\,15 / $>$\,30\,°C & -- \\
+\textbf{Luftfeuchte} & 30--60\,\% & 20--30 / 60--70\,\% & $<$\,20 / $>$\,70\,\% & -- \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Requirements Traceability}
+
+Jede Anforderung wird durch entsprechende Testfälle verifiziert:
+
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\rowcolor{tableheader}
+\textbf{Requirement} & \textbf{Beschreibung} & \textbf{Testfall} \\
+\midrule
+REQ-F-001 & CO\textsubscript{2}-Messung & TC-04, TC-09 \\
+REQ-F-002 & Feinstaub-Messung & TC-05, TC-09 \\
+REQ-F-003 & VOC-Messung & TC-03, TC-09 \\
+REQ-F-004 & Temperatur-Messung & TC-02, TC-09 \\
+REQ-F-005 & Luftfeuchte-Messung & TC-02, TC-09 \\
+REQ-F-006 & Präsenzerkennung & TC-06, TC-15, TC-17 \\
+REQ-F-007 & Display-Anzeige & TC-01, TC-10, TC-11 \\
+REQ-F-008 & Farbcodierung & TC-10, TC-11, TC-13 \\
+REQ-F-009 & Screen-Wechsel & TC-12 \\
+REQ-F-010 & Display-Dimming & TC-14 \\
+REQ-F-011 & Display-Aufwecken & TC-15 \\
+REQ-F-012 & Light Sleep & TC-16 \\
+REQ-NF-001 & Update-Rate & TC-09, TC-17 \\
+REQ-NF-002 & Reaktionszeit UI & TC-12, TC-17 \\
+REQ-NF-003 & Dauerbetrieb & TC-17 \\
+REQ-NF-005 & Gehäuse & Visuelle Inspektion \\
+REQ-HW-007 & Radar + Level Shifter & TC-06 \\
+REQ-HW-009 & Stützkondensatoren & TC-08 \\
+\bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Änderungshistorie}
+
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+\rowcolor{tableheader}
+\textbf{Version} & \textbf{Datum} & \textbf{Autor} & \textbf{Änderung} \\
+\midrule
+1.0 & Januar 2026  & Team & Erstversion \\
+2.0 & Februar 2026 & Team & Gehäuse aktualisiert: 3D-Druck PETG statt Holz (REQ-NF-005). Pin-Belegung aktualisiert gemäß Code. Grenzwerte auf WHO 2021 angepasst. LVGL 9.2 und 5 Screens statt 2 UIs. Traceability erweitert. \\
+\bottomrule
+\end{tabularx}
+
+\end{document}
