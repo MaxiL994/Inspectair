@@ -77,7 +77,7 @@ bool sensors_radar_read(LD2410C_Data* data) {
       min_dist = stationary_dist;
     }
     
-    bool closeDetected = (min_dist > 0 && min_dist <= 15);
+    bool closeDetected = (min_dist > 0 && min_dist <= 20);
     
     data->presence = closeDetected ? 1 : 0;
     data->motion = radar.movingTargetDetected() ? 1 : 0;
