@@ -1,0 +1,50 @@
+\chapter{Grundlagen}
+\label{cha:Grundlagen}
+
+Dieses Kapitel stellt die für das Verständnis der Arbeit wesentlichen technischen Grundlagen vor. Die beschriebenen Technologien und Messprinzipien finden in den nachfolgenden Kapiteln bei der Umsetzung des InspectAir-Systems direkte Anwendung.
+
+\section{Luftqualitätsparameter}
+\label{sec:luftqualitaet}
+
+\subsection{CO\textsubscript{2}-Konzentration}
+Kohlendioxid\index{CO2} entsteht durch Atmung und Verbrennung und ist ein zentraler Indikator für die Raumluftqualität. Das Umweltbundesamt (\acrshort{acr:UBA}) empfiehlt Werte unter \SI{1000}{ppm} für Innenräume \autocite{UBA.2008}. Konzentrationen über \SI{1500}{ppm} führen nachweislich zu Leistungsminderung und Unwohlsein. Der in InspectAir verwendete Sensor MH-Z19C nutzt das \acrshort{acr:NDIR}-Messprinzip\index{NDIR}, bei dem die Absorption von Infrarotlicht bei einer CO\textsubscript{2}-spezifischen Wellenlänge (\SI{4,26}{\micro\metre}) gemessen wird.
+
+\subsection{Feinstaub (PM)}
+Feinstaub\index{Feinstaub} bezeichnet luftgetragene Partikel, die nach aerodynamischem Durchmesser klassifiziert werden: PM10 ($<$\SI{10}{\micro\metre}), PM2.5 ($<$\SI{2,5}{\micro\metre}) und PM1.0 ($<$\SI{1}{\micro\metre}). Besonders PM2.5 kann bis in die Lungenbläschen vordringen und ist gesundheitlich relevant. Die \acrshort{acr:WHO} hat 2021 verschärfte Grenzwerte veröffentlicht, die einen Jahresmittelwert von maximal \SI{5}{\micro\gram/\metre\cubed} empfehlen \autocite{WHO.2021}. Der PMS5003-Sensor nutzt Laserstreuung zur Partikeldetektion.
+
+\subsection{Flüchtige organische Verbindungen (VOC)}
+\acrshort{acr:VOC}\index{VOC} umfassen eine Vielzahl gasförmiger Substanzen aus Baustoffen, Reinigungsmitteln, Farben und Möbeln. Der SGP40-Sensor misst mittels \acrshort{acr:MOX}-Technologie die Gesamtbelastung und gibt einen VOC-Index\index{VOC-Index} von 0--500 aus, wobei Werte unter 100 als \glqq gut\grqq{} gelten.
+
+\subsection{Temperatur und Luftfeuchtigkeit}
+Optimale Innenraumtemperaturen liegen zwischen \SI{18}{\degreeCelsius} und \SI{26}{\degreeCelsius}, die relative Luftfeuchtigkeit zwischen 30\,\% und 60\,\%. Diese Werte werden ergänzend erfasst, da sie das Wohlbefinden beeinflussen und für die interne Kompensation des VOC-Sensors benötigt werden.
+
+\section{Mikrocontroller ESP32-S3}
+\label{sec:esp32s3}
+
+Der ESP32-S3\index{ESP32-S3} von Espressif Systems ist ein Dual-Core-Mikrocontroller (Xtensa LX7, \SI{240}{MHz}) mit integriertem WiFi und Bluetooth~5. Die verwendete Variante \textbf{N8R8} verfügt über \SI{8}{MB} Flash (QIO\_OPI) und \SI{8}{MB} \acrshort{acr:PSRAM} (OPI). Für InspectAir sind folgende Peripherieschnittstellen relevant:
+
+\begin{itemize}[nosep]
+\item \textbf{SPI:} Anbindung des TFT-Displays (bis \SI{80}{MHz})
+\item \textbf{I\textsuperscript{2}C:} Zwei Sensoren (AHT20, SGP40) auf einem gemeinsamen Bus
+\item \textbf{UART:} Zwei Hardware-UARTs für PMS5003 und LD2410C, zusätzlich SoftwareSerial für MH-Z19C
+\item \textbf{GPIO:} PWM-Ausgang für Backlight-Steuerung, Interrupt-Eingang für Radar, Button-Eingang
+\end{itemize}
+
+Besonderheiten des ESP32-S3 umfassen den Light-Sleep-Modus\index{Light Sleep} mit ca.\ \SI{0,8}{mA} Stromaufnahme bei einer Aufwachzeit von ca.\ \SI{2}{ms}, wobei der RAM-Inhalt erhalten bleibt. Die GPIOs 10--13 sind für Flash/\acrshort{acr:PSRAM} reserviert und dürfen nicht extern beschaltet werden \autocite{Espressif.2023}.
+
+\section{Displaytechnologie}
+\label{sec:display}
+
+Das 4-Zoll-TFT-Display mit ST7796S-Controller bietet eine Auflösung von $480 \times 320$~Pixel und wird über \acrshort{acr:SPI} angebunden. Für die Ansteuerung wird die Bibliothek \textbf{LovyanGFX}\index{LovyanGFX} (v1.1.16) als Hardware-Abstraktionsschicht verwendet.
+
+Die grafische Benutzeroberfläche wird mit \textbf{LVGL}\index{LVGL} (Light and Versatile Graphics Library, v9.2.2) realisiert. LVGL bietet ein Widget-basiertes Framework mit eigenem Rendering-System, Event-Handling und Animationsunterstützung. Durch den Einsatz von Dual-Buffering ($480 \times 32$~Pixel pro Puffer) in PSRAM wird flüssiges Rendering bei \SI{10}{Hz} Aktualisierungsrate erreicht.
+
+\section{Radartechnologie}
+\label{sec:radar}
+
+Der LD2410C-Sensor\index{LD2410C} nutzt \acrshort{acr:FMCW}-Radar bei \SI{24}{GHz} zur berührungslosen Präsenzerkennung\index{Präsenzerkennung}. Das Messprinzip ermöglicht die Unterscheidung zwischen sich bewegenden und statischen Zielen bei einer Reichweite von bis zu \SI{2}{\metre}. Die Kommunikation erfolgt über UART mit \SI{256000}{Baud}. Zusätzlich liefert ein digitaler Ausgangspin (OUT) den Präsenzstatus als binäres Signal.
+
+\section{Entwicklungsmethodik: V-Modell}
+\label{sec:vmodell}
+
+Die Projektentwicklung folgt dem V-Modell\index{V-Modell}, das eine systematische Verknüpfung von Entwicklungs- und Testphasen sicherstellt. Die linke Seite des V umfasst die Spezifikation (Requirements $\rightarrow$ Design), die rechte Seite die Verifikation (Testspezifikation $\rightarrow$ Testdurchführung). Jeder Anforderung (REQ) ist mindestens ein Testfall (TC) zugeordnet, wodurch eine lückenlose Nachverfolgbarkeit (Requirements Traceability) gewährleistet wird.

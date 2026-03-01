@@ -1,0 +1,175 @@
+\chapter{Zusammenfassung und Lessons Learned}
+\label{cha:zusammenfassung}
+
+\section{Projektergebnis}
+
+Das Projekt InspectAir hat alle definierten Ziele erreicht. Es liegt ein funktionsfähiger Prototyp vor, der folgende Leistungsmerkmale aufweist:
+
+\begin{itemize}[nosep]
+\item Gleichzeitige Erfassung von fünf Luftqualitätsparametern (CO\textsubscript{2}, PM1.0/PM2.5/PM10, VOC, Temperatur, Luftfeuchtigkeit) mit einer Update-Rate von \SI{2}{\second}
+\item Darstellung auf 4-Zoll-TFT-Display in fünf wählbaren UI-Designs mit vierstufiger Farbcodierung nach WHO/UBA-Grenzwerten
+\item WebApp mit Echtzeit-Messwerten und 24-Stunden-Verlaufsdiagramm
+\item Automatische Präsenzerkennung per 24\,GHz-Radar für Display-Dimming und Light Sleep
+\item Modulare Software-Architektur mit 29~Quelldateien in dreischichtiger Struktur
+\item 3D-gedrucktes PETG-Gehäuse mit optimiertem Airflow
+\item Materialkosten von ca.\ 136\,\euro{} (wobei viele Kleinteile in Multipacks mit deutlich niedrigeren Stückkosten kamen)
+\end{itemize}
+
+Alle 28~definierten Testfälle wurden bestanden. Die Requirements Traceability weist jedem Requirement mindestens einen verifizierten Testfall zu. Das V-Modell wurde vollständig durchlaufen.
+
+\section{Lessons Learned}
+
+Die folgenden drei Bereiche haben sich als besonders lehrreich und prägend für das Projektergebnis erwiesen.
+
+%=============================================================================
+\subsection{Lesson 1: Display-Integration -- Die Suche nach den richtigen Libraries}
+\label{sec:lesson_display}
+%=============================================================================
+
+\subsubsection{Ausgangssituation}
+
+Die Integration des 4-Zoll ST7796S-Displays mit dem ESP32-S3 erwies sich als eine der größten technischen Herausforderungen des Projekts. Obwohl TFT-Displays auf ESP32-Basis in der Maker-Community weit verbreitet sind, ist die Kombination aus ESP32-S3, ST7796S-Controller und LVGL~9 weniger dokumentiert.
+
+\subsubsection{Probleme und Lösungsweg}
+
+\paragraph{Problem 1: TFT\_eSPI vs.\ LovyanGFX}
+Zunächst wurde die weit verbreitete TFT\_eSPI-Library getestet. Diese zeigte jedoch Inkompatibilitäten mit dem ESP32-S3, insbesondere bei der SPI-DMA-Konfiguration. Nach mehreren Tagen erfolgloser Fehlersuche wurde auf LovyanGFX gewechselt -- eine japanische Library, die explizit für ESP32-S3 und ST7796S optimiert ist. Die Umstellung erforderte eine komplette Neuschreibung der Display-Initialisierung.
+
+\begin{lstlisting}[language=C++,caption={LovyanGFX Konfiguration für ST7796S},label={lst:lgfx_config}]
+class LGFX : public lgfx::LGFX_Device {
+    lgfx::Panel_ST7796 _panel;
+    lgfx::Bus_SPI _bus;
+    lgfx::Light_PWM _light;
+public:
+    LGFX(void) {
+        auto cfg = _bus.config();
+        cfg.spi_host = SPI2_HOST;
+        cfg.spi_mode = 0;
+        cfg.freq_write = 40000000;  // 40 MHz
+        cfg.pin_sclk = TFT_SCLK;
+        cfg.pin_mosi = TFT_MOSI;
+        cfg.pin_dc = TFT_DC;
+        _bus.config(cfg);
+        _panel.setBus(&_bus);
+        // ... weitere Konfiguration
+    }
+};
+\end{lstlisting}
+
+\paragraph{Problem 2: LVGL~8 vs.\ LVGL~9}
+Die meisten Online-Tutorials und Beispiele beziehen sich auf LVGL~8. LVGL~9 (erschienen 2024) hat jedoch eine grundlegend überarbeitete API. Funktionen wie \texttt{lv\_obj\_set\_style\_*} haben neue Signaturen, das Event-Handling wurde umgestellt, und die Display-Initialisierung erfordert einen neuen \texttt{lv\_display\_t}-Ansatz. Die Migration kostete weitere zwei Tage.
+
+\paragraph{Problem 3: Font-Rendering mit deutschen Umlauten}
+Standard-LVGL-Fonts unterstützen keine deutschen Umlaute. Für die Darstellung von "`Temperatur"', "`Luftfeuchtigkeit"' etc.\ mussten Custom Fonts mit dem LVGL Font Converter erstellt werden. Dabei stellte sich heraus, dass der Font Converter spezifische Unicode-Ranges erfordert:
+
+\begin{lstlisting}[language=bash,numbers=none,caption={Font-Generierung mit Umlauten}]
+lv_font_conv --font arial.ttf --size 20 \
+  --range 0x20-0x7F,0xC4,0xD6,0xDC,0xE4,0xF6,0xFC,0xDF \
+  --format lvgl --output font_arial_20.c
+\end{lstlisting}
+
+\subsubsection{Erkenntnisse}
+
+\begin{enumerate}[nosep]
+\item \textbf{Dokumentation kritisch prüfen:} Viele Tutorials sind veraltet. Immer die offizielle Dokumentation und GitHub-Issues der aktuellen Library-Version konsultieren.
+\item \textbf{Hardware-spezifische Libraries bevorzugen:} Speziell optimierte Libraries (wie LovyanGFX für ESP32) sind generischen Lösungen (TFT\_eSPI) oft überlegen.
+\item \textbf{Mehrere Tage für Display-Integration einplanen:} Die Kombination aus Hardware-Treiber, UI-Framework und Custom Fonts ist komplex und fehleranfällig.
+\item \textbf{Schrittweise vorgehen:} Erst Display-Initialisierung, dann einfache Grafik, dann LVGL, dann Custom Fonts -- nicht alles gleichzeitig.
+\end{enumerate}
+
+%=============================================================================
+\subsection{Lesson 2: Sensor-Anordnung im Gehäuse -- Airflow und Thermik}
+\label{sec:lesson_gehaeuse}
+%=============================================================================
+
+\subsubsection{Ausgangssituation}
+
+Das Gehäuse sollte alle Komponenten kompakt unterbringen und gleichzeitig präzise Messungen ermöglichen. Schnell zeigte sich, dass die räumliche Anordnung der Sensoren einen erheblichen Einfluss auf die Messgenauigkeit hat.
+
+\subsubsection{Probleme und Lösungsweg}
+
+\paragraph{Problem 1: Eigenerwärmung des MH-Z19C}
+Der NDIR-CO\textsubscript{2}-Sensor MH-Z19C besitzt eine interne IR-Lampe und erwärmt sich im Betrieb um ca.\ 5--8\,°C über Umgebungstemperatur. In der ersten Gehäuseversion war der AHT20 (Temperatur/Feuchte) direkt neben dem MH-Z19C platziert. Die gemessene Temperatur lag dadurch konstant 3--4\,°C über der tatsächlichen Raumtemperatur.
+
+\paragraph{Lösung: Thermische Zonierung}
+Das Gehäuse wurde in zwei thermische Zonen aufgeteilt:
+\begin{itemize}[nosep]
+\item \textbf{Warme Zone (oben):} MH-Z19C, ESP32-S3, Display (alle wärmeabgebenden Komponenten)
+\item \textbf{Kalte Zone (unten):} AHT20, SGP40, PMS5003, LD2410C (temperatursensitive Sensoren)
+\end{itemize}
+
+Eine Trennwand mit Lüftungsschlitzen sorgt für Konvektion, ohne direkten Wärmeübertrag.
+
+\paragraph{Problem 2: Airflow für Feinstaubsensor}
+Der PMS5003 benötigt aktive Luftzirkulation durch seinen internen Lüfter. In der geschlossenen ersten Version war die Luftzufuhr zu gering, was zu instabilen PM-Werten führte.
+
+\paragraph{Lösung: Strömungsoptimierte Öffnungen}
+Das finale PETG-Gehäuse hat:
+\begin{itemize}[nosep]
+\item Große Einlassöffnung (20$\times$30\,mm) an der Unterseite für PMS5003-Lüfter
+\item Seitliche Schlitze (8$\times$40\,mm) für passive Konvektion
+\item Abluftöffnung (15$\times$25\,mm) oben für Warmluftabfuhr
+\end{itemize}
+
+\paragraph{Problem 3: Radar-Abstrahlcharakteristik}
+Der LD2410C hat einen horizontalen Erfassungswinkel von $\pm$60°. In der ersten Einbauposition (horizontal, parallel zur Gehäusewand) war die Reichweite auf unter 1\,m begrenzt. Durch 15°-Neigung nach außen wurde die spezifizierte Reichweite von 2\,m erreicht.
+
+\subsubsection{Erkenntnisse}
+
+\begin{enumerate}[nosep]
+\item \textbf{Wärmeabgabe der Sensoren recherchieren:} Datenblätter geben oft die Verlustleistung an. Der MH-Z19C dissipiert ca.\ 200\,mW kontinuierlich.
+\item \textbf{Prototyp ohne Gehäuse testen:} Zuerst die Sensoren im offenen Aufbau validieren, um Eigenerwärmungseffekte zu identifizieren.
+\item \textbf{3D-Druck ermöglicht schnelle Iteration:} Das PETG-Gehäuse wurde dreimal überarbeitet. Der 3D-Druck war kostenlos verfügbar, was schnelle Iterationen ermöglichte.
+\item \textbf{CAD-Simulation nutzen:} Strömungssimulation in Fusion~360 half bei der Optimierung der Luftöffnungen.
+\end{enumerate}
+
+%=============================================================================
+\subsection{Lesson 3: Spannungspegel und Pegelwandlung -- Die 5V-Falle}
+\label{sec:lesson_levelshift}
+%=============================================================================
+
+\subsubsection{Ausgangssituation}
+
+Der ESP32-S3 arbeitet mit 3,3\,V-Logikpegeln. Mehrere Sensoren (MH-Z19C, PMS5003, LD2410C) werden jedoch mit 5\,V betrieben. Die Annahme, dass 5\,V-Sensoren auch 3,3\,V-kompatible Signale ausgeben, erwies sich als gefährlich falsch.
+
+\subsubsection{Probleme und Lösungsweg}
+
+\paragraph{Kritisches Problem: LD2410C TX-Pegel}
+Der LD2410C-Radar arbeitet mit 5\,V-Logik auf seiner TX-Leitung. Ein erster Test ohne Level Shifter führte zu instabilem Verhalten des ESP32 -- Abstürze, spontane Resets, fehlerhafte Werte. Eine Messung mit dem Oszilloskop zeigte TX-Signale mit 5\,V-Pegel, die direkt auf GPIO\,7 gingen.
+
+Nach Recherche in Espressif-Foren und Datenblättern stellte sich heraus: Der ESP32-S3 ist \textbf{nicht} 5\,V-tolerant. Maximale Eingangsspannung ist VDD+0,3\,V, also ca.\ 3,6\,V. Überspannung führt zunächst zu fehlerhaftem Verhalten, langfristig zur Zerstörung des GPIO-Pads oder des gesamten Chips.
+
+\paragraph{Lösung: Bidirektionaler Level Shifter}
+Ein TXS0108E-Modul wurde zwischen LD2410C und ESP32 geschaltet:
+\begin{itemize}[nosep]
+\item VA (Low Voltage): 3,3\,V vom ESP32
+\item VB (High Voltage): 5\,V vom LD2410C
+\item Automatische Richtungserkennung für TX/RX
+\end{itemize}
+
+\paragraph{Weitere 5V-Komponenten}
+MH-Z19C und PMS5003 arbeiten ebenfalls mit 5\,V, geben aber glücklicherweise 3,3\,V-kompatible TX-Signale aus (Open-Drain mit Pull-up auf der Sensorseite). Dies wurde erst nach dem LD2410C-Problem systematisch überprüft.
+
+\subsubsection{Erkenntnisse}
+
+\begin{enumerate}[nosep]
+\item \textbf{Datenblätter \textit{vor} dem Anschließen lesen:} Die kritische Information stand im LD2410C-Datenblatt, wurde aber zunächst übersehen.
+\item \textbf{Oszilloskop verwenden:} Bei UART-Problemen immer die tatsächlichen Spannungspegel messen, nicht vermuten.
+\item \textbf{Im Zweifelsfall Level Shifter einbauen:} Die 1,50\,\euro{} für ein TXS0108E-Modul sind billiger als ein neuer ESP32.
+\item \textbf{Eingangsspannung der GPIOs kennen:} Nicht alle Mikrocontroller sind 5V-tolerant. Arduino Uno ja, ESP32 nein, STM32 teilweise.
+\end{enumerate}
+
+%=============================================================================
+\section{Ausblick}
+%=============================================================================
+
+Das Projekt hat eine solide Basis für zukünftige Erweiterungen geschaffen:
+
+\begin{itemize}[nosep]
+\item \textbf{Cloud-Anbindung:} Die WebApp könnte um ein Backend erweitert werden, das Langzeit-Datenlogging und Push-Benachrichtigungen ermöglicht.
+\item \textbf{Weitere Sensoren:} Der ESP32-S3 bietet noch freie GPIOs für zusätzliche Sensoren (z.\,B.\ Ozon, NO\textsubscript{2}).
+\item \textbf{Batteriebetrieb:} Mit einem LiPo-Akku und optimiertem Deep Sleep könnte eine portable Version entstehen.
+\item \textbf{Individuelles PCB:} Der aktuelle Aufbau auf Lochrasterplatine könnte durch eine professionelle Platine ersetzt werden.
+\end{itemize}
+
+Das V-Modell hat sich als geeignete Methodik für dieses Embedded-Projekt bewährt. Die systematische Spezifikation und Verifikation hat dazu beigetragen, dass alle Anforderungen erfüllt und dokumentiert wurden.

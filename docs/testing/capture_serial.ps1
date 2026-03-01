@@ -1,19 +1,18 @@
 <#
 .SYNOPSIS
-    Serial-Log Capture für InspectAir Tests
+    Serial-Log Capture for InspectAir Tests
 .DESCRIPTION
-    Zeichnet den Serial-Output des ESP32 mit Zeitstempel auf.
-    Erstellt automatisch ein Testrun-Verzeichnis mit Datum.
+    Records ESP32 serial output with timestamps.
+    Creates a testrun directory with date automatically.
 .PARAMETER ComPort
-    COM-Port des ESP32 (z.B. COM5)
+    COM port of ESP32 (e.g. COM5)
 .PARAMETER BaudRate
-    Baudrate (Standard: 115200)
+    Baud rate (default: 115200)
 .PARAMETER Duration
-    Aufnahmedauer in Minuten (0 = unbegrenzt, Standard: 0)
+    Recording duration in minutes (0 = unlimited, default: 0)
 .EXAMPLE
     .\capture_serial.ps1 -ComPort COM5
-    .\capture_serial.ps1 -ComPort COM5 -Duration 1440    # 24h Dauertest
-    .\capture_serial.ps1 -ComPort COM5 -BaudRate 115200 -Duration 30
+    .\capture_serial.ps1 -ComPort COM5 -Duration 720
 #>
 
 param(
@@ -27,7 +26,7 @@ param(
     [string]$OutputDir = ""
 )
 
-# ── Testrun-Verzeichnis erstellen ──
+# Create testrun directory
 $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
 
 if ($OutputDir -eq "") {
@@ -41,9 +40,9 @@ New-Item -ItemType Directory -Path (Join-Path $OutputDir "photos") -Force | Out-
 $logFile = Join-Path $OutputDir "serial_log.txt"
 
 Write-Host ""
-Write-Host "╔══════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║       INSPECTAIR — Serial Log Capture            ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "       INSPECTAIR - Serial Log Capture                  " -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  COM-Port:    $ComPort" -ForegroundColor Yellow
 Write-Host "  Baudrate:    $BaudRate" -ForegroundColor Yellow
@@ -55,36 +54,35 @@ if ($Duration -gt 0) {
 }
 Write-Host ""
 
-# ── Header in Log-Datei ──
+# Header in log file
 $header = @"
-# ══════════════════════════════════════════════════════════════
+# ================================================================
 # INSPECTAIR Serial Log
 # Datum:    $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 # Port:     $ComPort @ $BaudRate Baud
 # Dauer:    $(if ($Duration -gt 0) { "$Duration Min" } else { "Unbegrenzt" })
-# Firmware: $(if (Test-Path (Join-Path (Split-Path $scriptDir -Parent) "..\.git")) { git -C (Join-Path $scriptDir "..\..") rev-parse --short HEAD 2>$null } else { "unbekannt" })
-# ══════════════════════════════════════════════════════════════
+# ================================================================
 
 "@
 $header | Out-File -FilePath $logFile -Encoding utf8
 
-# ── Serial Port öffnen ──
+# Open serial port
 try {
     $port = New-Object System.IO.Ports.SerialPort $ComPort, $BaudRate, "None", 8, "One"
     $port.ReadTimeout = 1000
-    $port.DtrEnable = $false   # Kein Reset beim Verbinden
+    $port.DtrEnable = $false
     $port.RtsEnable = $false
     $port.Open()
-    Write-Host "  [OK] Port $ComPort geöffnet" -ForegroundColor Green
+    Write-Host "  [OK] Port $ComPort geoeffnet" -ForegroundColor Green
 } catch {
-    Write-Host "  [FEHLER] Kann $ComPort nicht öffnen: $_" -ForegroundColor Red
+    Write-Host "  [FEHLER] Kann $ComPort nicht oeffnen: $_" -ForegroundColor Red
     Write-Host ""
-    Write-Host "  Verfügbare Ports:" -ForegroundColor Yellow
+    Write-Host "  Verfuegbare Ports:" -ForegroundColor Yellow
     [System.IO.Ports.SerialPort]::GetPortNames() | ForEach-Object { Write-Host "    $_" }
     exit 1
 }
 
-# ── Statistik ──
+# Statistics
 $lineCount = 0
 $errorCount = 0
 $warnCount = 0
@@ -92,11 +90,11 @@ $startTime = Get-Date
 $endTime = if ($Duration -gt 0) { $startTime.AddMinutes($Duration) } else { [DateTime]::MaxValue }
 
 Write-Host ""
-Write-Host "  Aufzeichnung läuft... (Ctrl+C zum Stoppen)" -ForegroundColor Green
-Write-Host "  ──────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "  Aufzeichnung laeuft... (Ctrl+C zum Stoppen)" -ForegroundColor Green
+Write-Host "  --------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host ""
 
-# ── Capture-Loop ──
+# Capture loop
 try {
     while ((Get-Date) -lt $endTime) {
         try {
@@ -104,17 +102,17 @@ try {
             $ts = Get-Date -Format "HH:mm:ss.fff"
             $logLine = "[$ts] $line"
             
-            # In Datei schreiben
+            # Write to file
             $logLine | Out-File -FilePath $logFile -Append -Encoding utf8
             
-            # Auf Konsole ausgeben (farbig)
+            # Console output (colored)
             if ($line -match "\[E\]") {
                 Write-Host $logLine -ForegroundColor Red
                 $errorCount++
             } elseif ($line -match "\[W\]") {
                 Write-Host $logLine -ForegroundColor Yellow
                 $warnCount++
-            } elseif ($line -match "HEALTH|REPORT|═══") {
+            } elseif ($line -match "HEALTH|REPORT|===") {
                 Write-Host $logLine -ForegroundColor Cyan
             } else {
                 Write-Host $logLine
@@ -122,46 +120,58 @@ try {
             
             $lineCount++
             
-            # Alle 100 Zeilen Statistik in Fenstertitel
+            # Update window title every 100 lines
             if ($lineCount % 100 -eq 0) {
                 $elapsed = (Get-Date) - $startTime
-                $Host.UI.RawUI.WindowTitle = "InspectAir Log | $lineCount Zeilen | $errorCount Fehler | $([math]::Floor($elapsed.TotalMinutes)) Min"
+                $mins = [math]::Floor($elapsed.TotalMinutes)
+                $Host.UI.RawUI.WindowTitle = "InspectAir Log - $lineCount lines - $errorCount errors - $mins min"
             }
             
         } catch [System.TimeoutException] {
-            # Timeout ist normal, einfach weiter
+            # Timeout is normal, continue
             continue
         }
     }
 } catch {
-    # Ctrl+C oder anderer Abbruch
+    # Ctrl+C or other abort
 } finally {
-    # ── Zusammenfassung ──
+    # Summary
     $elapsed = (Get-Date) - $startTime
+    $hours = [math]::Floor($elapsed.TotalHours)
+    $mins = $elapsed.Minutes
+    $secs = $elapsed.Seconds
     
     $summary = @"
 
-# ══════════════════════════════════════════════════════════════
+# ================================================================
 # AUFNAHME BEENDET
 # Ende:        $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-# Dauer:       $([math]::Floor($elapsed.TotalHours))h $($elapsed.Minutes)m $($elapsed.Seconds)s
+# Dauer:       ${hours}h ${mins}m ${secs}s
 # Zeilen:      $lineCount
 # Fehler [E]:  $errorCount
 # Warnungen:   $warnCount
-# ══════════════════════════════════════════════════════════════
+# ================================================================
 "@
     $summary | Out-File -FilePath $logFile -Append -Encoding utf8
     
     if ($port.IsOpen) { $port.Close() }
     
     Write-Host ""
-    Write-Host "  ──────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "  --------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Aufnahme beendet!" -ForegroundColor Green
-    Write-Host "  Dauer:       $([math]::Floor($elapsed.TotalHours))h $($elapsed.Minutes)m $($elapsed.Seconds)s" -ForegroundColor Yellow
+    Write-Host "  Dauer:       ${hours}h ${mins}m ${secs}s" -ForegroundColor Yellow
     Write-Host "  Zeilen:      $lineCount" -ForegroundColor Yellow
-    Write-Host "  Fehler [E]:  $errorCount" -ForegroundColor $(if ($errorCount -eq 0) { "Green" } else { "Red" })
-    Write-Host "  Warnungen:   $warnCount" -ForegroundColor $(if ($warnCount -eq 0) { "Green" } else { "Yellow" })
+    if ($errorCount -eq 0) {
+        Write-Host "  Fehler [E]:  $errorCount" -ForegroundColor Green
+    } else {
+        Write-Host "  Fehler [E]:  $errorCount" -ForegroundColor Red
+    }
+    if ($warnCount -eq 0) {
+        Write-Host "  Warnungen:   $warnCount" -ForegroundColor Green
+    } else {
+        Write-Host "  Warnungen:   $warnCount" -ForegroundColor Yellow
+    }
     Write-Host "  Log-Datei:   $logFile" -ForegroundColor Yellow
     Write-Host ""
     
