@@ -1,0 +1,25 @@
+\chapter*{Kurzfassung}
+\phantomsection\pdfbookmark{Kurzfassung}{kurzfassung}
+
+Im Rahmen der Projektarbeit im Modul Mikrocomputertechnik~1 an der DHBW Ravensburg wurde das Embedded System \glqq InspectAir\grqq{} entwickelt. Ziel war die Konzeption und Realisierung eines Luftqualitätsmessgeräts, das die Parameter CO\textsubscript{2}, Feinstaub (PM1.0/PM2.5/PM10), flüchtige organische Verbindungen (VOC), Temperatur und Luftfeuchtigkeit erfasst und auf einem Display mit farbcodierter Bewertung darstellt.
+
+Das System basiert auf einem ESP32-S3-Mikrocontroller und nutzt fünf spezialisierte Sensoren (MH-Z19C, PMS5003, SGP40, AHT20, LD2410C) sowie ein 4-Zoll-TFT-Display mit LVGL-basierter Benutzeroberfläche. Ein 24\,GHz-FMCW-Radar ermöglicht die automatische Präsenzerkennung zur Steuerung der Energiesparmodi.
+
+Die Entwicklung folgte dem V-Modell mit den Phasen Requirements Engineering, Design Description, Implementierung, Test und Verifikation. Die modulare Software-Architektur umfasst 29~Quelldateien in einer dreischichtigen Struktur. Besondere Herausforderungen waren die Pegelanpassung des 5\,V-Radarsensors mittels Level Shifter, die Stabilisierung der Stromversorgung durch Stützkondensatoren sowie die Integration von fünf verschiedenen UI-Designs.
+
+Als Ergebnis liegt ein funktionsfähiger Prototyp vor, der alle spezifizierten Anforderungen erfüllt. Sämtliche 17~definierten Testfälle für die Sensorik wurden bestanden. Das Gehäuse wird als 3D-Druck in PETG realisiert.
+
+\clearpage
+
+\chapter*{Abstract}
+\phantomsection\pdfbookmark{Abstract}{abstract}
+
+As part of the project work in the Microcomputer Technology~1 module at DHBW Ravensburg, the embedded system ``InspectAir'' was developed. The objective was the design and implementation of an air quality monitoring device that measures CO\textsubscript{2}, particulate matter (PM1.0/PM2.5/PM10), volatile organic compounds (VOC), temperature and humidity, displaying the values on a screen with color-coded assessment.
+
+The system is based on an ESP32-S3 microcontroller and utilizes five specialized sensors (MH-Z19C, PMS5003, SGP40, AHT20, LD2410C) as well as a 4-inch TFT display with an LVGL-based user interface. A 24\,GHz FMCW radar enables automatic presence detection for power management control.
+
+Development followed the V-model methodology with requirements engineering, design description, implementation, testing and verification phases. The modular software architecture comprises 29~source files in a three-layer structure. Key challenges included voltage level adaptation for the 5\,V radar sensor using a level shifter, power supply stabilization through decoupling capacitors, and the integration of five different UI designs.
+
+The result is a functional prototype that meets all specified requirements. All 17~defined sensor test cases passed. The enclosure is realized as a 3D-printed PETG housing.
+
+\clearpage

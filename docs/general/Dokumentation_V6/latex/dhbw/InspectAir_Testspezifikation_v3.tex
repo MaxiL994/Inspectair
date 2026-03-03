@@ -1,0 +1,186 @@
+% InspectAir Testspezifikation v3.0 (kompakt)
+% DHBW Ravensburg | Mikrocomputertechnik 1
+
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{amssymb}
+
+\definecolor{headerblue}{HTML}{1565C0}
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{F57F17}
+\definecolor{fail}{HTML}{D32F2F}
+
+\hypersetup{colorlinks=true, linkcolor=headerblue, urlcolor=headerblue}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Testspezifikation v3.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{INSPECTAIR}}\\[0.3cm]
+{\Large Testspezifikation v3.0}\\[0.3cm]
+{\large DHBW Ravensburg \textbar{} Mikrocomputertechnik 1}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\
+\textbf{Datum:} & Februar 2026 \\
+\textbf{Dozent:} & Thomas Stingl (Airbus) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+% ============================================================
+\section{Übersicht}
+% ============================================================
+
+Diese Testspezifikation enthält \textbf{28 Testfälle}, die alle Features des InspectAir-Systems abdecken.
+
+\begin{longtable}{p{6cm} c c c}
+\toprule
+\rowcolor{tableheader}
+\textbf{Kategorie} & \textbf{Anzahl} & \textbf{Bestanden} & \textbf{Status} \\
+\midrule
+\endhead
+Einzeltests Sensoren & 6 & 6 & \textcolor{pass}{\checkmark} \\
+Hardware-Tests & 3 & 3 & \textcolor{pass}{\checkmark} \\
+UI-Tests (5 Themes) & 7 & 7 & \textcolor{pass}{\checkmark} \\
+WebApp \& 24h-Diagramm & 8 & 8 & \textcolor{pass}{\checkmark} \\
+Power Management & 3 & 3 & \textcolor{pass}{\checkmark} \\
+Systemtest & 1 & 1 & \textcolor{pass}{\checkmark} \\
+\midrule
+\textbf{GESAMT} & \textbf{28} & \textbf{28} & \textcolor{pass}{\textbf{PASS}} \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Testfall-Übersicht}
+% ============================================================
+
+\begin{longtable}{c p{5cm} p{5cm} c}
+\toprule
+\rowcolor{tableheader}
+\textbf{ID} & \textbf{Testname} & \textbf{Beschreibung} & \textbf{Status} \\
+\midrule
+\endhead
+\multicolumn{4}{l}{\textit{Einzeltests Sensoren}} \\
+\midrule
+TC-01 & Display ST7796S & SPI, Farbdarstellung, Text & \textcolor{pass}{PASS} \\
+TC-02 & AHT20 Temp/Feuchte & I2C 0x38, Messwerte & \textcolor{pass}{PASS} \\
+TC-03 & SGP40 VOC & I2C 0x59, SRAW-Wert & \textcolor{pass}{PASS} \\
+TC-04 & MH-Z19C CO\textsubscript{2} & UART 9600, Frischluft-Test & \textcolor{pass}{PASS} \\
+TC-05 & PMS5003 Feinstaub & UART, PM2.5-Werte & \textcolor{pass}{PASS} \\
+TC-06 & LD2410C Radar & Level Shifter, Präsenz & \textcolor{pass}{PASS} \\
+\midrule
+\multicolumn{4}{l}{\textit{Hardware-Tests}} \\
+\midrule
+TC-07 & Backlight PWM & PWM-Dimmung über GPIO\,3 & \textcolor{pass}{PASS} \\
+TC-08 & Stützkondensatoren & 220\,µF, 5V-Stabilität & \textcolor{pass}{PASS} \\
+TC-09 & Alle Sensoren parallel & Gleichzeitiger Betrieb & \textcolor{pass}{PASS} \\
+\midrule
+\multicolumn{4}{l}{\textit{UI-Tests (5 Themes)}} \\
+\midrule
+TC-10 & Tree Screen & Baum-Animation, AQI-Farbe & \textcolor{pass}{PASS} \\
+TC-11 & Overview Screen & Große AQI + 2 Kacheln & \textcolor{pass}{PASS} \\
+TC-12 & Detail Screen & Kleine AQI + 4 Kacheln & \textcolor{pass}{PASS} \\
+TC-13 & Analog Screen & Cockpit-Instrumente & \textcolor{pass}{PASS} \\
+TC-14 & Bubble Screen & Dynamische Kreise & \textcolor{pass}{PASS} \\
+TC-15 & Button-Wechsel & Zyklisch durch alle Themes & \textcolor{pass}{PASS} \\
+TC-16 & Werte-Konsistenz & Identische Werte alle UIs & \textcolor{pass}{PASS} \\
+\midrule
+\multicolumn{4}{l}{\textit{WebApp \& 24h-Diagramm}} \\
+\midrule
+TC-17 & WebServer Init & HTTP Port 80 erreichbar & \textcolor{pass}{PASS} \\
+TC-18 & API /api/sensors & JSON mit aktuellen Werten & \textcolor{pass}{PASS} \\
+TC-19 & API /api/history & 24h-Verlaufsdaten & \textcolor{pass}{PASS} \\
+TC-20 & Datensammlung 5min & Ringpuffer-Intervall & \textcolor{pass}{PASS} \\
+TC-21 & Theme via API & POST Theme-Wechsel & \textcolor{pass}{PASS} \\
+TC-22 & Chart.js Diagramm & Liniendiagramm-Rendering & \textcolor{pass}{PASS} \\
+TC-23 & Responsive Design & Desktop + Mobile & \textcolor{pass}{PASS} \\
+TC-24 & Ringpuffer 288 Punkte & 24h ohne Datenverlust & \textcolor{pass}{PASS} \\
+\midrule
+\multicolumn{4}{l}{\textit{Power Management}} \\
+\midrule
+TC-25 & Display-Dimming & Nach 60\,s auf 12\,\% & \textcolor{pass}{PASS} \\
+TC-26 & Aufwecken per Radar & $<$500\,ms Reaktion & \textcolor{pass}{PASS} \\
+TC-27 & Light Sleep & 0,8\,mA, 2\,ms Wake & \textcolor{pass}{PASS} \\
+\midrule
+\multicolumn{4}{l}{\textit{Systemtest}} \\
+\midrule
+TC-28 & 24h Komplett-Szenario & Alle Features stabil & \textcolor{pass}{PASS} \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Anhang A: Grenzwerte}
+% ============================================================
+
+\begin{longtable}{l c c c c}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Gut (Grün)} & \textbf{Mäßig (Gelb)} & \textbf{Schlecht (Orange)} & \textbf{Gefährlich (Rot)} \\
+\midrule
+CO\textsubscript{2} & $<$800\,ppm & 800--1000 & 1000--1500 & $>$1500\,ppm \\
+PM2.5 & $\leq$5\,µg/m³ & 5--15 & 15--25 & $>$25\,µg/m³ \\
+VOC-Index & $\leq$100 & 100--200 & 200--300 & $>$300 \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Anhang B: Timeout-Konfiguration}
+% ============================================================
+
+\begin{longtable}{l l}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Wert} \\
+\midrule
+DIM\_TIMEOUT & 60 Sekunden \\
+SLEEP\_TIMEOUT & 5 Minuten \\
+HISTORY\_INTERVAL & 5 Minuten \\
+HISTORY\_MAX\_POINTS & 288 (= 24\,h) \\
+BRIGHTNESS\_ACTIVE & 255 (100\,\%) \\
+BRIGHTNESS\_DIMMED & 30 (\textasciitilde12\,\%) \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{Anhang C: Kritische Hardware-Hinweise}
+% ============================================================
+
+\textbf{Stützkondensatoren (220\,µF 25V):} ZWINGEND an VCC/GND von MH-Z19C und LD2410C!
+
+\textbf{Keramikkondensatoren (100\,nF):} An 3,3\,V VCC des Displays und 3,3\,V VCC des ESP32!
+
+\textbf{Level Shifter (LD2410C):} TX MUSS über Level Shifter (5V$\rightarrow$3,3V) an GPIO\,7!
+
+\textbf{Backlight PWM:} Direkte Ansteuerung über GPIO\,3 (44,1\,kHz PWM).
+
+\textbf{I2C Pull-ups:} 4,7\,k$\Omega$ an SDA (GPIO\,8) und SCL (GPIO\,18).
+
+\vspace{1cm}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{0.5cm}
+
+\textbf{Gesamtergebnis:} 28/28 Tests bestanden \textcolor{pass}{\checkmark}
+
+\end{document}

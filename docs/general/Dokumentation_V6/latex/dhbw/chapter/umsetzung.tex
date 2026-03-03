@@ -1,0 +1,293 @@
+\chapter{Umsetzung und Ergebnisse}
+\label{cha:umsetzung}
+
+Dieses Kapitel dokumentiert die konkrete Umsetzung des in Kapitel~\ref{cha:vorgehen} entworfenen Systems sowie die Verifikation durch definierte Testfälle.
+
+\section{Hardware-Aufbau}
+\label{sec:hw_aufbau}
+
+\subsection{Pin-Belegung}
+\label{sec:pinbelegung}
+
+Sämtliche GPIO-Zuordnungen sind in der Header-Datei \texttt{pins.h} zentral definiert. Tabelle~\ref{tab:pinmap} zeigt die vollständige Pin-Belegung.
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\captionabove[GPIO Pin-Belegung]{GPIO Pin-Belegung des ESP32-S3 (gemäß \texttt{pins.h})}
+\label{tab:pinmap}
+\begin{tabular}{l l l p{4.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{GPIO} & \textbf{Funktion} & \textbf{Komponente} & \textbf{Hinweis} \\
+\midrule
+1  & UI\_BUTTON  & Taster & Active LOW, interner Pull-up \\
+3  & TFT\_BL     & Display BL & Backlight PWM direkt \\
+4  & CO2\_RX     & MH-Z19C TX & SoftwareSerial \\
+5  & CO2\_TX     & MH-Z19C RX & SoftwareSerial \\
+6  & RADAR\_TX   & LD2410C RX & 3,3\,V direkt OK \\
+7  & RADAR\_RX   & LD2410C TX & \textbf{Level Shifter!} \\
+8  & I2C\_SDA    & AHT20+SGP40 & 4,7\,k$\Omega$ Pull-up \\
+9  & TFT\_DC     & ST7796S & Data/Command \\
+11 & TFT\_MOSI   & ST7796S & SPI Data \\
+12 & TFT\_SCLK   & ST7796S & SPI Clock \\
+14 & TFT\_CS     & ST7796S & Chip Select \\
+15 & RADAR\_OUT  & LD2410C & Präsenz-Signal \\
+16 & PMS\_RX     & PMS5003 TX & UART1 \\
+17 & PMS\_TX     & PMS5003 RX & UART1 \\
+18 & I2C\_SCL    & AHT20+SGP40 & 4,7\,k$\Omega$ Pull-up \\
+46 & TFT\_RST    & ST7796S & Reset \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Schutzschaltungen}
+
+Zwei kritische Schutzmaßnahmen wurden umgesetzt:
+
+\begin{enumerate}[nosep]
+\item \textbf{220\,µF Stützkondensatoren} (25\,V Elkos) an VCC/GND von MH-Z19C und LD2410C zur Pufferung von Stromspitzen bei Messvorgängen.
+\item \textbf{100\,nF Keramikkondensatoren} an 3,3\,V VCC des Displays und 3,3\,V VCC des ESP32 zur Entstörung und Stabilisierung.
+\item \textbf{Bidirektionaler Level Shifter} (TXS0108E) zwischen LD2410C TX (5\,V) und ESP32 GPIO\,7 (3,3\,V) zum Schutz vor Überspannung.
+\end{enumerate}
+
+\section{Software-Implementierung}
+\label{sec:sw_impl}
+
+\subsection{Projektstruktur}
+
+Die modulare Codestruktur umfasst 29~Quelldateien, aufgeteilt in fünf Bereiche:
+
+\begin{lstlisting}[language={},numbers=none,basicstyle=\footnotesize\ttfamily]
+inspectair/
+  platformio.ini          # PlatformIO Konfiguration
+  src/
+    main.cpp              # State Machine, Event Loop
+    config/
+      pins.h              # GPIO-Definitionen
+      sensor_types.h      # Sensor-Datenstrukturen
+      colors.h            # Farben & Grenzwerte
+      display_config.h    # LovyanGFX LGFX-Klasse
+      app_config.h        # Applikations-Konfiguration
+    sensors/
+      aht_sgp.cpp/.h      # AHT20 + SGP40 (I2C)
+      mhz19c.cpp/.h       # CO2 (SoftwareSerial)
+      pms5003.cpp/.h      # Feinstaub (UART1)
+      ld2410c.cpp/.h      # Radar (UART2)
+      sensor_filter.cpp/.h
+      sensor_history.cpp/.h
+    display/
+      ui_manager.cpp/.h   # 5 Screen-Designs
+      lvgl_driver.cpp/.h  # LovyanGFX <-> LVGL
+      fonts/               # Custom Fonts
+    power/
+      power_manager.cpp/.h
+\end{lstlisting}
+
+\subsection{Sensor-Integration}
+
+Jeder Sensor ist als eigenständiges Modul mit standardisierter Schnittstelle (\texttt{init()}, \texttt{read()}, \texttt{isReady()}) implementiert.
+
+\paragraph{I\textsuperscript{2}C-Sensoren (AHT20 + SGP40):}
+Beide teilen sich den I\textsuperscript{2}C-Bus an GPIO\,8 (SDA) und GPIO\,18 (SCL). Die Initialisierung prüft die Verfügbarkeit beider Adressen (0x38 und 0x59). Der SGP40 nutzt intern die Temperatur- und Feuchtigkeitsdaten des AHT20 zur Kompensation des VOC-Index.
+
+\paragraph{SoftwareSerial (MH-Z19C):}
+Der CO\textsubscript{2}-Sensor kommuniziert über EspSoftwareSerial auf GPIO\,4 (RX) und GPIO\,5 (TX) bei \SI{9600}{Baud}. Die niedrige Baudrate ermöglicht einen zuverlässigen Software-UART-Betrieb.
+
+\paragraph{UART1 (PMS5003):}
+Der Feinstaubsensor nutzt Hardware-UART1 auf GPIO\,16 (RX) und GPIO\,17 (TX) bei \SI{9600}{Baud}. Die Daten werden über die PMS Library geparst und als PM1.0-, PM2.5- und PM10-Werte bereitgestellt.
+
+\paragraph{UART2 + Level Shifter (LD2410C):}
+Der Radarsensor nutzt Hardware-UART2 auf GPIO\,6 (TX) und GPIO\,7 (RX) bei \SI{256000}{Baud}. GPIO\,7 ist über einen Level Shifter (5\,V$\rightarrow$3,3\,V) angebunden. Zusätzlich liefert GPIO\,15 (RADAR\_OUT) den Präsenzstatus als digitales Signal für den Interrupt-basierten Wake-up aus dem Light Sleep.
+
+\subsection{Display und Benutzeroberfläche}
+
+Die UI basiert auf LVGL~9.2.2 mit LovyanGFX~1.1.16 als Display-Treiber. Fünf verschiedene Screen-Designs wurden implementiert (Tabelle~\ref{tab:screens}).
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\captionabove[UI Screen-Designs]{Die fünf UI Screen-Designs}
+\label{tab:screens}
+\begin{tabular}{l l p{7cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Screen} & \textbf{Enum} & \textbf{Beschreibung} \\
+\midrule
+Tree & \texttt{UI\_SCREEN\_TREE} & Baum-Animation als Startbildschirm \\
+Overview & \texttt{UI\_SCREEN\_OVERVIEW} & Große AQI-Anzeige + 2 Kacheln \\
+Detail & \texttt{UI\_SCREEN\_DETAIL} & Kleine AQI + 4 Kacheln (alle Werte) \\
+Analog & \texttt{UI\_SCREEN\_ANALOG} & Analoge Cockpit-Instrumente \\
+Bubble & \texttt{UI\_SCREEN\_BUBBLE} & Dynamische Kreise \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Der Wechsel zwischen den Screens erfolgt zyklisch per Button-Druck (GPIO\,1). Custom Fonts in den Größen 12, 16, 20, 28 und 48\,pt mit deutschen Umlauten werden für die verschiedenen Anzeigeelemente verwendet.
+
+\subsection{Grenzwerte und Farbcodierung}
+
+Die Farbcodierung nutzt eine vierstufige Ampel, definiert in \texttt{colors.h} (Tabelle~\ref{tab:thresholds}).
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\captionabove[Grenzwerte für Farbcodierung]{Grenzwerte für die vierstufige Farbcodierung}
+\label{tab:thresholds}
+\begin{tabular}{l l l l l}
+\toprule
+\rowcolor{tableheader}
+\textbf{Parameter} & \textbf{Gut (Grün)} & \textbf{Mäßig (Gelb)} & \textbf{Schlecht (Orange)} & \textbf{Gefährlich (Rot)} \\
+\midrule
+CO\textsubscript{2} & $<$800\,ppm & 800--1000 & 1000--1500 & $>$1500\,ppm \\
+PM2.5 & $\leq$5\,µg/m³ & 5--15 & 15--25 & $>$25\,µg/m³ \\
+VOC-Index & $\leq$100 & 100--200 & 200--300 & $>$300 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Die PM2.5-Grenzwerte orientieren sich an den verschärften WHO-Richtlinien 2021 \autocite{WHO.2021}.
+
+\subsection{Verwendete Bibliotheken}
+
+Tabelle~\ref{tab:libs} listet alle eingesetzten Bibliotheken auf.
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\captionabove[Verwendete Bibliotheken]{Verwendete Bibliotheken und Versionen}
+\label{tab:libs}
+\begin{tabular}{l l p{5.5cm}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Library} & \textbf{Version} & \textbf{Verwendung} \\
+\midrule
+LovyanGFX & 1.1.16 & Display-Treiber (SPI), Backlight \\
+LVGL & 9.2.2 & UI-Framework, 5~Screens, Fonts \\
+Adafruit AHTX0 & latest & AHT20 Temp/Feuchte (I\textsuperscript{2}C) \\
+Adafruit SGP40 & latest & SGP40 VOC-Sensor \\
+MH-Z19 & 1.5.4 & CO\textsubscript{2}-Sensor Treiber \\
+PMS Library & 1.1.0 & Feinstaub-Sensor (PM-Werte) \\
+ld2410 & 0.1.3 & Radar-Sensor Treiber \\
+EspSoftwareSerial & 8.2.0 & SW-UART für MH-Z19C \\
+ESPAsyncWebServer & latest & HTTP-Server für WebApp \\
+ArduinoJson & 7.x & JSON-Serialisierung für API \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{WebApp und 24-Stunden-Diagramm}
+
+Neben der lokalen Anzeige auf dem TFT-Display wurde eine WebApp implementiert, die den Fernzugriff auf die Messwerte ermöglicht. Der ESP32-S3 fungiert dabei als HTTP-Server im lokalen WLAN.
+
+\paragraph{Architektur:}
+Die WebApp basiert auf dem ESPAsyncWebServer und liefert eine responsive Single-Page-Application aus dem SPIFFS-Dateisystem. Die Echtzeit-Aktualisierung erfolgt über REST-API-Endpunkte:
+
+\begin{lstlisting}[language=C++,caption={WebApp API-Endpunkte},label={lst:webapp_api}]
+// Aktuelle Messwerte
+server.on("/api/sensors", HTTP_GET, [](AsyncWebServerRequest *req) {
+    StaticJsonDocument<256> doc;
+    doc["co2"] = sensorData.co2_ppm;
+    doc["pm25"] = sensorData.pm2_5;
+    doc["voc"] = sensorData.voc_index;
+    doc["temperature"] = sensorData.temperature;
+    doc["humidity"] = sensorData.humidity;
+    String json;
+    serializeJson(doc, json);
+    req->send(200, "application/json", json);
+});
+
+// 24h-Verlaufsdaten
+server.on("/api/history", HTTP_GET, handleHistoryRequest);
+
+// Theme-Wechsel
+server.on("/api/settings/theme", HTTP_POST, handleThemeChange);
+\end{lstlisting}
+
+\paragraph{24-Stunden-Verlaufsdiagramm:}
+Alle 5~Minuten wird ein Datenpunkt im RAM gespeichert (Ringpuffer mit 288~Einträgen = 24\,h). Die Verlaufsdaten werden über \texttt{/api/history} als JSON-Array abgerufen und clientseitig mit Chart.js visualisiert. Das Diagramm zeigt:
+
+\begin{itemize}[nosep]
+\item CO\textsubscript{2}-Verlauf (grün) mit Grenzwertlinien
+\item PM2.5-Verlauf (blau)
+\item VOC-Index (orange)
+\item Temperatur und Luftfeuchtigkeit (optional einblendbar)
+\end{itemize}
+
+\paragraph{UI-Umstellung via WebApp:}
+Über die WebApp kann das aktive UI-Theme auf dem Display gewechselt werden. Ein POST-Request an \texttt{/api/settings/theme} mit dem gewünschten Theme (tree, overview, detail, analog, bubble) aktualisiert die Anzeige in Echtzeit.
+
+\paragraph{Responsive Design:}
+Die WebApp nutzt CSS Media Queries für optimale Darstellung auf Desktop und Mobilgeräten. Auf Smartphones werden die Kacheln untereinander angeordnet, auf Desktop nebeneinander.
+
+\section{Verifikation und Testergebnisse}
+\label{sec:testing}
+
+Die Verifikation erfolgt anhand von 28~definierten Testfällen in sechs Kategorien. Die vollständige Testspezifikation mit detaillierten Testschritten liegt als separates Dokument vor.
+
+\subsection{Sensor-Einzeltests}
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\captionabove[Sensor-Testergebnisse]{Ergebnisse der Sensor-Einzeltests}
+\label{tab:sensor_tests}
+\begin{tabular}{l p{4cm} l l}
+\toprule
+\rowcolor{tableheader}
+\textbf{TC} & \textbf{Beschreibung} & \textbf{Ergebnis} & \textbf{Requirement} \\
+\midrule
+TC-01 & Display-Initialisierung & \textcolor{pass}{\textbf{PASS}} & REQ-F-007 \\
+TC-02 & I\textsuperscript{2}C (AHT20+SGP40) & \textcolor{pass}{\textbf{PASS}} & REQ-F-003/4/5 \\
+TC-03 & PMS5003 Feinstaub & \textcolor{pass}{\textbf{PASS}} & REQ-F-002 \\
+TC-04 & MH-Z19C CO\textsubscript{2} & \textcolor{pass}{\textbf{PASS}} & REQ-F-001 \\
+TC-05 & LD2410C Radar & \textcolor{pass}{\textbf{PASS}} & REQ-F-006 \\
+TC-06 & Level Shifter Funktion & \textcolor{pass}{\textbf{PASS}} & REQ-HW-008 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Alle sechs Sensor-Einzeltests wurden bestanden. Die Messwerte liegen innerhalb der spezifizierten Toleranzen.
+
+\subsection{Hardware-Tests}
+
+TC-07 (Backlight-PWM) verifiziert die Backlight-Steuerung über GPIO\,3 mit PWM bei \SI{44,1}{kHz}. Der Dimmbereich von 0\,\% bis 100\,\% funktioniert wie spezifiziert.
+
+TC-08 (Stützkondensatoren) bestätigt, dass mit 220\,µF Elkos die 5\,V-Rail stabil im Bereich \SI{4,8}{V}--\SI{5,2}{V} bleibt. Ohne Kondensatoren traten nach wenigen Minuten Spannungseinbrüche und Systemabstürze auf.
+
+\subsection{Integrationstest}
+
+TC-09 prüft den gleichzeitigen Betrieb aller fünf Sensoren plus Radar über einen Zeitraum von fünf Minuten. Nach der Mitigation durch Stützkondensatoren und Level Shifter war die Fehlerrate unter 1\,\%.
+
+\subsection{UI-Tests}
+
+Die UI-Tests TC-10 bis TC-13 verifizieren die korrekte Darstellung aller fünf Screen-Designs, die Screen-spezifischen Features, den zyklischen Button-Wechsel und die Messwert-Konsistenz über alle Screens hinweg.
+
+\subsection{Requirements Traceability}
+
+Tabelle~\ref{tab:traceability} zeigt die Zuordnung der Anforderungen zu Testfällen.
+
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\captionabove[Requirements Traceability]{Zuordnung Anforderungen $\leftrightarrow$ Testfälle}
+\label{tab:traceability}
+\begin{tabular}{l l l}
+\toprule
+\rowcolor{tableheader}
+\textbf{Requirement} & \textbf{Beschreibung} & \textbf{Testfall(e)} \\
+\midrule
+REQ-F-001 & CO\textsubscript{2}-Messung & TC-04, TC-09 \\
+REQ-F-002 & Feinstaub-Messung & TC-03, TC-09 \\
+REQ-F-003 & VOC-Messung & TC-02, TC-09 \\
+REQ-F-004 & Temperatur & TC-02, TC-09 \\
+REQ-F-005 & Luftfeuchte & TC-02, TC-09 \\
+REQ-F-006 & Präsenzerkennung & TC-05, TC-15 \\
+REQ-F-007 & Display-Anzeige & TC-01, TC-10 \\
+REQ-F-008 & Farbcodierung & TC-10, TC-11, TC-13 \\
+REQ-F-009 & UI-Wechsel & TC-12 \\
+REQ-HW-008 & Level Shifter & TC-06 \\
+REQ-HW-009 & Stützkondensatoren & TC-08 \\
+\bottomrule
+\end{tabular}
+\end{table}

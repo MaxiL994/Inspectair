@@ -1,0 +1,216 @@
+% InspectAir Hauptbericht - DHBW Ravensburg
+% Vereinfachte Version für Kompilierung
+\documentclass[12pt,a4paper,ngerman]{scrbook}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm, bindingoffset=12mm}
+\usepackage{setspace}
+\onehalfspacing
+
+% Persönliche Daten
+\newcommand{\titel}{InspectAir -- Luftqualitätsmessgerät mit ESP32-S3}
+\newcommand{\untertitel}{Entwicklung eines Embedded Systems zur Überwachung der Raumluftqualität}
+\newcommand{\arbeit}{Projektarbeit}
+\newcommand{\studiengang}{Elektrotechnik und Informationstechnik}
+\newcommand{\studienrichtung}{Fahrzeugelektronik}
+\newcommand{\autor}{Maximilian Liebl, Cedric Stroh, Jannis Messer}
+\newcommand{\bearbeitungszeitraum}{November 2025 -- März 2026}
+\newcommand{\kurs}{Mikrocomputertechnik 1}
+\newcommand{\abgabedatum}{13. März 2026}
+\newcommand{\betreuerfirma}{Thomas Stingl (Airbus)}
+\newcommand{\jahr}{2026}
+
+\usepackage{siunitx}
+\sisetup{locale=DE}
+
+\usepackage{graphicx}
+\usepackage[format=hang,font=normal,labelfont=bf]{caption}
+
+\usepackage[backend=biber,style=numeric,natbib=true]{biblatex}
+\addbibresource{literature/literatur1.bib}
+
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{eurosym}
+
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+\definecolor{tableheader}{HTML}{E3F2FD}
+\definecolor{pass}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{F57F17}
+\definecolor{riskhigh}{HTML}{D32F2F}
+\definecolor{riskmedium}{HTML}{F57F17}
+\definecolor{risklow}{HTML}{388E3C}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\usepackage{listings}
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\footnotesize\ttfamily,
+    breaklines=true,
+    captionpos=t,
+    commentstyle=\color{mygreen},
+    frame=single,
+    keepspaces=true,
+    keywordstyle=\color{blue},
+    language=C++,
+    numbers=left,
+    numbersep=5pt,
+    numberstyle=\tiny\color{mygray},
+    showstringspaces=false,
+    stringstyle=\color{mymauve},
+    tabsize=2
+}
+
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,positioning,calc}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{INSPECTAIR}}
+\fancyhead[R]{Projektbericht}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage[hidelinks,
+pdftitle={\titel},pdfauthor={\autor},
+pdfkeywords={DHBW, InspectAir, ESP32-S3, Luftqualität}
+]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% Abkürzungen inline definieren
+\newcommand{\acrshort}[1]{#1}
+\newcommand{\gls}[1]{#1}
+
+% -------------------------------------------------------------------------------------------
+\begin{document}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+% ============================================================
+% TITELSEITE
+% ============================================================
+\begin{titlepage}
+\centering
+\includegraphics[width=0.3\textwidth]{images/DHBW_d_R_FN_46mm_4c.jpg}\\[1cm]
+{\Huge\textbf{INSPECTAIR}}\\[0.5cm]
+{\Large Luftqualitätsmessgerät mit ESP32-S3}\\[2cm]
+{\LARGE\textbf{Projektbericht}}\\[0.5cm]
+{\large Mikrocomputertechnik 1}\\[3cm]
+
+\begin{tabular}{ll}
+\textbf{Autoren:} & Maximilian Liebl, Cedric Stroh, Jannis Messer \\[4pt]
+\textbf{Kurs:} & TFE23 \\[4pt]
+\textbf{Studiengang:} & Elektrotechnik -- Fahrzeugelektronik \\[4pt]
+\textbf{Betreuer:} & Thomas Stingl (Airbus) \\[4pt]
+\textbf{Bearbeitungszeitraum:} & November 2025 -- März 2026 \\[4pt]
+\textbf{Abgabedatum:} & 13. März 2026 \\
+\end{tabular}
+\vfill
+{\small DHBW Ravensburg | Campus Friedrichshafen}
+\end{titlepage}
+
+% ============================================================
+% ERKLÄRUNG
+% ============================================================
+\chapter*{Erklärung}
+\addcontentsline{toc}{chapter}{Erklärung}
+
+Wir versichern hiermit, dass wir unsere Projektarbeit mit dem Thema
+
+\begin{center}
+\textbf{\titel}
+\end{center}
+
+selbstständig verfasst und keine anderen als die angegebenen Quellen und Hilfsmittel benutzt haben. Wir versichern zudem, dass die eingereichte elektronische Fassung mit der gedruckten Fassung übereinstimmt.
+
+\clearpage
+
+% ============================================================
+% INHALTSVERZEICHNIS
+% ============================================================
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+
+% ============================================================
+% KAPITEL EINBINDEN
+% ============================================================
+\input{chapter/einleitung}
+\input{chapter/grundlagen}
+\input{chapter/vorgehen}
+\input{chapter/umsetzung}
+\input{chapter/zusammenfassung}
+
+% ============================================================
+% LITERATURVERZEICHNIS
+% ============================================================
+\printbibliography[title={Quellenverzeichnis}]
+
+% ============================================================
+% ABKÜRZUNGSVERZEICHNIS
+% ============================================================
+\chapter*{Abkürzungsverzeichnis}
+\addcontentsline{toc}{chapter}{Abkürzungsverzeichnis}
+
+\begin{tabular}{ll}
+\textbf{AHT20} & Temperatur-/Luftfeuchtigkeitssensor von ASAIR \\
+\textbf{API} & Application Programming Interface \\
+\textbf{CO\textsubscript{2}} & Kohlenstoffdioxid \\
+\textbf{ESP32-S3} & Dual-Core-Mikrocontroller von Espressif \\
+\textbf{GPIO} & General Purpose Input/Output \\
+\textbf{I\textsuperscript{2}C} & Inter-Integrated Circuit (Bussystem) \\
+\textbf{KI} & Künstliche Intelligenz \\
+\textbf{LD2410C} & 24\,GHz mmWave Radar-Modul von Hi-Link \\
+\textbf{LVGL} & Light and Versatile Graphics Library \\
+\textbf{MH-Z19C} & NDIR CO\textsubscript{2}-Sensor von Winsen \\
+\textbf{NDIR} & Nondispersive Infrared (Messprinzip) \\
+\textbf{PCB} & Printed Circuit Board \\
+\textbf{PETG} & Polyethylenterephthalat mit Glykol \\
+\textbf{PM2.5} & Particulate Matter $\leq$2,5\,µm \\
+\textbf{PMS5003} & Feinstaubsensor von Plantower \\
+\textbf{PWM} & Pulsweitenmodulation \\
+\textbf{REST} & Representational State Transfer \\
+\textbf{SGP40} & VOC-Sensor von Sensirion \\
+\textbf{SPI} & Serial Peripheral Interface \\
+\textbf{TFT} & Thin-Film Transistor \\
+\textbf{UART} & Universal Asynchronous Receiver/Transmitter \\
+\textbf{UI} & User Interface \\
+\textbf{VOC} & Volatile Organic Compounds \\
+\textbf{WHO} & World Health Organization \\
+\end{tabular}
+
+% ============================================================
+% ABBILDUNGS- UND TABELLENVERZEICHNIS
+% ============================================================
+\listoffigures
+\addcontentsline{toc}{chapter}{Abbildungsverzeichnis}
+
+\listoftables
+\addcontentsline{toc}{chapter}{Tabellenverzeichnis}
+
+% ============================================================
+% ANHANG
+% ============================================================
+\appendix
+\input{chapter/anhang}
+
+\end{document}

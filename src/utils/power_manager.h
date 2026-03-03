@@ -7,7 +7,7 @@ class PowerManager {
 public:
     // Konfiguration - Timeouts
     static const uint32_t PRESENCE_TIMEOUT_DIM_MS  = 45000;   // 45s → Dimmen
-    static const uint32_t PRESENCE_TIMEOUT_OFF_MS   = 300000;  // 5 Min → Display aus + Light Sleep
+    static const uint32_t PRESENCE_TIMEOUT_OFF_MS   = 46800000;  // 13h → Display aus + Light Sleep (fuer Langzeittest)
     
     // Helligkeit
     static const uint8_t BRIGHTNESS_ACTIVE = 255;      // 100%

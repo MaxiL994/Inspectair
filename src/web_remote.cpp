@@ -309,31 +309,70 @@ function drawCharts(data){
   ctxCo2.fillStyle='#ff5252';ctxCo2.font='bold 22px sans-serif';ctxCo2.textAlign='left';
   ctxCo2.fillText(lastCo2+'ppm',lx-70,ly-8);
 
-  // === VOC+PM Chart ===
+  // === VOC+PM Chart (Dual Y-Axis, WHO-Farbzonen) ===
   var W2=cvVP.width=cvVP.offsetWidth*2;
-  var H2=cvVP.height=360;
+  var H2=cvVP.height=440;
   ctxVP.clearRect(0,0,W2,H2);
-  var p2={t:15,r:10,b:28,l:50};
+  var p2={t:15,r:62,b:28,l:50};
   var cw2=W2-p2.l-p2.r, ch2=H2-p2.t-p2.b;
-  var vpMax=Math.max(200,Math.max(...data.voc,...data.pm25));
-  vpMax=Math.ceil(vpMax/50)*50;if(vpMax<100)vpMax=100;
-  // VOC Zonen
-  drawZones(ctxVP,p2,cw2,ch2,vpMax,[
-    {from:0,to:100,bg:'rgba(76,175,80,0.10)',label:'',tc:'#4caf5066'},
-    {from:100,to:200,bg:'rgba(255,235,59,0.08)',label:'',tc:'#ffeb3b66'},
-    {from:200,to:vpMax,bg:'rgba(244,67,54,0.08)',label:'',tc:'#f4433666'}
+  // VOC scale: min 400 (4 Zonen a 100)
+  var vocMax=Math.max(400,Math.max(...data.voc));
+  vocMax=Math.ceil(vocMax/100)*100;
+  // Piecewise mapping: PM2.5 -> VOC scale (WHO-Zonen aligned)
+  // VOC: 0-100 Gut, 100-200 Maessig, 200-300 Schlecht, 300+ Kritisch
+  // PM:  0-5   Gut,  5-15   Maessig,  15-25  Schlecht,  25+  Kritisch
+  function pmToVoc(v){
+    if(v<=5)return v/5*100;
+    if(v<=15)return 100+(v-5)/10*100;
+    if(v<=25)return 200+(v-15)/10*100;
+    return 300+(v-25)/10*100;
+  }
+  // WHO Qualitaetszonen (wie CO2-Chart)
+  drawZones(ctxVP,p2,cw2,ch2,vocMax,[
+    {from:0,to:100,bg:'rgba(76,175,80,0.15)',label:'Gut',tc:'#4caf5088'},
+    {from:100,to:200,bg:'rgba(255,235,59,0.12)',label:'M\u00e4\u00dfig',tc:'#ffeb3b88'},
+    {from:200,to:300,bg:'rgba(255,152,0,0.12)',label:'Schlecht',tc:'#ff980088'},
+    {from:300,to:vocMax,bg:'rgba(244,67,54,0.12)',label:'Kritisch',tc:'#f4433688'}
   ]);
-  drawGrid(ctxVP,p2,cw2,ch2,vpMax,4);
+  // Left Y-axis: VOC grid + labels
+  drawGrid(ctxVP,p2,cw2,ch2,vocMax,4);
   drawTimeAxis(ctxVP,p2,cw2,ch2,data.times,n);
-  drawLine(ctxVP,data.voc,n,vpMax,p2,cw2,ch2,'#7c4dff',2.5);
-  drawLine(ctxVP,data.pm25,n,vpMax,p2,cw2,ch2,'#00e5ff',2.5);
-  // Labels
+  // Left axis label
+  ctxVP.save();ctxVP.fillStyle='#7c4dff';ctxVP.font='bold 15px sans-serif';
+  ctxVP.textAlign='center';ctxVP.translate(14,p2.t+ch2/2);
+  ctxVP.rotate(-Math.PI/2);ctxVP.fillText('VOC Index',0,0);ctxVP.restore();
+  // Right Y-axis: PM2.5 ticks at WHO zone boundaries
+  var pmTicks=[{v:0,l:'0'},{v:5,l:'5'},{v:15,l:'15'},{v:25,l:'25'}];
+  ctxVP.font='18px sans-serif';ctxVP.textAlign='left';
+  for(var pi=0;pi<pmTicks.length;pi++){
+    var veq=pmToVoc(pmTicks[pi].v);if(veq>vocMax)continue;
+    var ty=p2.t+ch2-ch2*(veq/vocMax);
+    ctxVP.fillStyle='#00e5ff';
+    ctxVP.fillText(pmTicks[pi].l,p2.l+cw2+8,ty+6);
+    ctxVP.strokeStyle='#00e5ff55';ctxVP.lineWidth=1;
+    ctxVP.setLineDash([4,4]);
+    ctxVP.beginPath();ctxVP.moveTo(p2.l,ty);ctxVP.lineTo(p2.l+cw2,ty);ctxVP.stroke();
+    ctxVP.setLineDash([]);
+  }
+  // Right axis line
+  ctxVP.strokeStyle='#00e5ff66';ctxVP.lineWidth=1.5;
+  ctxVP.beginPath();ctxVP.moveTo(p2.l+cw2,p2.t);ctxVP.lineTo(p2.l+cw2,p2.t+ch2);ctxVP.stroke();
+  // Right axis label
+  ctxVP.save();ctxVP.fillStyle='#00e5ff';ctxVP.font='bold 15px sans-serif';
+  ctxVP.textAlign='center';ctxVP.translate(W2-4,p2.t+ch2/2);
+  ctxVP.rotate(Math.PI/2);ctxVP.fillText('PM2.5 \u00b5g/m\u00b3',0,0);ctxVP.restore();
+  // VOC line (left axis)
+  drawLine(ctxVP,data.voc,n,vocMax,p2,cw2,ch2,'#7c4dff',2.5);
+  // PM2.5 line (right axis, piecewise-mapped so WHO zones align)
+  var pmMapped=data.pm25.map(pmToVoc);
+  drawLine(ctxVP,pmMapped,n,vocMax,p2,cw2,ch2,'#00e5ff',2.5);
+  // Current value labels
   var lastVoc=data.voc[n-1],lastPm=data.pm25[n-1];
   ctxVP.font='bold 20px sans-serif';ctxVP.textAlign='left';
   ctxVP.fillStyle='#7c4dff';
-  ctxVP.fillText('VOC:'+lastVoc,p2.l+8,p2.t+18);
+  ctxVP.fillText('VOC: '+lastVoc,p2.l+8,p2.t+18);
   ctxVP.fillStyle='#00e5ff';
-  ctxVP.fillText('PM:'+lastPm,p2.l+cw2/2,p2.t+18);
+  ctxVP.fillText('PM2.5: '+lastPm+' \u00b5g/m\u00b3',p2.l+cw2/2,p2.t+18);
 }
 function loadChart(){
   fetch('/api/history').then(r=>r.json()).then(d=>drawCharts(d))
