@@ -5,6 +5,9 @@
 .pio/
 .pdmps/
 
+# Build-Logs
+build.log
+
 # C/C++ Build-Artefakte
 *.o
 *.a
