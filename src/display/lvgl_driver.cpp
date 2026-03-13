@@ -29,7 +29,7 @@ static void lvgl_flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px
     
     tft.startWrite();
     tft.setAddrWindow(area->x1, area->y1, w, h);
-    tft.writePixels((uint16_t*)px_map, w * h);
+    tft.writePixels((uint16_t*)px_map, w * h, true);  // true = DMA
     tft.endWrite();
     
     lv_display_flush_ready(disp);

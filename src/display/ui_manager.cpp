@@ -2298,12 +2298,15 @@ void ui_updateTime(int hour, int minute, int second) {
     cached_min = minute;
     cached_sec = second;
     
-    // Alle Screens aktualisieren (nur der aktive ist sichtbar)
-    update_screen_nature_time();
-    update_screen1_time();
-    update_screen2_time();
-    update_screen3_time();
-    update_screen4_time();
+    // Nur aktiven Screen aktualisieren
+    switch (current_screen) {
+        case UI_SCREEN_NATURE:   update_screen_nature_time(); break;
+        case UI_SCREEN_OVERVIEW: update_screen1_time(); break;
+        case UI_SCREEN_DETAIL:   update_screen2_time(); break;
+        case UI_SCREEN_ANALOG:   update_screen3_time(); break;
+        case UI_SCREEN_BUBBLE:   update_screen4_time(); break;
+        default: break;
+    }
 }
 
 void ui_updateDate(const char* date_str) {
@@ -2311,11 +2314,15 @@ void ui_updateDate(const char* date_str) {
     strncpy(cached_date, date_str, sizeof(cached_date) - 1);
     cached_date[sizeof(cached_date) - 1] = '\0';
     
-    if (sn_lbl_date) lv_label_set_text(sn_lbl_date, cached_date);
-    if (s1_lbl_date) lv_label_set_text(s1_lbl_date, cached_date);
-    if (s2_lbl_date) lv_label_set_text(s2_lbl_date, cached_date);
-    if (s3_lbl_date) lv_label_set_text(s3_lbl_date, cached_date);
-    if (s4_lbl_date) lv_label_set_text(s4_lbl_date, cached_date);
+    // Nur aktiven Screen aktualisieren
+    switch (current_screen) {
+        case UI_SCREEN_NATURE:   if (sn_lbl_date) lv_label_set_text(sn_lbl_date, cached_date); break;
+        case UI_SCREEN_OVERVIEW: if (s1_lbl_date) lv_label_set_text(s1_lbl_date, cached_date); break;
+        case UI_SCREEN_DETAIL:   if (s2_lbl_date) lv_label_set_text(s2_lbl_date, cached_date); break;
+        case UI_SCREEN_ANALOG:   if (s3_lbl_date) lv_label_set_text(s3_lbl_date, cached_date); break;
+        case UI_SCREEN_BUBBLE:   if (s4_lbl_date) lv_label_set_text(s4_lbl_date, cached_date); break;
+        default: break;
+    }
 }
 
 void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
@@ -2328,13 +2335,16 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     
     LOG_D("UI", "T=%.1f H=%.0f CO2=%d PM=%d VOC=%d", temp, hum, co2, pm25, voc);
     
-    // Alle Screens aktualisieren
-    update_screen0_tree();    // Tree-Screen ändert Farbe basierend auf Luftqualität
-    update_screen_nature_sensors(); // Nature-Screen Karten
-    update_screen1_sensors();
-    update_screen2_sensors();
-    update_screen3_sensors(); // Analog Cockpit
-    update_screen4_sensors(); // Bubbles
+    // Nur aktiven Screen aktualisieren
+    switch (current_screen) {
+        case UI_SCREEN_TREE:     update_screen0_tree(); break;
+        case UI_SCREEN_NATURE:   update_screen_nature_sensors(); break;
+        case UI_SCREEN_OVERVIEW: update_screen1_sensors(); break;
+        case UI_SCREEN_DETAIL:   update_screen2_sensors(); break;
+        case UI_SCREEN_ANALOG:   update_screen3_sensors(); break;
+        case UI_SCREEN_BUBBLE:   update_screen4_sensors(); break;
+        default: break;
+    }
 }
 
 void ui_updateSensors(const SensorReadings& readings) {
