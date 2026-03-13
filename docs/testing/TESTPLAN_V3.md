@@ -6,7 +6,7 @@
 
 ## 1. Überblick
 
-Dieses Dokument beschreibt **wie** die **28 Testfälle** der Testspezifikation v3.0 systematisch
+Dieses Dokument beschreibt **wie** die **28 Testfälle** der Testspezifikation systematisch
 abgetestet, aufgezeichnet und dokumentiert werden.
 
 ### Benötigte Dateien

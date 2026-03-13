@@ -74,6 +74,18 @@ LV_FONT_DECLARE(ui_font_16_ext);
 #define FONT_12_EXT  &ui_font_12_ext
 #define FONT_16_EXT  &ui_font_16_ext
 
+// Quicksand fonts (Rounded, für Nature-Screen)
+LV_FONT_DECLARE(quicksand_12_regular);
+LV_FONT_DECLARE(quicksand_14_regular);
+LV_FONT_DECLARE(quicksand_28_bold);
+LV_FONT_DECLARE(quicksand_32_regular);
+LV_FONT_DECLARE(quicksand_48_bold);
+LV_FONT_DECLARE(quicksand_52_regular);
+#define FONT_QS_TIME    &quicksand_48_bold
+#define FONT_QS_VALUE   &quicksand_28_bold
+#define FONT_QS_HEADER  &quicksand_14_regular
+#define FONT_QS_SMALL   &quicksand_12_regular
+
 // Texte mit Umlauten
 #define TXT_LUFTQUALITAET   "Luftqualität"
 #define TXT_SEHR_GUT        "Sehr gut"
@@ -87,18 +99,18 @@ LV_FONT_DECLARE(ui_font_16_ext);
 /* ═══════════════════════════════════════════════════════════════════════════
  * FARBEN
  * ═══════════════════════════════════════════════════════════════════════════ */
-#define COLOR_BG        lv_color_hex(0xFAFAFA)
+#define COLOR_BG        lv_color_hex(0xE0E4E8)
 #define COLOR_CARD      lv_color_hex(0xFFFFFF)
-#define COLOR_TEXT      lv_color_hex(0x1A1A1A)
-#define COLOR_TEXT_L    lv_color_hex(0x666666)
-#define COLOR_DATE      lv_color_hex(0x888888)
+#define COLOR_TEXT      lv_color_hex(0x111111)
+#define COLOR_TEXT_L    lv_color_hex(0x444444)
+#define COLOR_DATE      lv_color_hex(0x666666)
 
-#define COLOR_GOOD      lv_color_hex(0x10B981)
-#define COLOR_WARN      lv_color_hex(0xF59E0B)
-#define COLOR_BAD       lv_color_hex(0xEF4444)
+#define COLOR_GOOD      lv_color_hex(0x059669)
+#define COLOR_WARN      lv_color_hex(0xD97706)
+#define COLOR_BAD       lv_color_hex(0xDC2626)
 
-#define COLOR_BAR_BG    lv_color_hex(0xF0F0F0)
-#define COLOR_RING_BG   lv_color_hex(0xEEEEEE)
+#define COLOR_BAR_BG    lv_color_hex(0xCBD5E1)
+#define COLOR_RING_BG   lv_color_hex(0xC8CDD3)
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * STATUS HELPER (shared) - Grenzwerte aus colors.h
@@ -186,10 +198,10 @@ static void init_styles() {
     lv_style_set_bg_opa(&style_card, LV_OPA_COVER);
     lv_style_set_radius(&style_card, 12);
     lv_style_set_border_width(&style_card, 0);
-    lv_style_set_shadow_width(&style_card, 12);
+    lv_style_set_shadow_width(&style_card, 16);
     lv_style_set_shadow_color(&style_card, lv_color_hex(0x000000));
-    lv_style_set_shadow_opa(&style_card, LV_OPA_20);
-    lv_style_set_shadow_offset_y(&style_card, 4);
+    lv_style_set_shadow_opa(&style_card, LV_OPA_30);
+    lv_style_set_shadow_offset_y(&style_card, 5);
     lv_style_set_pad_all(&style_card, 12);
 
     lv_style_init(&style_bar_bg);
@@ -216,7 +228,7 @@ static void init_styles() {
 /* ═══════════════════════════════════════════════════════════════════════════
  * SCREEN MANAGEMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
-static lv_obj_t* screens[UI_SCREEN_COUNT] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+static lv_obj_t* screens[UI_SCREEN_COUNT] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 static UIScreen current_screen = UI_SCREEN_TREE;
 
 // Gecachte Sensorwerte für Screen-Updates
@@ -591,7 +603,282 @@ static void update_screen0_tree() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * SCREEN 1: ÜBERSICHT (Große AQI + 2 große Kacheln)
+ * SCREEN 1: NATURE / ORGANIC (Quicksand-Karten mit Grün-Gradient)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Layout:
+ * ┌──────────────────────────────────────────────────────┐
+ * │           🍃 INSPECTAIR 🍃                           │
+ * │              00:00:00                                │
+ * │           Di., 28. Jan                               │
+ * │  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐               │
+ * │  │ 🌡️  │  │ 💧  │  │ 🍃  │  │ ✨  │               │
+ * │  │22.5 │  │ 45  │  │ 650 │  │ 12  │               │
+ * │  │ °C  │  │  %  │  │ ppm │  │ug/m3│               │
+ * │  │Temp │  │Feu. │  │ CO2 │  │Fein.│               │
+ * │  │ ●   │  │  ●  │  │  ●  │  │  ●  │               │
+ * │  └─────┘  └─────┘  └─────┘  └─────┘               │
+ * │        [ Perfekte Luftqualität ]                     │
+ * └──────────────────────────────────────────────────────┘
+ */
+
+// Nature-Screen Farben
+#define COL_NAT_BG_TOP       lv_color_hex(0xD1FAE5)
+#define COL_NAT_BG_BOTTOM    lv_color_hex(0x86EFAC)
+#define COL_NAT_TEXT_DARK    lv_color_hex(0x0C3B20)
+#define COL_NAT_TEXT_MID     lv_color_hex(0x14532D)
+#define COL_NAT_TEXT_LIGHT   lv_color_hex(0x166534)
+#define COL_NAT_CARD_BG      lv_color_hex(0xFFFFFF)
+#define COL_NAT_CARD_SHADOW  lv_color_hex(0x16A34A)
+#define COL_NAT_GOOD         lv_color_hex(0x16A34A)
+#define COL_NAT_WARN         lv_color_hex(0xCA8A04)
+#define COL_NAT_BAD          lv_color_hex(0xB91C1C)
+#define COL_NAT_DECO         lv_color_hex(0x16A34A)
+
+// Screen N (Nature) UI Elemente
+static lv_obj_t* sn_lbl_time = nullptr;
+static lv_obj_t* sn_lbl_date = nullptr;
+static lv_obj_t* sn_cards[4] = {nullptr};
+static lv_obj_t* sn_lbl_values[4] = {nullptr};
+static lv_obj_t* sn_ind_dots[4] = {nullptr};
+static lv_obj_t* sn_bar_bottom = nullptr;
+static lv_obj_t* sn_lbl_bottom = nullptr;
+
+static lv_color_t sn_qcolor(Status q) {
+    switch(q) {
+        case GOOD: return COL_NAT_GOOD;
+        case WARN: return COL_NAT_WARN;
+        case BAD:  return COL_NAT_BAD;
+    }
+    return COL_NAT_GOOD;
+}
+
+static void sn_create_card(lv_obj_t* parent, int idx, int x,
+                            const lv_image_dsc_t* icon_dsc,
+                            const char* unit_text,
+                            const char* label_text)
+{
+    lv_obj_t* card = lv_obj_create(parent);
+    lv_obj_set_pos(card, x, 100);
+    lv_obj_set_size(card, 95, 150);
+    lv_obj_set_style_bg_color(card, COL_NAT_CARD_BG, 0);
+    lv_obj_set_style_bg_opa(card, LV_OPA_70, 0);
+    lv_obj_set_style_radius(card, 28, 0);
+    lv_obj_set_style_border_width(card, 0, 0);
+    lv_obj_set_style_shadow_color(card, COL_NAT_CARD_SHADOW, 0);
+    lv_obj_set_style_shadow_opa(card, (lv_opa_t)(255 * 0.15f), 0);
+    lv_obj_set_style_shadow_width(card, 30, 0);
+    lv_obj_set_style_shadow_ofs_y(card, 10, 0);
+    lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_top(card, 10, 0);
+    lv_obj_set_style_pad_bottom(card, 8, 0);
+    lv_obj_set_style_pad_left(card, 5, 0);
+    lv_obj_set_style_pad_right(card, 5, 0);
+    lv_obj_set_style_pad_row(card, 2, 0);
+    lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_OFF);
+    sn_cards[idx] = card;
+
+    /* Icon: Emoji in grünem Kreis */
+    lv_obj_t* ic = lv_obj_create(card);
+    lv_obj_set_size(ic, 32, 32);
+    lv_obj_set_style_radius(ic, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(ic, COL_NAT_DECO, 0);
+    lv_obj_set_style_bg_opa(ic, LV_OPA_20, 0);
+    lv_obj_set_style_border_width(ic, 0, 0);
+    lv_obj_set_scrollbar_mode(ic, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(ic, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* ic_img = lv_image_create(ic);
+    lv_image_set_src(ic_img, icon_dsc);
+    lv_obj_center(ic_img);
+
+    /* Messwert (groß, Quicksand 32) */
+    sn_lbl_values[idx] = lv_label_create(card);
+    lv_label_set_text(sn_lbl_values[idx], "--");
+    lv_obj_set_style_text_font(sn_lbl_values[idx], FONT_QS_VALUE, 0);
+    lv_obj_set_style_text_color(sn_lbl_values[idx], COL_NAT_TEXT_DARK, 0);
+    lv_obj_set_style_pad_top(sn_lbl_values[idx], 3, 0);
+
+    /* Einheit */
+    lv_obj_t* u = lv_label_create(card);
+    lv_label_set_text(u, unit_text);
+    lv_obj_set_style_text_font(u, FONT_QS_SMALL, 0);
+    lv_obj_set_style_text_color(u, COL_NAT_TEXT_MID, 0);
+
+    /* Bezeichnung */
+    lv_obj_t* l = lv_label_create(card);
+    lv_label_set_text(l, label_text);
+    lv_obj_set_style_text_font(l, FONT_QS_SMALL, 0);
+    lv_obj_set_style_text_color(l, COL_NAT_TEXT_LIGHT, 0);
+    lv_obj_set_style_pad_top(l, 3, 0);
+
+    /* Status-Indikator (farbiger Punkt mit Glow) */
+    sn_ind_dots[idx] = lv_obj_create(card);
+    lv_obj_set_size(sn_ind_dots[idx], 14, 14);
+    lv_obj_set_style_radius(sn_ind_dots[idx], LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(sn_ind_dots[idx], COL_NAT_GOOD, 0);
+    lv_obj_set_style_bg_opa(sn_ind_dots[idx], LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(sn_ind_dots[idx], 0, 0);
+    lv_obj_set_style_shadow_color(sn_ind_dots[idx], COL_NAT_GOOD, 0);
+    lv_obj_set_style_shadow_opa(sn_ind_dots[idx], LV_OPA_60, 0);
+    lv_obj_set_style_shadow_width(sn_ind_dots[idx], 10, 0);
+    lv_obj_set_style_pad_top(sn_ind_dots[idx], 4, 0);
+    lv_obj_set_scrollbar_mode(sn_ind_dots[idx], LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(sn_ind_dots[idx], LV_OBJ_FLAG_CLICKABLE);
+}
+
+static void sn_update_card(int idx, float value, Status q, bool is_float)
+{
+    char buf[16];
+    if(is_float)
+        snprintf(buf, sizeof(buf), "%.1f", (double)value);
+    else
+        snprintf(buf, sizeof(buf), "%d", (int)value);
+
+    lv_label_set_text(sn_lbl_values[idx], buf);
+
+    lv_color_t col = sn_qcolor(q);
+    lv_obj_set_style_bg_color(sn_ind_dots[idx], col, 0);
+    lv_obj_set_style_shadow_color(sn_ind_dots[idx], col, 0);
+}
+
+static void create_screen_nature() {
+    screens[UI_SCREEN_NATURE] = lv_obj_create(NULL);
+    lv_obj_t* scr = screens[UI_SCREEN_NATURE];
+
+    /* Hintergrund: vertikaler Grün-Gradient */
+    lv_obj_set_style_bg_color(scr, COL_NAT_BG_TOP, 0);
+    lv_obj_set_style_bg_grad_color(scr, COL_NAT_BG_BOTTOM, 0);
+    lv_obj_set_style_bg_grad_dir(scr, LV_GRAD_DIR_VER, 0);
+    lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
+
+    /* Dekorative Kreise (subtile Grün-Elemente statt Twemoji) */
+    lv_obj_t* deco1 = lv_obj_create(scr);
+    lv_obj_set_size(deco1, 80, 80);
+    lv_obj_set_pos(deco1, 410, -20);
+    lv_obj_set_style_radius(deco1, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(deco1, COL_NAT_DECO, 0);
+    lv_obj_set_style_bg_opa(deco1, LV_OPA_10, 0);
+    lv_obj_set_style_border_width(deco1, 0, 0);
+    lv_obj_remove_flag(deco1, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(deco1, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* deco2 = lv_obj_create(scr);
+    lv_obj_set_size(deco2, 60, 60);
+    lv_obj_set_pos(deco2, -20, 260);
+    lv_obj_set_style_radius(deco2, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(deco2, COL_NAT_DECO, 0);
+    lv_obj_set_style_bg_opa(deco2, LV_OPA_10, 0);
+    lv_obj_set_style_border_width(deco2, 0, 0);
+    lv_obj_remove_flag(deco2, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(deco2, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* deco3 = lv_obj_create(scr);
+    lv_obj_set_size(deco3, 30, 30);
+    lv_obj_set_pos(deco3, 400, 60);
+    lv_obj_set_style_radius(deco3, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(deco3, COL_NAT_DECO, 0);
+    lv_obj_set_style_bg_opa(deco3, LV_OPA_20, 0);
+    lv_obj_set_style_border_width(deco3, 0, 0);
+    lv_obj_remove_flag(deco3, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(deco3, LV_OBJ_FLAG_CLICKABLE);
+
+    /* Header: "INSPECTAIR" */
+    lv_obj_t* hdr = lv_label_create(scr);
+    lv_label_set_text(hdr, "INSPECTAIR");
+    lv_obj_set_style_text_font(hdr, FONT_QS_HEADER, 0);
+    lv_obj_set_style_text_color(hdr, COL_NAT_TEXT_MID, 0);
+    lv_obj_set_style_text_letter_space(hdr, 3, 0);
+    lv_obj_align(hdr, LV_ALIGN_TOP_MID, 0, 10);
+
+    /* Uhrzeit (mit Sekunden, Quicksand 52) */
+    sn_lbl_time = lv_label_create(scr);
+    lv_label_set_text(sn_lbl_time, "00:00:00");
+    lv_obj_set_style_text_font(sn_lbl_time, FONT_QS_TIME, 0);
+    lv_obj_set_style_text_color(sn_lbl_time, COL_NAT_TEXT_DARK, 0);
+    lv_obj_align(sn_lbl_time, LV_ALIGN_TOP_MID, 0, 28);
+
+    /* Datum */
+    sn_lbl_date = lv_label_create(scr);
+    lv_label_set_text(sn_lbl_date, "...");
+    lv_obj_set_style_text_font(sn_lbl_date, FONT_QS_HEADER, 0);
+    lv_obj_set_style_text_color(sn_lbl_date, COL_NAT_TEXT_MID, 0);
+    lv_obj_align(sn_lbl_date, LV_ALIGN_TOP_MID, 0, 80);
+
+    /* 4 Messkarten: 4×95 + 3×15 gap = 425, zentriert: (480-425)/2 = 28 */
+    sn_create_card(scr, 0,  28, &emoji_icon_thermometer, "\xC2\xB0" "C", "Temperatur");
+    sn_create_card(scr, 1, 138, &emoji_icon_droplet,     "%",             "Feuchte");
+    sn_create_card(scr, 2, 248, &emoji_icon_cloud,       "ppm",           "CO2");
+    sn_create_card(scr, 3, 358, &emoji_icon_dash,        "ug/m3",         "Feinstaub");
+
+    /* Untere Nachrichtenleiste */
+    sn_bar_bottom = lv_obj_create(scr);
+    lv_obj_set_size(sn_bar_bottom, 260, 32);
+    lv_obj_align(sn_bar_bottom, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_style_bg_color(sn_bar_bottom, COL_NAT_CARD_BG, 0);
+    lv_obj_set_style_bg_opa(sn_bar_bottom, LV_OPA_80, 0);
+    lv_obj_set_style_radius(sn_bar_bottom, 20, 0);
+    lv_obj_set_style_border_width(sn_bar_bottom, 0, 0);
+    lv_obj_set_style_shadow_width(sn_bar_bottom, 0, 0);
+    lv_obj_set_scrollbar_mode(sn_bar_bottom, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(sn_bar_bottom, LV_OBJ_FLAG_CLICKABLE);
+
+    sn_lbl_bottom = lv_label_create(sn_bar_bottom);
+    lv_label_set_text(sn_lbl_bottom, "");
+    lv_obj_set_style_text_font(sn_lbl_bottom, FONT_QS_HEADER, 0);
+    lv_obj_set_style_text_color(sn_lbl_bottom, COL_NAT_TEXT_MID, 0);
+    lv_obj_center(sn_lbl_bottom);
+
+    LOG_D("UI", "Screen N (Nature) erstellt");
+}
+
+static void update_screen_nature_time() {
+    if (!sn_lbl_time) return;
+
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%02d:%02d:%02d", cached_hour, cached_min, cached_sec);
+    lv_label_set_text(sn_lbl_time, buf);
+
+    if (sn_lbl_date) lv_label_set_text(sn_lbl_date, cached_date);
+}
+
+static void update_screen_nature_sensors() {
+    if (!sn_lbl_values[0]) return;
+
+    sn_update_card(0, cached_temp, get_temp_status(cached_temp), true);
+    sn_update_card(1, cached_hum,  get_hum_status(cached_hum),  false);
+    sn_update_card(2, (float)cached_co2,  get_co2_status(cached_co2),   false);
+    sn_update_card(3, (float)cached_pm25, get_pm25_status(cached_pm25), false);
+
+    /* Untere Nachricht: CO2+PM25 bestimmen Gesamtstatus */
+    Status q_co2 = get_co2_status(cached_co2);
+    Status q_pm  = get_pm25_status(cached_pm25);
+
+    Status overall_q;
+    if(q_co2 == GOOD && q_pm == GOOD) {
+        overall_q = GOOD;
+        lv_label_set_text(sn_lbl_bottom, "Perfekte Luftqualit\xC3\xA4t");
+    } else if(q_co2 == BAD || q_pm == BAD) {
+        overall_q = BAD;
+        lv_label_set_text(sn_lbl_bottom, "Jetzt l\xC3\xBC" "ften!");
+    } else {
+        overall_q = WARN;
+        lv_label_set_text(sn_lbl_bottom, "Bald l\xC3\xBC" "ften");
+    }
+
+    lv_color_t bar_col = sn_qcolor(overall_q);
+    lv_obj_set_style_bg_color(sn_bar_bottom, bar_col, 0);
+    lv_obj_set_style_bg_opa(sn_bar_bottom, LV_OPA_70, 0);
+    lv_obj_set_style_border_width(sn_bar_bottom, 2, 0);
+    lv_obj_set_style_border_color(sn_bar_bottom, bar_col, 0);
+    lv_obj_set_style_border_opa(sn_bar_bottom, LV_OPA_COVER, 0);
+
+    lv_color_t text_col = (overall_q == WARN) ? COL_NAT_TEXT_DARK : COL_NAT_CARD_BG;
+    lv_obj_set_style_text_color(sn_lbl_bottom, text_col, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SCREEN 2: ÜBERSICHT (Große AQI + 2 große Kacheln)
  * ═══════════════════════════════════════════════════════════════════════════
  * Layout:
  * ┌──────────────────────────────────────────────────────┐
@@ -1951,11 +2238,12 @@ static void update_screen4_sensors() {
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 void ui_init() {
-    LOG_I("UI", "Erstelle 5 Screens...");
+    LOG_I("UI", "Erstelle 6 Screens...");
     
     init_styles();
     
     create_screen0_tree();
+    create_screen_nature();
     create_screen1();
     create_screen2();
     create_screen3_analog();
@@ -1988,6 +2276,7 @@ void ui_setScreen(UIScreen screen) {
     // Aktuellen Screen mit gecachten Werten aktualisieren
     switch (screen) {
         case UI_SCREEN_TREE:     update_screen0_tree(); break;
+        case UI_SCREEN_NATURE:   update_screen_nature_time(); update_screen_nature_sensors(); break;
         case UI_SCREEN_OVERVIEW: update_screen1_time(); update_screen1_sensors(); break;
         case UI_SCREEN_DETAIL:   update_screen2_time(); update_screen2_sensors(); break;
         case UI_SCREEN_ANALOG:   update_screen3_time(); update_screen3_sensors(); break;
@@ -1995,7 +2284,7 @@ void ui_setScreen(UIScreen screen) {
         default: break;
     }
     
-    const char* screen_names[] = {"Baum", "Übersicht", "Detail", "Analog", "Bubbles"};
+    const char* screen_names[] = {"Baum", "Natur", "Übersicht", "Detail", "Analog", "Bubbles"};
     LOG_I("UI", "Screen → %d (%s)", screen, screen_names[screen]);
 }
 
@@ -2010,6 +2299,7 @@ void ui_updateTime(int hour, int minute, int second) {
     cached_sec = second;
     
     // Alle Screens aktualisieren (nur der aktive ist sichtbar)
+    update_screen_nature_time();
     update_screen1_time();
     update_screen2_time();
     update_screen3_time();
@@ -2021,6 +2311,7 @@ void ui_updateDate(const char* date_str) {
     strncpy(cached_date, date_str, sizeof(cached_date) - 1);
     cached_date[sizeof(cached_date) - 1] = '\0';
     
+    if (sn_lbl_date) lv_label_set_text(sn_lbl_date, cached_date);
     if (s1_lbl_date) lv_label_set_text(s1_lbl_date, cached_date);
     if (s2_lbl_date) lv_label_set_text(s2_lbl_date, cached_date);
     if (s3_lbl_date) lv_label_set_text(s3_lbl_date, cached_date);
@@ -2039,6 +2330,7 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc) {
     
     // Alle Screens aktualisieren
     update_screen0_tree();    // Tree-Screen ändert Farbe basierend auf Luftqualität
+    update_screen_nature_sensors(); // Nature-Screen Karten
     update_screen1_sensors();
     update_screen2_sensors();
     update_screen3_sensors(); // Analog Cockpit
@@ -2053,4 +2345,81 @@ void ui_updateSensors(const SensorReadings& readings) {
         readings.pms.PM_AE_UG_2_5,
         readings.sgp.voc_index
     );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SCREENSAVER (Bouncing "InspectAir" text)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+static lv_obj_t* ss_screen = nullptr;
+static lv_obj_t* ss_label  = nullptr;
+static bool ss_active = false;
+static UIScreen ss_prev_screen = UI_SCREEN_TREE;
+static int ss_x = 60;
+static int ss_y = 80;
+static int ss_dx = 3;
+static int ss_dy = 2;
+
+// Schriftgröße: FONT_28 wird für den Schriftzug verwendet
+#define SS_TEXT       "InspectAir"
+#define SS_TEXT_W     200  // ungefähre Breite des Textes in Pixeln
+#define SS_TEXT_H     34   // ungefähre Höhe
+#define SS_MARGIN     4
+
+void ui_showScreensaver() {
+    if (ss_active) return;
+    
+    ss_prev_screen = current_screen;
+    
+    if (!ss_screen) {
+        ss_screen = lv_obj_create(NULL);
+        lv_obj_set_style_bg_color(ss_screen, lv_color_black(), 0);
+        lv_obj_set_style_bg_opa(ss_screen, LV_OPA_COVER, 0);
+        lv_obj_remove_flag(ss_screen, LV_OBJ_FLAG_SCROLLABLE);
+        
+        ss_label = lv_label_create(ss_screen);
+        lv_label_set_text(ss_label, SS_TEXT);
+        lv_obj_set_style_text_font(ss_label, FONT_28, 0);
+        lv_obj_set_style_text_color(ss_label, lv_color_hex(0x059669), 0);
+        lv_obj_set_pos(ss_label, ss_x, ss_y);
+    }
+    
+    // Zufällige Startposition
+    ss_x = 20 + (esp_random() % (480 - SS_TEXT_W - 40));
+    ss_y = 20 + (esp_random() % (320 - SS_TEXT_H - 40));
+    lv_obj_set_pos(ss_label, ss_x, ss_y);
+    
+    lv_screen_load(ss_screen);
+    ss_active = true;
+    LOG_I("UI", "Screensaver AN");
+}
+
+void ui_hideScreensaver() {
+    if (!ss_active) return;
+    
+    ss_active = false;
+    ui_setScreen(ss_prev_screen);
+    LOG_I("UI", "Screensaver AUS → Screen %d", ss_prev_screen);
+}
+
+void ui_updateScreensaver() {
+    if (!ss_active || !ss_label) return;
+    
+    ss_x += ss_dx;
+    ss_y += ss_dy;
+    
+    // Bounce an den Rändern
+    if (ss_x <= SS_MARGIN || ss_x >= 480 - SS_TEXT_W - SS_MARGIN) {
+        ss_dx = -ss_dx;
+        ss_x += ss_dx;
+    }
+    if (ss_y <= SS_MARGIN || ss_y >= 320 - SS_TEXT_H - SS_MARGIN) {
+        ss_dy = -ss_dy;
+        ss_y += ss_dy;
+    }
+    
+    lv_obj_set_pos(ss_label, ss_x, ss_y);
+}
+
+bool ui_isScreensaverActive() {
+    return ss_active;
 }

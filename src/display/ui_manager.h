@@ -31,11 +31,12 @@ LV_FONT_DECLARE(ui_font_48);
  * ═══════════════════════════════════════════════════════════════════════════ */
 enum UIScreen {
     UI_SCREEN_TREE     = 0,  // Tree animation (start screen)
-    UI_SCREEN_OVERVIEW = 1,  // Large AQI + 2 tiles (minimalist)
-    UI_SCREEN_DETAIL   = 2,  // Small AQI + 4 tiles (full info)
-    UI_SCREEN_ANALOG   = 3,  // Analog cockpit gauges
-    UI_SCREEN_BUBBLE   = 4,  // Dynamic circles (modern bubbles)
-    UI_SCREEN_COUNT    = 5   // Number of screens
+    UI_SCREEN_NATURE   = 1,  // Organic / Nature cards (Quicksand fonts)
+    UI_SCREEN_OVERVIEW = 2,  // Large AQI + 2 tiles (minimalist)
+    UI_SCREEN_DETAIL   = 3,  // Small AQI + 4 tiles (full info)
+    UI_SCREEN_ANALOG   = 4,  // Analog cockpit gauges
+    UI_SCREEN_BUBBLE   = 5,  // Dynamic circles (modern bubbles)
+    UI_SCREEN_COUNT    = 6   // Number of screens
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -93,5 +94,26 @@ void ui_updateSensorValues(float temp, float hum, int co2, int pm25, int voc);
  * Updates all sensor values from SensorReadings structure
  */
 void ui_updateSensors(const SensorReadings& readings);
+
+/**
+ * Shows the screensaver (bouncing "InspectAir" text)
+ * Call when display is dimmed
+ */
+void ui_showScreensaver(void);
+
+/**
+ * Hides the screensaver and restores the previous screen
+ */
+void ui_hideScreensaver(void);
+
+/**
+ * Updates the screensaver animation (call in loop, ~100ms interval)
+ */
+void ui_updateScreensaver(void);
+
+/**
+ * Returns true if the screensaver is currently active
+ */
+bool ui_isScreensaverActive(void);
 
 #endif // UI_MANAGER_H

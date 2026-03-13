@@ -27,6 +27,7 @@ static WebServer server(80);
 // ============================================
 static const char* screenNames[] = {
     "Baum",        // UI_SCREEN_TREE
+    "Natur",       // UI_SCREEN_NATURE
     "Übersicht",   // UI_SCREEN_OVERVIEW
     "Detail",      // UI_SCREEN_DETAIL
     "Analog",      // UI_SCREEN_ANALOG
@@ -103,10 +104,11 @@ h2{font-size:1em;color:#81d4fa;margin:14px 0 6px}
 <h2>Screens</h2>
 <div class="bg">
   <a class="b" href="/screen?id=0">&#127795; Baum</a>
-  <a class="b" href="/screen?id=1">&#128202; &Uuml;bersicht</a>
-  <a class="b" href="/screen?id=2">&#128203; Detail</a>
-  <a class="b" href="/screen?id=3">&#127902; Analog</a>
-  <a class="b" href="/screen?id=4">&#129531; Bubbles</a>
+  <a class="b" href="/screen?id=1">&#127807; Natur</a>
+  <a class="b" href="/screen?id=2">&#128202; &Uuml;bersicht</a>
+  <a class="b" href="/screen?id=3">&#128203; Detail</a>
+  <a class="b" href="/screen?id=4">&#127902; Analog</a>
+  <a class="b" href="/screen?id=5">&#129531; Bubbles</a>
   <a class="b bdim" id="dbtn" href="/dim">%DIMBTNTEXT%</a>
 </div>
 

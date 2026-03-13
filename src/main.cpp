@@ -37,6 +37,9 @@
 #include "web_remote.h"
 #endif
 
+// OTA (Over-the-Air Updates)
+#include <ArduinoOTA.h>
+
 // Watchdog Timer
 #include <esp_task_wdt.h>
 
@@ -72,6 +75,9 @@ static unsigned long lastTimeUpdate = 0;
 static unsigned long lastStatusPrint = 0;
 static unsigned long last_pms_ok = 0;
 static unsigned long last_radar_ok = 0;
+
+// OTA Flag
+static volatile bool otaInProgress = false;
 
 // Wochentags-Namen
 const char* weekdays[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
@@ -170,6 +176,34 @@ void setup() {
     }
     #endif
     
+    // === OTA ===
+    ArduinoOTA.setHostname("inspectair");
+    ArduinoOTA.onStart([]() {
+        otaInProgress = true;
+        esp_task_wdt_delete(NULL);
+        LOG_I("OTA", "Update gestartet...");
+    });
+    ArduinoOTA.onEnd([]() {
+        otaInProgress = false;
+        LOG_I("OTA", "Update fertig! Neustart...");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        static unsigned int lastPct = 999;
+        unsigned int pct = (progress * 100) / total;
+        if (pct != lastPct && pct % 10 == 0) {
+            LOG_I("OTA", "%u%%", pct);
+            lastPct = pct;
+        }
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+        otaInProgress = false;
+        esp_task_wdt_init(8, true);
+        esp_task_wdt_add(NULL);
+        LOG_E("OTA", "Fehler %u", error);
+    });
+    ArduinoOTA.begin();
+    LOG_I("OTA", "Bereit (Host: inspectair, IP: %s)", WiFi.localIP().toString().c_str());
+    
     // === WATCHDOG (8s) ===
     esp_task_wdt_init(8, true);
     esp_task_wdt_add(NULL);
@@ -183,6 +217,15 @@ void setup() {
 
 void loop() {
     unsigned long loopStart = millis();
+    
+    // === OTA (höchste Priorität) ===
+    ArduinoOTA.handle();
+    
+    // Während OTA: nur OTA bearbeiten, alles andere pausieren
+    if (otaInProgress) {
+        yield();
+        return;
+    }
     
     // === WATCHDOG ===
     esp_task_wdt_reset();
@@ -231,6 +274,19 @@ void loop() {
     
     bool isMotionDetected = presenceActive || (millis() - lastMoveTime < 2000);
     powerManager.update(isMotionDetected);
+    
+    // === SCREENSAVER ===
+    if (powerManager.isDimmed() && !ui_isScreensaverActive()) {
+        ui_showScreensaver();
+    } else if (!powerManager.isDimmed() && ui_isScreensaverActive()) {
+        ui_hideScreensaver();
+    }
+
+    static unsigned long lastSSUpdate = 0;
+    if (ui_isScreensaverActive() && millis() - lastSSUpdate >= 80) {
+        lastSSUpdate = millis();
+        ui_updateScreensaver();
+    }
     
     // === UHRZEIT (500ms) ===
     if (millis() - lastTimeUpdate >= 500) {
